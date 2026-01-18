@@ -29,28 +29,30 @@ docker exec -it ollama ollama run deepseek-r1:1.5b
  <!--_ _依赖Jar__包版本管理 -->  
  <dependencyManagement>    
 	 <dependencies>  
-	      <dependency>  
+		 <dependency>  
 	        <groupId>org.springframework.boot</groupId>  
 	        <artifactId>spring-boot-dependencies</artifactId>  
 	        <version>${spring-boot.version}</version>  
 	        <type>pom</type>  
 	        <scope>import</scope>  
 	     </dependency>  
-	    <dependency>  
-        <groupId>org.springframework.ai</groupId>  
-        <artifactId>spring-ai-bom</artifactId>  
-        <version>${spring-ai.version}</version>  
-        <type>pom</type>  
-        <scope>import</scope>  
-      </dependency>  
-      <dependency>  
-        <groupId>com.alibaba.cloud.ai</groupId>  
-        <artifactId>spring-ai-alibaba-bom</artifactId>  
-        <version>${spring-ai-alibaba.version}</version>
-
-<type>pom</type>  
-        <scope>import</scope>  
-      </dependency>  
+		<dependency>  
+	        <groupId>org.springframework.ai</groupId>  
+	        <artifactId>spring-ai-bom</artifactId>  
+	        <version>${spring-ai.version}</version>  
+	        <type>pom</type>  
+	        <scope>import</scope>  
+	    </dependency>  
+        <dependency>  
+	        <groupId>com.alibaba.cloud.ai</groupId>  
+	        <artifactId>spring-ai-alibaba-bom</artifactId>  
+	        <version>${spring-ai-alibaba.version}</version>
+			<type>pom</type>  
+	        <scope>import</scope>  
+        </dependency>  
     </dependencies>  
-  </dependencyManagement>
+</dependencyManagement>
+```
+之后在子项目导入依赖
+```
 ```

@@ -13,4 +13,6 @@ docker run -d -p 11434:11434  --cpus=4  --memory=4g --memory=4g -v /usr/local/
 ```
 docker exec -it ollama ollama run deepseek-r1:1.5b
 ```
-按照上述方法即可bu'shu
+按照上述方法即可在本地部署deepseek-r1模型
+## Spring AI
+父项目中导入

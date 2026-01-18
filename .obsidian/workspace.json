@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "LLM/Spring AI.md",
+                "file": "LLM/LLM.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Spring AI"
+              "title": "LLM"
             }
           }
         ]
@@ -188,7 +188,7 @@
   "active": "c0fe8f4220a7dd72",
   "lastOpenFiles": [
     "java/杂.md",
-    "LLM/Spring AI.md",
+    "LLM/LLM.md",
     "LLM",
     "java/Java并发编程.md",
     "新建 文本文档.txt"

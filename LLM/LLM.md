@@ -148,9 +148,9 @@ prompt()：作为链式调用的七点，用于初始化提示词的构建流程
 user()：用于设置用户输入的提示词内容，通常直接接收用户的问题或指令，该方法支持动态参数替换，可通过占位符实现模版化输入
 call()：触发实际的AI模型调用，将组装好的prompt发送给模型并返回ChatResponse对象。
 **响应处理方式**
-1. 同步阻塞式响应
-	客户端发送Prompt后需要等待服务端生成完整的响应，一次性返回所有数据。适用于结果较小或需要等待完整数据再处理的场景，如批量文本生成、数据分析
-	```java
+同步阻塞式响应
+客户端发送Prompt后需要等待服务端生成完整的响应，一次性返回所有数据。适用于结果较小或需要等待完整数据再处理的场景，如批量文本生成、数据分析
+```java
 	@GetMapping("/chat")  
 	public String chat(@RequestParam("question") String question) {  
 	    return chatClient.prompt()// 创建一个新的ai对话提示  
@@ -159,7 +159,7 @@ call()：触发实际的AI模型调用，将组装好的prompt发送给模型并
             .content(); // 提取ai回复的文本并返回  
 	}
 	```
-2. 流式响应
+	流式响应
 	流式响应是一种逐步返回数据的通信模式，通过分批次传输数据，实现低延迟的实时交互体验，减少服务端内存占用。（现在市面上AI模型的回复）适合大模型生成场景，如实时对话式的逐字显示AI回复，长文本式的报告生成等耗时任务，大文件传输的分块下载或上传技术实现
 	```java
 	@GetMapping(value = "/stream",
@@ -171,5 +171,5 @@ call()：触发实际的AI模型调用，将组装好的prompt发送给模型并
             .content();  
 	}
 	```
-	基于Spring WebFlux的Flux类型实现的异步非阻塞处理；通过stream()方法触发流式 处理，返回Flux<String>对象；底层依赖SSE或WebSocket协议传输
-	tips: produces = MediaType.TEXT_EVENT_STREAM_VALUE是Spring框架中用于声明接口响应类型的配置，核心作用是指定接口返回Server-Sent Events(SSE)格式的响应，而非普通的JSON/HTML等格式
+基于Spring WebFlux的Flux类型实现的异步非阻塞处理；通过stream()方法触发流式 处理，返回Flux<String>对象；底层依赖SSE或WebSocket协议传输
+tips: produces = MediaType.TEXT_EVENT_STREAM_VALUE是Spring框架中用于声明接口响应类型的配置，核心作用是指定接口返回Server-Sent Events(SSE)格式的响应，而非普通的JSON/HTML等格式

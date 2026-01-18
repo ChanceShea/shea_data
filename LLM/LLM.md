@@ -98,3 +98,5 @@ spring:
 ```
 ### 对话客户端
 Spring AI Alibaba的ChatClient是用于与AI模型交互的核心抽象接口，支持同步和响应式编程模型
+**创建模型**
+ChatClient是使用ChatClient.Builder对象。通过ChatClient

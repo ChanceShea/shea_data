@@ -15,4 +15,42 @@ docker exec -it ollama ollama run deepseek-r1:1.5b
 ```
 按照上述方法即可在本地部署deepseek-r1模型
 ## Spring AI
-父项目中导入
+父项目中导入以下项目
+```xml
+<properties>    
+	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>  
+    <!-- Spring AI -->   
+    <spring-ai.version>1.0.0 </spring-ai.version>  
+    <!-- Spring AI Alibaba -->   
+    <spring-ai-alibaba.version>1.0.0.2</spring-ai-alibaba.version>  
+    <!-- Spring Boot -->    
+    <spring-boot.version>3.4.5</spring-boot.version>  
+ </properties>
+ <!--_ _依赖Jar__包版本管理 -->  
+ <dependencyManagement>    
+	 <dependencies>  
+	      <dependency>  
+	        <groupId>org.springframework.boot</groupId>  
+	        <artifactId>spring-boot-dependencies</artifactId>  
+	        <version>${spring-boot.version}</version>  
+	        <type>pom</type>  
+	        <scope>import</scope>  
+	     </dependency>  
+	    <dependency>  
+        <groupId>org.springframework.ai</groupId>  
+        <artifactId>spring-ai-bom</artifactId>  
+        <version>${spring-ai.version}</version>  
+        <type>pom</type>  
+        <scope>import</scope>  
+      </dependency>  
+      <dependency>  
+        <groupId>com.alibaba.cloud.ai</groupId>  
+        <artifactId>spring-ai-alibaba-bom</artifactId>  
+        <version>${spring-ai-alibaba.version}</version>
+
+<type>pom</type>  
+        <scope>import</scope>  
+      </dependency>  
+    </dependencies>  
+  </dependencyManagement>
+```

@@ -116,11 +116,12 @@ public class ChatController{
 ```java
 @Configuration
 public class ChatClientConfig{
-
-	// 通过
+	// 通过此方式可以创建多个ChatClient实例
 	@Bean
 	public ChatClient chatClient(ChatModel model){
 		return ChatClient.builder(model).build();
 	}
 }
 ```
+**prompt**
+Prompt提示词是与模型交互的一种输入数据组织

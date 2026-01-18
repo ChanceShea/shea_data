@@ -54,5 +54,11 @@ docker exec -it ollama ollama run deepseek-r1:1.5b
 </dependencyManagement>
 ```
 之后在子项目导入依赖
+```xml
+<dependency>  
+	<groupId>org.springframework.ai</groupId>  
+    <artifactId>spring-ai-ollama-spring-boot-starter</artifactId>
+	<version>1.0.0-M6</version>  
+</dependency>
 ```
-```
+核心配置 application.yml

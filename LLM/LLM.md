@@ -62,3 +62,15 @@ docker exec -it ollama ollama run deepseek-r1:1.5b
 </dependency>
 ```
 核心配置 application.yml
+```yml
+server:
+  port: 9091
+spring:
+  application:
+    name: ollama-ai
+    ai:
+      ollama:
+      base-url: http://192.168.100.104:11434
+      chat:
+        model: deepseek-r1:1.5b
+```

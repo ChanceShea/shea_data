@@ -160,4 +160,16 @@ call()：触发实际的AI模型调用，将组装好的prompt发送给模型并
 	}
 	```
 2. 流式响应
-	流式响应是一种逐步返回数据的通信模式，通过分批次传输数据，实现低延迟的实时交互体验，减少服务端内存占用。（现在市面上AI模型的回复）
+	流式响应是一种逐步返回数据的通信模式，通过分批次传输数据，实现低延迟的实时交互体验，减少服务端内存占用。（现在市面上AI模型的回复）适合大模型生成场景，如实时对话式的逐字显示AI回复，长文本式的报告生成等耗时任务，大文件传输的分块下载或上传技术实现
+	```java
+	@GetMapping(value = "/stream",
+	produces = MediaType.TEXT_EVENT_STREAM_VALUE)  
+	public Flux<String> stream(@RequestParam("question") String question){  
+	    return chatClient.prompt()  
+            .user(question)  
+            .stream() // 获取流式响应回复  
+            .content();  
+	}
+	```
+	基于Spring WebFlux的Flux类型实现的异步非阻塞处理；通过stream()方法触发流式处理，返回Flux<String>对象；底层依赖SSE或WebSocket协议传输
+	

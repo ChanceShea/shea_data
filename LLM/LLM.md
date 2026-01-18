@@ -53,7 +53,7 @@ docker exec -it ollama ollama run deepseek-r1:1.5b
     </dependencies>  
 </dependencyManagement>
 ```
-之后在子项目导入依赖
+1. 在子项目导入依赖（本地部署）
 ```xml
 <dependency>  
 	<groupId>org.springframework.ai</groupId>  
@@ -74,3 +74,4 @@ spring:
       chat:
         model: deepseek-r1:1.5b
 ```
+2. 百炼平台AImo'xi

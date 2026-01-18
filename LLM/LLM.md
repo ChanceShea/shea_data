@@ -124,4 +124,4 @@ public class ChatClientConfig{
 }
 ```
 **prompt**
-Prompt提示词是与模型交互的一种输入数据组织
+Prompt提示词是与模型交互的一种输入数据组织方式，本质上是一种复合结构的输入

@@ -1,9 +1,9 @@
 # AI大模型
 AI大模型是指通过海量数据和超大规模参数构建的深度神经网络系统
 ## 本地部署AI大模型
-### Ollama
+### 部署Ollama
 Ollama是一个开源框架，专为在本地机器上便捷部署和运行大语言模型（LLM）而设计
-#### 部署Ollama
+
 虚拟机内存>4G，CPU数量>=4个
 ```
 mkdir -p /usr/local/ollama
@@ -96,3 +96,5 @@ spring:
           options:
             model: deepseek-r1 #模型可自行选择
 ```
+### 对话客户端
+Spring Ai

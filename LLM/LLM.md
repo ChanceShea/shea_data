@@ -97,4 +97,4 @@ spring:
             model: deepseek-r1 #模型可自行选择
 ```
 ### 对话客户端
-Spring Ai
+Spring AI Alibaba的ChatClient是用于与AI模型交互的核心抽象接口，支持同步和响应式编程模型

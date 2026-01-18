@@ -75,9 +75,24 @@ spring:
         model: deepseek-r1:1.5b
 ```
 2. 百炼平台AI模型接入
-```
+```xml
  <dependency>  
     <groupId>com.alibaba.cloud.ai</groupId>  
     <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>  
   </dependency>
+```
+核心配置application.yml
+```yml
+server:
+  port: 9092
+spring:
+  application:
+    name: alibaba-ai
+    ai:
+      dashscope:
+        api-key: ${ALIBABA_API_KEY}
+        #api-base-url: https://api.dashscope.com/api/v1 #可以省略
+        chat:
+          options:
+            model: qwen-max
 ```

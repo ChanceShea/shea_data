@@ -94,5 +94,5 @@ spring:
         #api-base-url: https://api.dashscope.com/api/v1 #可以省略
         chat:
           options:
-            model: qwen-max
+            model: deepseek-r1 #模型可自行选择
 ```

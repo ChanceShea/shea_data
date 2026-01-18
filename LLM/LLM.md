@@ -171,5 +171,10 @@ call()：触发实际的AI模型调用，将组装好的prompt发送给模型并
             .content();  
 	}
 ```
-基于Spring WebFlux的Flux类型实现的异步非阻塞处理；通过stream()方法触发流式 处理，返回Flux<String>对象；底层依赖SSE或WebSocket协议传输
-tips: produces = MediaType.TEXT_EVENT_STREAM_VALUE是Spring框架中用于声明接口响应类型的配置，核心作用是指定接口返回Server-Sent Events(SSE)格式的响应，而非普通的JSON/HTML等格式
+基于Spring WebFlux的Flux类型实现异步非阻塞处理；通过stream()方法触发流式处理，返回Flux对象；底层依赖SSE(Server-Sent Events)或WebSocket协议传输
+**tips**：produces = MediaType.TEXT_EVENT_STREAM_VALUE是Spring框架中用于声明接口响应类型的配置，核心作用是指定接口返回Server-Sent Events(SSE)格式的响应，而非普通的JSON/HTML等格式
+SSE的核心思想是：客户端发起一个请求，服务器保持这个连接打开并在有新数据时，通过这个连接将数据发送给客户端。这与传统的请求-响应模式（客户端请求一次，服务器响应一次，连接关闭）有本质区别
+响应格式为text/event-stream
+连接保持长活，服务端可分批次向客户端推送数据
+数据以特定格式（data：内容\n\n）逐行发送，客户端可监听message事件接收数据
+3. 结构化输出

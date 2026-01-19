@@ -422,3 +422,55 @@ DashScopeChatOptions options = DashScopeChatOptions.builder()
     <artifactId>spring-ai-starter-model-openai</artifactId>
 </dependency>
 ```
+```java
+@Configuration  
+public class LLMConfig {  
+  
+    private static final String DEEPSEEK_MODEL = "deepseek-v3";  
+    private static final String QWEN_MODEL = "qwen-max";  
+    private static final String OPENAI_DEEPSEEK_MODEL = "deepseek-ai/DeepSeek-V3.1";  
+  
+    @Bean  
+    public ChatModel deepseekModel(){  
+        DashScopeChatOptions options = DashScopeChatOptions.builder()  
+                .withModel(DEEPSEEK_MODEL)  
+                .build();  
+        DashScopeApi api = DashScopeApi.builder()  
+                .apiKey(System.getenv("ALIBABA_API_KEY"))  
+                .build();  
+        return DashScopeChatModel.builder()  
+                .dashScopeApi(api)  
+                .defaultOptions(options)  
+                .build();  
+    }  
+  
+    @Bean  
+    @Primary    public ChatModel qwenModel(){  
+        DashScopeChatOptions options = DashScopeChatOptions.builder()  
+                .withModel(QWEN_MODEL)  
+                .build();  
+        DashScopeApi api = DashScopeApi.builder()  
+                .apiKey(System.getenv("ALIBABA_API_KEY"))  
+                .build();  
+        return DashScopeChatModel.builder()  
+                .dashScopeApi(api)  
+                .defaultOptions(options)  
+                .build();  
+    }  
+  
+    @Bean  
+    public ChatModel openAIModel(){  
+        OpenAiChatOptions options = OpenAiChatOptions.builder()  
+                .model(OPENAI_DEEPSEEK_MODEL)  
+                .build();  
+        OpenAiApi api = OpenAiApi.builder()  
+                .baseUrl("https://api.siliconflow.cn")  
+                .apiKey(System.getenv("OPENAI_API_KEY"))  
+                .build();  
+        return OpenAiChatModel.builder()  
+                .openAiApi(api)  
+                .defaultOptions(options)  
+                .build();  
+    }  
+}
+```

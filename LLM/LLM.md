@@ -270,3 +270,4 @@ public String getWorksByRoleTemp(@RequestParam("role") String role,
 ```
 ![](assets/LLM/file-20260119101151736.png)
 **对话记忆**
+对话记忆是指大模型在连续多轮对话中，记住并运用之前对话内容的能力。它使得对话不再是孤立的问答，而成为有上下文的连贯交流

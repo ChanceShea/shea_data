@@ -272,3 +272,16 @@ public String getWorksByRoleTemp(@RequestParam("role") String role,
 **对话记忆**
 对话记忆是指大模型在连续多轮对话中，记住并运用之前对话内容的能力。它使得对话不再是孤立的问答，而成为有上下文的连贯交流
 大模型本身是无状态的，每次被调用时，它只处理当前的输入，不会自动记住之前的对话，因此“记忆”功能需要通过外部实现
+Spring AI提供了聊天记忆仓库接口 ChatMemoryRepository 用于存储聊天的抽象
+1. 默认情况下，如果没有其他仓库已配置，Spring AI会自动配置聊天记忆仓库类型为内存，实现类为InMemoryChatMemoryRepository
+2. 采用Redis的List数据结构存储对话消息序列，每个会话(conversationId)作为独立的Key，通过RPUSH/LRANGE操作实现消息的追加和范围查询，该方案相比于内存存储方案具有数据持久化、分布式支持等优势，且Redis具有更高的吞吐量和更低的延迟特性
+```xml
+<dependency>
+  <groupId>com.alibaba.cloud.ai</groupId>
+  <artifactId>spring-ai-alibaba-starter-memory-redis</artifactId>
+</dependency>
+<dependency>
+  <groupId>redis.clients</groupId>
+  <artifactId>jedis</artifactId>
+</dependency>
+```

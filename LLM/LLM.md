@@ -240,3 +240,6 @@ index()：
 system()可以通过lambda表达式构建系统提示;使用text()方法直接传入提示模板;通过param()方法逐个添加参数
 ![](assets/LLM/file-20260118223958804.png)
 ![](assets/LLM/file-20260118224102347.png)
+**PromptTemplate**
+PormptTemplate是一个用于简化Prompt构建和管理的核心组件，通过模版化发方式实现动态内容注入和结构化提示创建
+PromptTemplate通过变量映射Map的值，替换掉模版字符串中相应的参数占位符，从而拼接成最终的Prompt发送给ai模型

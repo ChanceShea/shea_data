@@ -309,3 +309,38 @@ public class RedisConfig {
     }  
 }
 ```
+配置ChatClient
+```java
+@Configuration  
+public class ChatClientConfig {  
+  
+    @Bean  
+    public ChatClient chatMemoryClient(ChatModel chatModel,  
+                                       RedisChatMemoryRepository redisChatMemoryRepository) {  
+        MessageWindowChatMemory memory = MessageWindowChatMemory.builder()  
+                .maxMessages(10)  
+                .chatMemoryRepository(redisChatMemoryRepository)  
+                .build();  
+        return ChatClient.builder(chatModel)  
+                .defaultAdvisors(  
+                        MessageChatMemoryAdvisor.builder(memory).build()  
+                ).build();  
+    }  
+}
+```
+接口方法
+```java
+@GetMapping("/memory")  
+public String memory(  
+        @RequestParam("question") String question,  
+        @RequestParam("userId") String userId  
+){  
+    return chatMemoryClient.prompt()  
+            .user(question)  
+            .advisors(a -> a.param(ChatMemory.CONVERSATION_ID,userId))  
+            .call()  
+            .content();  
+}
+```
+**MessageWindowChatMemory**
+消息WindowChatMemory维护一个最大

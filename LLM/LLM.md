@@ -343,4 +343,55 @@ public String memory(
 }
 ```
 **MessageWindowChatMemory**
-消息WindowChatMemory维护一个最大
+消息WindowChatMemory维护一个最大不限的消息窗口，当消息数量超过最大值时，旧消息被删除，同时保留系统消息。默认窗口大小为20条消息；同时可以扩展存储器
+```java
+MessageWindowChatMemory memory = MessageWindowChatMemory.builder()  
+        .maxMessages(3) // 最大消息条数  
+        .chatMemoryRepository(redisChatMemoryRepository) // 扩展存储器  
+        .build();
+```
+**Advisor**
+Spring AI提供了一些内置的Advisor，可以根据需求来配置聊天客户端
+1. MessageChatMemoryAdvisor 基于消息数量或Token数的窗口滑动记忆，当一个新的用户消息到达时，它会自动将这个窗口内的历史对话记录提取出来，作为上下文添加到本次请求的Prompt中
+2. PromptChatMemoryAdvisor 基于预定义的提示模版来提取和组织记忆，允许用户定义一个提示模版，该模版制定了从ChatMemory中提取和组织信息的规则和格式
+3. VectorStoreChatMemoryAdvisor 基于向量存储的语义搜索的记忆检索，将对话历史中的每条消息通过嵌入模型(Embedding model)转换为向量(Embedding)，并存储到向量数据库中，当新用户消息到达时，同样将其转换为向量，然后在向量数据库中进行相似性搜索
+### 对话模型
+ChatModel接受一系列消息作为输入，与模型LLM服务进行交互，并接受返回的聊天信息作为输出。相比于普通的程序输入模型的输入消息和输出消息不仅仅是支持纯字符文本，还支持包括语音、图片、视频等作为输入输出。同时，在Spring AI Alibab中，消息中还支持包含不同的角色，帮助底层模型区分来自模型、用户和系统指令等不同的消息
+**核心功能**
+ChatModel：文本聊天交互模型，支持纯文本格式作为输入，并将模型的输出以格式化文本形式返回
+ImageModel：接收用户文本输入，并将模型生成的图片作为输出返回
+AudioModel：接收用户文本输入，并将模型合成的语音作为输出返回
+```java
+@RestController  
+@RequestMapping("/ai/chat")  
+public class ChatModelController {  
+  
+    @Autowired  
+    private ChatModel chatModel;  
+  
+    @GetMapping("/testCall")  
+    public String testCall(@RequestParam String message) {  
+        Prompt prompt = new Prompt(new UserMessage(message));  
+        ChatResponse res = chatModel.call(prompt);  
+        return res.getResult().getOutput().getText();  
+    }  
+  
+    @GetMapping("/testStream")  
+    public Flux<String> testStream(@RequestParam String message){  
+        Prompt prompt = new Prompt(new UserMessage(message));  
+        Flux<ChatResponse> flux = chatModel.stream(prompt);  
+        // 将响应流中的每个ChatResponse对象映射为其输出文本内容  
+        return flux.mapNotNull(
+	        res -> res.getResult().getOutput().getText()
+        );  
+    }  
+}
+```
+**DashScopeChatOptions**
+DashScopeChatOptions是Spring AI Alibaba中用于配置模型参数的核心类，通过builder建造器实现
+model：指定模型版本
+temperature：控制生成答案的随机性
+top_p：动态截断候选词，保留立即概率达到阈值的词
+top_k：固定候选词数量，仅考虑概率前K高的词
+max_tokens：限制生成长度，防止响应过长，造成token浪费
+frequency_penalty：惩罚重复词汇，正值降低重复词概率，负值增加重复概率

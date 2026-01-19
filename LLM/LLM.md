@@ -388,10 +388,37 @@ public class ChatModelController {
 }
 ```
 **DashScopeChatOptions**
-DashScopeChatOptions是Spring AI Alibaba中用于配置模型参数的核心类，通过builder建造器实现
+DashScopeChatOptions是Spring AI Alibaba中用于配置模型参数的核心类，通过builder构造器实现
 model：指定模型版本
 temperature：控制生成答案的随机性
 top_p：动态截断候选词，保留立即概率达到阈值的词
 top_k：固定候选词数量，仅考虑概率前K高的词
 max_tokens：限制生成长度，防止响应过长，造成token浪费
 frequency_penalty：惩罚重复词汇，正值降低重复词概率，负值增加重复概率
+配置方式：
+yml文件配置：
+```yml
+chat:
+  options:
+    model: qwen-max
+    temperature: 0.8
+    top_p: 0.3
+```
+代码中配置：
+```java
+DashScopeChatOptions options = DashScopeChatOptions.builder()
+                .withTemperature(0.3)
+                .withTopP(0.8)
+                .withMaxToken(1024)
+                .build();
+  Prompt prompt = new Prompt(new UserMessage(question), options);
+```
+**多模型共用**
+同时让多个AI模型一起工作，各取所长，通过集成学习或模型堆叠等技术，显著提升最终输出的准确性和稳定性，当一个模型出现问题时，可以快速切换到备用模型，确保服务不中断
+添加依赖
+```xml
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-starter-model-openai</artifactId>
+</dependency>
+```

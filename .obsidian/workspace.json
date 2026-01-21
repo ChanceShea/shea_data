@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "LLM/LLM.md",
+                "file": "java/Redis.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "LLM"
+              "title": "Redis"
             }
           }
         ]
@@ -78,7 +78,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -186,13 +187,13 @@
   },
   "active": "c0fe8f4220a7dd72",
   "lastOpenFiles": [
+    "LLM/LLM.md",
     "LLM/assets/LLM/file-20260119101151736.png",
     "LLM/assets/LLM/file-20260118224102347.png",
     "LLM/assets/LLM/file-20260118223958804.png",
     "LLM/assets/LLM/file-20260118214629413.png",
     "LLM/assets/LLM/file-20260118214423371.png",
     "java/杂.md",
-    "LLM/LLM.md",
     "LLM/assets/LLM/file-20260118153558538.png",
     "LLM/assets/LLM",
     "LLM/assets",

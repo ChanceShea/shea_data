@@ -445,7 +445,8 @@ public class LLMConfig {
     }  
   
     @Bean  
-    @Primary    public ChatModel qwenModel(){  
+    @Primary    
+    public ChatModel qwenModel(){  
         DashScopeChatOptions options = DashScopeChatOptions.builder()  
                 .withModel(QWEN_MODEL)  
                 .build();  
@@ -471,6 +472,43 @@ public class LLMConfig {
                 .openAiApi(api)  
                 .defaultOptions(options)  
                 .build();  
+    }  
+}
+```
+**tips**：分片合并机制
+大模型流式输出时，可能讲一个完整的JSON拆分为多个分片，单个分片无法解析，如只返回{"destination":"南昌" 就结束。通过缓存分片内容，合并完整JSON后再解析，并加强空内容过滤，确保只有完整的JSON才会被解析
+```java
+public class JsonUtils {  
+  
+    // 缓存分片内容（线程安全的队列）  
+    private static final ConcurrentLinkedQueue<String> jsonChunks = new ConcurrentLinkedQueue<>();  
+  
+    /**  
+     * 检查json是否合法（{}成对）  
+     */  
+    public static boolean isJson(String json) {  
+        int left = 0;  
+        int right = 0;  
+        for (char c : json.toCharArray()) {  
+            if(c == '{') left ++;  
+            if(c == '}') right ++;  
+        }  
+        return left >= 1 && right == left;  
+    }  
+  
+    /**  
+     * 缓存并合并分片  
+     */  
+    public static String mergeJson(String content) {  
+        jsonChunks.add(content);  
+        return String.join("",jsonChunks);  
+    }  
+  
+    /**  
+     * 清空分片缓存  
+     */  
+    public static void clearChunks(){  
+        jsonChunks.clear();  
     }  
 }
 ```

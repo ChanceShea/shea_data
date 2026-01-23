@@ -512,3 +512,118 @@ public class JsonUtils {
     }  
 }
 ```
+### 文生图(Text-to-Image)模型
+文生图模型是一种**将文字描述转换为对应图形**的AI模型，属于生成式人工智能的重要分支
+文生图模型主要有以下两种使用方式：
+1. 根据prompt输入直接生成图像
+2. 根据现有图像，加上prompt输入，生成图形变体
+**ImageModel**
+在Spring AI Alibaba框架中，ImageModel是用于处理“文生图”功能的核心接口，它抽象了应用程序与底层AI模型之间的交互过程
+DashScopeImageModel是由阿里自动初始化的默认实例
+```java
+public class DashScpoeImageModel implements ImageModel{
+}
+```
+核心方法
+```java
+ImageResponse call(ImagePrompt prompt);
+```
+输入：ImagePrompt对象，包含文本描述和生成参数（如尺寸、数量等）
+输出：ImageResponse对象，包含生成的图片结果（如URL或Base64数据）
+**参数配置**
+yml文件
+```yml
+image:  
+  options:  
+    model: wan2.5-t2i-preview # 指定模型版本  
+    width: 1024 # 指定图片宽度  
+    height: 1024 # 指定图片高度  
+    n: 1 # 指定生成图片的数量  
+    style: "卡通" # 指定图片风格  
+    watermark: false # 是否添加水印  
+    negative-prompt: "模糊" # 指定负向提示（排除特定内容）
+    prompt-extend: true # 是否扩展提示词（提示词增强）
+```
+代码配置
+```java
+ImageOptions options = DashScopeImageOptions.builder()  
+        .withModel("wan2.5-t2i-preview")  
+        .withWidth(1024)  
+        .withHeight(1024)  
+        .withN(1) // 生成1张图片  
+        .withStyle("卡通")  
+        .build();
+```
+官方文档：https://bailian.console.aliyun.com/?tab=doc#/doc/?type=model&url=2848513
+实例代码
+```java
+@RestController  
+@RequestMapping("/ai/image")  
+public class ImageController {  
+  
+    @Autowired  
+    private DashScopeImageModel imageModel;  
+  
+    @GetMapping("/one")  
+    public String image(@RequestParam("input") String input) {  
+        ImagePrompt prompt = new ImagePrompt(input);  
+        ImageResponse response = imageModel.call(prompt);  
+        return response.getResult().getOutput().getUrl();  
+    }  
+  
+    @GetMapping("/n")  
+    public List<String> image(  
+            @RequestParam("input") String input,  
+            @RequestParam("n") int n  
+    ){  
+        DashScopeImageOptions options = DashScopeImageOptions  
+                .builder()  
+                .withN(n)  
+                .build();  
+        ImagePrompt prompt = new ImagePrompt(input,options);  
+        ImageResponse response = imageModel.call(prompt);  
+        List<String> list = response.getResults().stream()  
+                .map(r -> r.getOutput().getUrl())  
+                .toList();  
+        return list;  
+    }  
+}
+```
+### 语音模型
+语音模型包括：语音合成（文本转语音）、语音识别（语音转文本）、语音理解等
+#### 语音合成
+文本转语音模型(TTS)是一种将文本信息转换为语音输出的AI模型。该模型讲输入的文本内容生成自然流畅、富有表现力的语音
+**SpeechSynthesisModel**
+在Spring AI Alibaba框架中，SpeechSynthesisModel 是用于处理"文生语音"功能的核心接口，它抽象了应用程序与底层AI模型之间的交互过程
+DashScpoeSpeechSynthesisModel是阿里实现的一个默认类
+```java
+public class DashScopeSpeechSynthesisModel implements SpeechSynthesisModel{
+}
+```
+核心方法
+```java
+SpeechSynthesisResponse call(SpeechSynthesisPrompt prompt);
+```
+输入：SpeechSynthesisPrompt对象，包含文本描述和语音生成参数（如音色、语速、音量等）
+输出：SpeechSynthesisResponse对象，包含生成的语音结果（如音频流或Base64数据）
+**参数配置**
+yml配置
+```yml
+audio:  
+  synthesis:  
+    options:  
+      voice: zhiyan # 指定声音(参考官方文档)  
+      speed: 1.0 # 指定速度  
+      model: sambert-zhichu-v1  # 指定模型版本
+```
+代码配置
+```java
+SpeechSynthesisOptions options = DashScopeSpeechSynthesisOptions.builder()
+.model("sambert-zhichu-v1") // 设置模型
+.voice("zhiyan") // 设置音色
+.volume(0.8) // 设置音量
+// 设置音频格式
+.responseFormat(DashScopeSpeechSynthesisApi.ResponseFormat.WAV)
+.build();
+```
+官方文档：https://bailian.console.aliyun.com/?tab=doc#/doc/?type=model&url=2842586

@@ -627,3 +627,108 @@ SpeechSynthesisOptions options = DashScopeSpeechSynthesisOptions.builder()
 .build();
 ```
 官方文档：https://bailian.console.aliyun.com/?tab=doc#/doc/?type=model&url=2842586
+**实例代码**
+```java
+@RestController  
+@RequestMapping("/ai/audio")  
+@Slf4j  
+public class AudioSpeakModelController {  
+  
+    @Autowired  
+    private SpeechSynthesisModel speechModel;  
+  
+    @GetMapping("/text-audio")  
+    public ResponseEntity<InputStreamResource> audio(  
+            @RequestParam("input") String input,  
+            @RequestParam("format") String format  
+    ){  
+        try {  
+            // 参数设置  
+            DashScopeSpeechSynthesisApi.ResponseFormat responseFormat =  
+                    DashScopeSpeechSynthesisApi.ResponseFormat.WAV;  
+            if (format.equals("mp3")) {  
+                responseFormat = DashScopeSpeechSynthesisApi.ResponseFormat.MP3;  
+            }  
+            DashScopeSpeechSynthesisOptions options = DashScopeSpeechSynthesisOptions.builder()  
+                    .responseFormat(responseFormat)  
+                    .build();  
+            // 构建TTS请求  
+            SpeechSynthesisPrompt prompt = new SpeechSynthesisPrompt(input);  
+            // 调用DashScope TTS  
+            SpeechSynthesisResponse response = speechModel.call(prompt);  
+            // 获取音频ByteBuffer并转换为字节数组  
+            ByteBuffer audioBuffer = response.getResult().getOutput().getAudio();  
+            byte[] audioBytes = new byte[audioBuffer.remaining()]; // 按剩余字节数创建数组  
+            audioBuffer.get(audioBytes); // 将ByteBuffer数据写入字节数组  
+            // 构建响应头  
+            HttpHeaders headers = new HttpHeaders();  
+            String mediaType = "audio/mpeg";  
+            headers.setContentType(MediaType.parseMediaType(mediaType));  
+            // 下载文件名（时间戳）  
+            String fileName = String.format("audio_%d.%s", System.currentTimeMillis(), format);  
+            headers.setContentDispositionFormData("attachment", fileName);  
+            headers.setContentLength(audioBytes.length); // 设置内容长度  
+            // 构建响应（流式返回，减少内存占用）  
+            return ResponseEntity.ok()  
+                    .headers(headers)  
+                    .body(new InputStreamResource(new ByteArrayInputStream(audioBytes)));  
+        }catch (Exception e) {  
+            log.error("TTS转换失败",e);  
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)  
+                    .body(null);  
+        }  
+    }  
+}
+```
+#### 语音识别
+语音识别(Speech Recognition)是一种将人类语音转换为计算机可读文本或指令的技术，属于AI和NLP的交叉领域。其核心目的是让机器“听懂”人类语言，并实现人机交互
+**AudioTranscriptionModel**
+在Spring AI Alibaba框架中，AudioTranscriptionModel 是用于处理"语音转文字"功能的核心接口，它抽象了应用程序与底层AI模型之间的交互过程
+DashScopeAudioTranscriptionModel是阿里实现的一个默认类
+```java
+public class DashScopeAudioTranscriptionModel implements AudioTranscriptionModel{
+}
+```
+核心方法
+```java
+AudioTranscriptionResponse call(AudioTranscriptionPrompt prompt);
+```
+输入：AudioTranscriptionPrompt对象，包含音频数据和转录参数（如语音、格式等）
+输出：AudioTranscriptionResponse对象，包含转录后的文本结果和元数据
+OpenAi接口提供的实现类
+```java
+public class OpenAiAudioTranscriptionModel implements Model<AudioTranscriptionPrompt,AudioTranscriptionResponse>{
+}
+```
+**参数配置**
+
+| 参数名                | 类型      | 说明                     |
+| ------------------ | ------- | ---------------------- |
+| withModel          | String  | 指定语音识别模型               |
+| withLanguage       | String  | 设置识别语言，支持多语言识别         |
+| withAudioFormat    | String  | 指定输入音频的格式              |
+| withNoiseReduction | boolean | 启用噪声抑制功能，提升识别准确性       |
+| withContext        | String  | 启用上下文信息，提高识别结果的连贯性和准确性 |
+| withRealTime       | String  | 启用实时转写功能，适用于需要及时返回的场景  |
+配置文件
+```yml
+spring:
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      base-url: https://api.siliconflow.cn
+      audio:
+        transcription:
+          options:
+            model: FunAudioLLM/SenseVoiceSmall
+```
+**tips**：UrlResource
+UrlResource是Spring框架中Resource接口的一个实现类，专门用于处理URL定位的资源，可以访问多种协议的资源
+1. 本地文件资源：使用file:前缀，如"file:///C:/data/test.txt"
+2. HTTP/HTTPS资源，如"http://localhost:8080/test.txt"
+3. FTP资源，通过FTP协议访问远程文件
+创建UrlResource对象后，可以通过统一的方法访问资源内容，例如使用getInputStream()获取输入流读取数据，或使用getFile()获取文件对象
+**实例代码**
+```java
+
+```

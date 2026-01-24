@@ -37,6 +37,65 @@ Redis 8.0通过Vector Set数据结构提供向量存储能力
 ```
 docker run -d   --name redis-stack   -p 6379:6379  -p 8001:8001   redis/redis-stack:latest
 ```
+Redis Stack通沟集成RedisJSON模块实现了对JSON数据的原生支持，使Redis能够直接存储、查询和修改JSON格式数据，无需序列化或拆解为Hash结构
+##### 常用命令
+1. 设置JSON值
+```
+JSON.SET key path value [NX|XX]
+JSON.SET user $ '{"name":"Tom","age":30}'
+```
+NX：仅当路径不存在时设置，XX：仅当路径存在时设置
+在RedisJSON上下文中，**$** 是JSONPath表达式，表示根元素(整个JSON文档)
+**.** 或 **[]** 表示子元素选择器
+2. 获取JSON值
+```
+JSON.GET key [path]
+JSON.GET user $.name
+```
+3. 删除JSON值
+```
+JSON.DEL key [path]
+JSON.DEL user $.age
+```
+4. 获取指定路径
+```
+JSON.GET key path
+JSON.GET user $.age
+```
+5. 批量获取
+```
+JSON.MGET key1 path1 key2 path2
+JSON.MGET user $.name user1 $.age
+```
+6. 条件设置
+**仅当字段不存在时设置**
+```
+JSON.SET key path value NX
+JSON.SET user $.address "New York" NX
+```
+**仅当字段存在时设置**
+```
+JSON.SET key path value XX
+JSON.SET user $.age 31 XX
+```
+7. 向数组追加元素
+```
+JSON.ARRAPPEND key path value
+JSON.ARRAPPEND user $.hobbies "java"
+```
+8. 获取数组长度
+```
+JSON.ARRLEN key path
+JSON.ARRLEN user $.hobbies
+```
+9. 检查字段类型
+```
+JSON.TYPE key path
+JSON.TYPE user $.age
+```
+##### 向量模型
+
+
 ## 本地部署AI大模型
 ### 部署Ollama
 Ollama是一个开源框架，专为在本地机器上便捷部署和运行大语言模型（LLM）而设计

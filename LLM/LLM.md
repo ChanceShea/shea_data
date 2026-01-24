@@ -136,6 +136,107 @@ spring:
 	VectorStore是Spring AI中负责存储和检索向量嵌入的关键抽象，主要用于：将文段转换为向量并持久化存储；基于向量相似度进行语义搜索；支持多种向量数据库后端
 ---
 **实例代码**
+```java
+@RestController  
+@RequestMapping("/ai/embed")  
+public class Embed2VectorController {  
+  
+    @Autowired  
+    private DashScopeEmbeddingModel model;  
+    @Autowired  
+    private VectorStore vectorStore;  
+  
+    /**  
+     * 文本转向量  
+     * @param text 文本  
+     * @return  
+     */  
+    @GetMapping("/text2embed")  
+    public String text2Embed(@RequestParam String text) {  
+        // 调用模型生成文本嵌入向量  
+        // 通过创建EmbeddingRequest对象包装输入文本，调用model的call方法获取嵌入响应  
+        DashScopeEmbeddingOptions options = DashScopeEmbeddingOptions.builder()  
+                .withModel("text-embedding-v3")  
+                .build();  
+        EmbeddingResponse resp = model.call(new EmbeddingRequest(List.of(text), options));  
+        return Arrays.toString(resp.getResult().getOutput());  
+    }  
+  
+    /**  
+     * 存储向量  
+     * @param text 文本  
+     * @return  
+     */  
+    @GetMapping("/add")  
+    public String add(@RequestParam String text) {  
+        List<Document> documents = List.of(new Document(text));  
+        vectorStore.add(documents);  
+        return "success";  
+    }  
+  
+    /**  
+     * 查询向量  
+     * @param text 文本  
+     * @return  
+     */  
+    @GetMapping("/query")  
+    public List query(@RequestParam String text) {  
+        SearchRequest req = SearchRequest.builder()  
+                .query(text)  
+                .topK(2)  
+                .build();  
+        List<Document> list = vectorStore.similaritySearch(req);  
+        return list;  
+    }  
+}
+```
+**测试**
+http://localhost:9094/ai/embed/text2embed?text=华山论剑
+
+http://localhost:9094/ai/embed/add?text=华山论剑
+
+http://localhost:9094/ai/embed/add?text=决战华山
+
+http://localhost:9094/ai/embed/query?text=华山
+**tips**：由于Redis Stack没有设置密码而Redis有设置密码，在配置文件上会有冲突，因此选择创建一个新的模块（也可以设置Redis Stack的密码和Redis相同，同时使用两个依赖）
+## 检索增强生成(RAG)
+RAG是一种结合信息检索与文本生成的技术，通过"先查资料后回答"的机制，让LLM在生成答案前先从外部数据库检索相关信息，然后基于检索结果回答
+### 知识库构建
+手机、清洗领域文档，分块并向量化存储。文档分块通过Token粒度文本分割类TokenTextSplitter来完成。分割后的Document添加增强元数据（如chunk索引，TOken数，来源），方便后续检索溯源
+TokenTextSplitter类的transform()方法分隔带元数据的Document对象列表，最终返回新的Document列表
+```java
+List<Document> tokens = new TokenTextSplitter().transform(documents);
+vectorStore.add(tokens);
+```
+### 检索增强生成
+**检索**：将用户问题转化为向量，从知识库中匹配最相关的文本片段
+**增强**：将检索到的相关上下文与原始问题拼接，形成更完整的提示
+**生成**：大模型基于增强后的提示生成最终回答，有效减少“幻觉”问题
+Spring AI使用Advisor应用程序接口支持RAG。当用户问题发给AI模型时，问答Advisor查询向量数据库中与用户问题相关的文档。向量数据库的响应会附加到用户文本中，为AI模型生成响应提供上下问
+假设你已经把数据加载到一个VectorStore，你可以通过提供的实例来执行检索增强生成问答Advisor前往ChatClient
+```java
+RetrievalAugmentationAdvisor advisor = RetrievalAugmentationAdvisor.builder()  
+        .documentRetriever(VectorStoreDocumentRetriever.builder()  
+                .vectorStore(vectorStore)  
+                .topK(8)  
+                .build()  
+        )  
+        .build();  
+  
+return chatClient.prompt()  
+        .system(s -> s.text(promptContent).param("question", question))  
+        .user(question)  
+        .advisors(advisor)  
+        .stream()  
+        .content();
+```
+其中：
+1.RetrievalAugmentationAdvisor是Spring AI中高阶封装的RAG入口，其核心作用是：
++ 封装“检索文档→拼接上下文→传给 LLM”“检索文档→拼接上下文→传给 LLM”的全部流程，无需手动处理检索与提示词拼接
++ 可灵活配置检索规则（数量、相似度）和文档格式化逻辑
++ 与流式输出结合，适配前端试试加在的需求
+	其依赖DocumentRetriever检索器，负责从向量库中根据用户问题检索相关文档，DocumentRetriever依赖VectorStore向量存储，存放商品文档的向量嵌入（提前将商品信息转为向量存入）
+2.VectorStoreDocumentRetriever是Spring AI基于向量数据库的文档检索器，是RAG流程中"检索"环节的核心实现，其核心作用是：将用户查询文本转为向量，在向量库中执行语义相似度检索，筛选出与查询最相关的文档，为LLM生成回答提供真实数据源
 
 ## 本地部署AI大模型
 ### 部署Ollama

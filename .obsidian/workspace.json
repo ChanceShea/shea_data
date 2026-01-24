@@ -4,18 +4,19 @@
     "type": "split",
     "children": [
       {
-        "id": "a01a9f5db5a65e0b",
+        "id": "315881e52e55e875",
         "type": "tabs",
         "children": [
           {
-            "id": "9784048dc3db2c94",
+            "id": "0311a0a7f9f2b124",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
                 "file": "LLM/LLM.md",
                 "mode": "source",
-                "source": false
+                "source": false,
+                "backlinks": false
               },
               "icon": "lucide-file",
               "title": "LLM"
@@ -73,8 +74,24 @@
               "icon": "lucide-bookmark",
               "title": "书签"
             }
+          },
+          {
+            "id": "0dc0d29d2e02ee63",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "LLM/LLM.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "LLM 的大纲"
+            }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
@@ -114,27 +131,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "java/Java并发编程.md",
+                "file": "LLM/LLM.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Java并发编程 的出链列表"
-            }
-          },
-          {
-            "id": "16dccbbcebd834e0",
-            "type": "leaf",
-            "state": {
-              "type": "tag",
-              "state": {
-                "sortOrder": "frequency",
-                "useHierarchy": true,
-                "showSearch": false,
-                "searchQuery": ""
-              },
-              "icon": "lucide-tags",
-              "title": "标签"
+              "title": "LLM 的出链列表"
             }
           },
           {
@@ -152,21 +154,32 @@
             }
           },
           {
-            "id": "0dc0d29d2e02ee63",
+            "id": "0696377114fcf582",
             "type": "leaf",
             "state": {
-              "type": "outline",
+              "type": "git-view",
+              "state": {},
+              "icon": "git-pull-request",
+              "title": "Source Control"
+            }
+          },
+          {
+            "id": "16dccbbcebd834e0",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
               "state": {
-                "file": "java/Java并发编程.md",
-                "followCursor": false,
+                "sortOrder": "frequency",
+                "useHierarchy": true,
                 "showSearch": false,
                 "searchQuery": ""
               },
-              "icon": "lucide-list",
-              "title": "Java并发编程 的大纲"
+              "icon": "lucide-tags",
+              "title": "标签"
             }
           }
-        ]
+        ],
+        "currentTab": 2
       }
     ],
     "direction": "horizontal",
@@ -185,17 +198,19 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "9784048dc3db2c94",
+  "active": "0311a0a7f9f2b124",
   "lastOpenFiles": [
-    "java/Redis.md",
+    "LLM/assets/LLM/file-20260118153558538.png",
     "LLM/LLM.md",
+    "未命名.base",
+    "2026-01-23.md",
+    "java/Redis.md",
     "LLM/assets/LLM/file-20260119101151736.png",
     "LLM/assets/LLM/file-20260118224102347.png",
     "LLM/assets/LLM/file-20260118223958804.png",
     "LLM/assets/LLM/file-20260118214629413.png",
     "LLM/assets/LLM/file-20260118214423371.png",
     "java/杂.md",
-    "LLM/assets/LLM/file-20260118153558538.png",
     "LLM/assets/LLM",
     "LLM/assets",
     "LLM",

@@ -94,7 +94,48 @@ JSON.TYPE key path
 JSON.TYPE user $.age
 ```
 ##### 向量模型
+**导入依赖**
+```xml
+<dependency>  
+    <groupId>org.springframework.ai</groupId>  
+    <artifactId>spring-ai-starter-vector-store-redis</artifactId>  
+</dependency>
+```
+yml配置
+```yml
+---
 
+spring:
+  data:
+    redis:
+      host: 192.168.100.104
+      port: 6379
+  ai:
+    vectorstore:
+      redis:
+        initialize-schema: true
+        prefix: test-prefix
+        index-name: test-index
+    dashscope:
+      embedding:
+        options:
+          model: text-embedding-v3
+```
+**模型接口**
+1. EmbeddingModel
+	Spring AI Alibaba框架中，EmbeddingModel接口提供的文本嵌入服务，通过API将文本转换为高维向量，支持语义分析、相似度计算等NLP任务
+2. DashScopeEmbeddingOptions
+	DashScopeEmbeddingOptions是Spring AI集成阿里云通义千问Embedding服务的核心配置类，用于封装调用DashScope文本嵌入(Embedding)API的所有定制化参数（如模型版本、输出维度、文本截断策略等），是对接阿里云Embedding服务的关键配置载体
+	其核心配置如下：
+	model：指定Embedding模型版本
+	dimension：嵌入向量输出维度
+	truncate：文本超长截断策略
+	timeout：请求超时时间
+	topK：相似性查询返回前K个向量
+3. VectorStore
+	VectorStore是Spring AI中负责存储和检索向量嵌入的关键抽象，主要用于：将文段转换为向量并持久化存储；基于向量相似度进行语义搜索；支持多种向量数据库后端
+---
+**实例代码**
 
 ## 本地部署AI大模型
 ### 部署Ollama

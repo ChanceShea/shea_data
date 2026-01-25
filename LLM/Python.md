@@ -68,3 +68,9 @@ def get_completion(prompt,temperature,model="deepseek-ai/DeepSeek-V3.1"):
         return response.choices[0].message.content  
     return "generate answer error"
 ```
+# 向量数据库
+## 向量
+在NLP中，词向量是一种以单词为单位将每个单词转化为实数向量的技术。这些实数向量可以更好被理解和处理。相似相关的对象在向量空间中的距离应该更近
+词向量实际上是将单词转化为固定的静态向量，虽然可以在一定程度上捕捉并表达文本中的语义信息，但忽略了单词在不同语境中的意思会受到影响这一现实，因此在RAG应用中使用的向量技术一般为通用文本向量，该技术可以对一定范围内任意长度的文本进行向量化，与词向量不同的是，向量化的单位不是单词而是输入的文本，输出的向量也会捕捉更多的语义信息
+## Embedding API
+## 调用API

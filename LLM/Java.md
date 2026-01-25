@@ -3,7 +3,7 @@ AI大模型是指通过海量数据和超大规模参数构建的深度神经网
 ## 基本概念
 ### Prompt
 Prompt最初是NLP（自然语言处理）研究者为下游任务设计出来的一种任务专属的输入模版，类似于一种任务对应一种Prompt。我没每一次访问大模型的输入为一个Prompt，大模型返回给我们的结果则被称为Completion
-![](assets/LLM/file-20260118153558538.png)
+![](file-20260125114411144.png)
 例如在上述图中，”什么是Prompt“就是我们的提问，也是这一次的Prompt，而ChatGPT返回给我们的回答结果也就是这一次的Completion
 ### Temperature
 LLM生成是具有随机性的，在模型的顶层通过选取不同预测概率的预测结果来生成最后的结果。一般可以通过控制temperature参数来控制LLM生成结果的随机性与创造性
@@ -414,7 +414,7 @@ public ActorFilms movies(@RequestParam("question") String question){
             .entity(ActorFilms.class);  
 }
 ```
-![](assets/LLM/file-20260118214423371.png)
+![](file-20260125114411149.png)
 可以看到，上述方法直接返回了一个指定的json对象，避免了手动转换的麻烦
 ```java
 @Data  
@@ -449,7 +449,7 @@ public Flux<StreamChunkDTO> streamChat(@RequestParam("question") String question
             });  
 }
 ```
-![](assets/LLM/file-20260118214629413.png)
+![](file-20260125114411154.png)
 返回的数据全都已经分块
 index()：
 添加索引信息：为流中的每个元素分配一个递增的索引值，从0开始
@@ -457,8 +457,8 @@ index()：
 **系统消息**
 系统消息（System Message）是用于指导大语言模型（LLM）行为的关键输入类型，通常用于初始化模型角色的设定对话规则。系统消息可以控制大模型的角色定义，行为约束，权重优先级等。
 system()可以通过lambda表达式构建系统提示;使用text()方法直接传入提示模板;通过param()方法逐个添加参数
-![](assets/LLM/file-20260118223958804.png)
-![](assets/LLM/file-20260118224102347.png)
+![](file-20260125114411142.png)
+![](file-20260125114411147.png)
 **PromptTemplate**
 PormptTemplate是一个用于简化Prompt构建和管理的核心组件，通过模版化发方式实现动态内容注入和结构化提示创建
 PromptTemplate通过变量映射Map的值，替换掉模版字符串中相应的参数占位符，从而拼接成最终的Prompt发送给ai模型
@@ -487,7 +487,7 @@ public String getWorksByRoleTemp(@RequestParam("role") String role,
             .content();  
 }
 ```
-![](assets/LLM/file-20260119101151736.png)
+![](file-20260125114411139.png)
 **对话记忆**
 对话记忆是指大模型在连续多轮对话中，记住并运用之前对话内容的能力。它使得对话不再是孤立的问答，而成为有上下文的连贯交流
 大模型本身是无状态的，每次被调用时，它只处理当前的输入，不会自动记住之前的对话，因此“记忆”功能需要通过外部实现

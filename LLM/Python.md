@@ -74,3 +74,34 @@ def get_completion(prompt,temperature,model="deepseek-ai/DeepSeek-V3.1"):
 词向量实际上是将单词转化为固定的静态向量，虽然可以在一定程度上捕捉并表达文本中的语义信息，但忽略了单词在不同语境中的意思会受到影响这一现实，因此在RAG应用中使用的向量技术一般为通用文本向量，该技术可以对一定范围内任意长度的文本进行向量化，与词向量不同的是，向量化的单位不是单词而是输入的文本，输出的向量也会捕捉更多的语义信息
 ## Embedding API
 ## 调用API
+```python
+from dotenv import load_dotenv  
+import os  
+from openai import OpenAI  
+load_dotenv()  
+  
+def openai_embedding(text:str,model:str=None):  
+  
+    api_key = os.getenv("OPENAI_API_KEY")  
+    if not api_key:  
+        print("Please set an OpenAI API key")  
+        return  
+    client = OpenAI(api_key=api_key,base_url="https://api.siliconflow.cn/v1")  
+  
+    if model is None:  
+        model = "Qwen/Qwen3-Embedding-4B"  
+  
+    resp = client.embeddings.create(  
+        input=text,  
+        model=model,  
+    )  
+    return resp  
+  
+response = openai_embedding(text="今天天气晴朗")  
+  
+print(response)
+```
+输出结果
+```
+CreateEmbeddingResponse(data=[Embedding(embedding=[-9.541741019347683e-05, -0.0012793000787496567, 0.04636579379439354,... 0.006643879227340221, -0.0159453097730875], index=0, object='embedding')], model='Qwen/Qwen3-Embedding-4B', object='list', usage=Usage(prompt_tokens=5, total_tokens=5, completion_tokens=0))
+```

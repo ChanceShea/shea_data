@@ -13,13 +13,13 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "LLM/Python.md",
+                "file": "java/Redis.md",
                 "mode": "source",
                 "source": false,
                 "backlinks": false
               },
               "icon": "lucide-file",
-              "title": "Python"
+              "title": "Redis"
             }
           }
         ]
@@ -94,7 +94,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -198,8 +199,9 @@
   },
   "active": "0311a0a7f9f2b124",
   "lastOpenFiles": [
-    "LLM/Java.md",
+    "java/Java基础.md",
     "LLM/Python.md",
+    "LLM/Java.md",
     "LLM/assets/Java",
     "LLM/assets/Java/file-20260125114411144.png",
     "未命名.base",

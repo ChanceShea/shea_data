@@ -81,16 +81,17 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "LLM/Python.md",
+                "file": "java/Redis.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Python 的大纲"
+              "title": "Redis 的大纲"
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",

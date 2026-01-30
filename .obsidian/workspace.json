@@ -13,13 +13,13 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/Mybatis.md",
+                "file": "java/MySQL.md",
                 "mode": "source",
                 "source": false,
                 "backlinks": false
               },
               "icon": "lucide-file",
-              "title": "Mybatis"
+              "title": "MySQL"
             }
           }
         ]
@@ -94,7 +94,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -197,7 +198,8 @@
   },
   "active": "0311a0a7f9f2b124",
   "lastOpenFiles": [
-    "java/MYSQL.md",
+    "java/Mybatis.md",
+    "java/MySQL.md",
     "java/Java并发编程.md",
     "java/Java基础.md",
     "java/JVM.md",

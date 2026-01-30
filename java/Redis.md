@@ -106,6 +106,19 @@ Replication Id：数据集的标记，id一致则说明是同一数据集，slav
 offset：随着记录在repl_baklog中的数据增多而增大，slave完成同步时也会记录当前同步的offset，如果slave的offset小于master的offset，说明slave的数据落后于master，需要更新
 **增量同步**：从节点宕机一段时间，重启后，向主节点发送增量同步的请求
 增量同步失败的情况：repl_baklog大小有上限，写满后会覆盖最早的数据，如果slave断开时间过久，导致数据被覆盖，则无法实现增量同步，只能再次进行全量同步
+### 哨兵模式
+如何处理master节点宕机？
+Redis提供了哨兵(Sentinel)机制来实现主从集群的自动故障恢复
+当master故障时，Sentinel会将一个slave提升为master，故障实例恢复后也以新的master为主
+#### 服务状态监控
+Sentinel基于心跳机制检测服务状态，每隔1秒向集群的每隔实例发送ping命令
+**主观下线**：如果某个Sentinel节点发现某实例未在规定时间内响应，则认为该实例是主观下线
+**客观下线**：若超过指定数量(quorum)的sentinel都认为该实例主观下线，则该实例客观下线，quorum值最好超过sentinel实例数量的一半
+**选择新的master**：
+1. 判断slave与master断开时间长短，如果超过指定值，则排除该slave
+2. 判断slave的slave-priority值，越小优先级越高，如果是0则永不参与选举
+3. 如果slave-priority一样，则slave的offset值越大（数据越新），优先级越高
+4. 最后判断slave的运行id大小，越小优先级越高
 ## Spring Cache
 SpringBoot中，Spring Cache提供了一套简洁且强大的缓存抽象机制，帮助开发者轻松地将缓存集成到应用程序中
 ### 核心组件

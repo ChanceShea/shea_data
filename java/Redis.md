@@ -99,7 +99,13 @@ AOF文件保存的是Redis执行的原始命令，具有较好的可读性，AOF
 	应用程序首先更新数据库中的数据，然后使缓存中对应的数据失效
 ## 主从架构
 单节点Redis的并发能力是有上限的，要进一步提高Redis的并发能力，就要搭建主从集群，实现读写分离，在主节点进行写操作，从节点进行读操作
-
+### 数据同步原理
+**全量同步**：主从第一次同步是全量同步，从节点执行replicaof命令与主节点建立连接，slave节点先请求增量同步，master节点判断replid，发现不一致，拒绝增量同步，master节点生成RDB文件，然后将RDB文件发送给slave节点，slave节点清空原数据，加载RDB文件，在RDB期间，master节点的命令记录在repl_baklog中，RDB完成后，master将repl_baklog发送给slave，slave进行同步
+如何判断是否第一次同步？
+Replication Id：数据集的标记，id一致则说明是同一数据集，slave会集成master节点的replid，id不一样则是第一次同步
+offset：随着记录在repl_baklog中的数据增多而增大，slave完成同步时也会记录当前同步的offset，如果slave的offset小于master的offset，说明slave的数据落后于master，需要更新
+**增量同步**：从节点宕机一段时间，重启后，向主节点发送增量同步的请求
+增量同步失败的情况：repl_baklog大小有上限，写满后会覆盖最早的数据，如果slave断开时间过久，导致数据被覆盖，则无法实现增量同步，只能再次进行全量同步
 ## Spring Cache
 SpringBoot中，Spring Cache提供了一套简洁且强大的缓存抽象机制，帮助开发者轻松地将缓存集成到应用程序中
 ### 核心组件

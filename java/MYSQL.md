@@ -14,3 +14,13 @@ SQL语句主要有以下几大类：
 # 查询年龄小于45岁的员工，并根据工作地址分组，获取员工数量大于等于3的工作地址
 select workaddress,count(*) address_count from emp where age < 45 group by workaddress having address_count >= 3;
 ```
+### 多表查询
+#### 内连接
+内连接只包含A、B两张表的交集部分
+![](assets/MySQL/file-20260130212628093.png)
+#### 左外连接
+左外连接包含了左表的所有数据以及两表之间的交集的数据
+![](assets/MySQL/file-20260130212708629.png)
+#### 右外连接
+右外连接包含了右表的所有数据以及两表之间的交集的数据
+![](assets/MySQL/file-20260130212744541.png)

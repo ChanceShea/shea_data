@@ -96,4 +96,48 @@ InnoDB存储引擎中，又可以分为以下两种
 - 如果不存在主键，将使用第一个唯一索引作为聚簇索引
 - 如果表中没有主键，也没有适合的唯一索引，则会自动生成一个rowid作为隐藏的聚簇索引
 **二级索引**：将数据与索引分开存储，索引结构的叶子节点关联的是对应的主键
+```mysql
+select * from user where id = '1';
+select * from user where name = 'tom';
+```
+二级索引查询需要回表查询，即在二级索引查询到对应的主键之后，还需要到聚簇索引中再次查询得到行数据，因此第二条sql语句的查询速度要比第一条更慢
+## SQL性能分析
+### SQL执行频率
+```mysql
+SHOW GLOBAL STATUS LIKE 'Com_______';
+```
+上述语句是查询当前数据库增删改查语句的执行频率，如果查询占据了绝大部分，则可以考虑对其进行优化
+### 慢查询日志
+慢查询日志记录了所有执行时间超过指定参数（long_query_time 默认10s）的所有SQL语句的日志，MySQL中慢查询日志默认没有开启，需要在MySQl配置文件(/etc/my.cnf)中新增以下配置信息
+```
+slow_query_log=1
+long_query_time=2
+```
+### profile详情
+```mysql
+show profiles;
+```
+上面这条指令可以在做SQL优化时，帮助我们了解时间都耗费到哪里去了
+通过have_profiling参数能够查看到当前MySQL是否支持profile操作
+```mysql
+select @@have_profiling;
+```
+默认profiling是关闭的，可以通过set语句在session/global级别开启profiling
+```mysql
+# 设置开启profiling
+set profiling=1;
+# 查看当前是否开启profile操作
+select @@profiling;
+```
+### explain执行计划
+
+explain/desc命令可以获取MySQL如何执行select语句的信息，包括在select语句执行过程中表如何连接和连接的顺序
+```mysql
+explain select 字段名 from 表名 where 条件;
+```
+explain执行计划个字段含义
+1. **id**：select查询的序列号，表示查询中执行select语句或者是操作表的顺序（id相同，执行顺序从上到下；id不同，值越大，越先执行）
+2. **select_type**：表示select的类型，常见的取值有SIMPLE（简单表，即不使用表连接或者子查询）、PRIMARY（主查询，即外层的查询）、UNION（UNION中的第二个或者后面的查询语句）、SUNQUERY（SELECT/WHERE之后包含了子查询）
+3. **type**：表示连接类型，性能由好到差的连接类型为null,system,const,eq_ref,ref,range,index,all
+4. **possible_key**：
 

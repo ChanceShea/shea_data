@@ -145,4 +145,58 @@ explain执行计划个字段含义
 7. **rows**：MySQL认为必须要执行查询的行数，在innodb引擎的表中，是一个估计值，不一定准确
 8. **filtered**：表示返回结果的行数站需要读取行数的百分比，filtered的值越大越好
 ### 最左匹配原则
-如果索引包含了多列，即联合索引，就必须要遵循最左匹配原则。查询条件必须从索引的最左列开始，并且不能跳过中间的列，才能有效地利用该联合索引。
+如果索引包含了多列，即联合索引，就必须要遵循最左匹配原则。查询条件必须从索引的最左列开始，并且不能跳过中间的列，才能有效地利用该联合索引
+假设有一个user表，并且给country city age三个字段建立一个符合索引，这个索引大致会先按country排序，再按city排序，最后按age排序
+```mysql
+select * from user where country='中国' and city='南昌' and age=18;
+```
+上述这条sql语句，从最左列country开始依次使用了所有列，因此会走索引
+```mysql
+select * from user where country='中国';
+```
+同时这条sql语句也会走索引，因为它的最左列country存在
+```mysql
+select * from user where city='南昌';
+select * from user where age=18;
+```
+但是这两条sql语句就不会走索引，因为它们都跳过了最左列，所以必须要全表扫描，类似的，如果只有country和city列，也不会走索引
+```mysql
+select * from user where country='中国' and city like '南%' and age=18;
+```
+这条sql语句不会全部走索引，因为city这一列使用了模糊匹配，从而导致了age无法通过索引查找，必须要全表扫描，但是country和city列还是会走索引查找。通常情况下，范围查询(>,<,between,like等)右边的列都无法使用索引，但是如果加上等于，右边的列就能走索引
+```mysql
+select * from user where city='南昌' and country='中国';
+```
+通常情况下，这条sql语句会走索引，sql语句条件的顺序与索引的顺序并不冲突，只要最左列开始依次存在即可
+### 索引失效
+1. 不满足最左匹配原则
+2. 使用了select * ：select语句中所有的查询列都是索引列，那么这些列被称为覆盖索引，这种情况下，查询的相关字段都能走索引。而使用select * 查询所有列的数据，大概率会查询非索引列，非索引列不会走索引
+3. 索引列上有计算：
+```mysql
+select * from user where id+1=2;
+select * from user where substr(name,1,1)='李';
+```
+类似于上述两种sql语句，一种是在条件上加了运算，一种是使用了函数，这两种情况都会导致索引失效
+4. 字段类型不同：现在假设一个code字段，类型是varchar
+```mysql
+select * from user where code=101;
+```
+由于条件上的101没有使用引号，而是直接使用了数字的101，所以会有隐式类型转换，导致索引失效
+5. 模糊匹配时 %在右边
+```mysql
+select * from user where name='张%';
+select * from user where name='%三';
+select * from user where name='%三%';
+```
+上述三条语句中，只有第一条sql语句是会走索引的，其他两条sql语句都不会走索引
+6. or关键字：使用or关键字时，如果or前的列有索引，而or后面的列没有索引，那么整个sql语句都不会走索引
+```mysql
+select * from user where id=10 or age=23;
+```
+上述语句中age字段是没有索引的，id字段是有索引的，因此会导致索引失效，只有当or两边的列都是索引列时，这条sql语句才会走索引
+7. MySQL评估走索引比全表扫描更慢：
+假设user表中id是自增的
+```mysql
+select * from user where id>=1;
+```
+这条sql语句查询出来的数据，表中所有数据都符合条件，因此MySQL评估走索引可能会比全表扫描更慢，因此会直接全表扫描，即只要绝大部分数据都满足查询条件，即使这个列是索引列，MySQL依旧会进行全表扫描

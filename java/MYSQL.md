@@ -206,4 +206,17 @@ select * from user where id=10 or age=23;
 select * from user where id>=1;
 ```
 这条sql语句查询出来的数据，表中所有数据都符合条件，因此MySQL评估走索引可能会比全表扫描更慢，因此会直接全表扫描，即只要绝大部分数据都满足查询条件，即使这个列是索引列，MySQL依旧会进行全表扫描
-
+## SQL优化
+### 插入数据优化
+insert优化：批量插入 ，手动提交事务，主键顺序插入
+大批量插入数据时，不推荐insert语句，而是使用load指令插入
+```mysql
+# 客户端连接服务器时，加上参数 --local-infile
+mysql --local-infile -u root -p
+# 设置全局参数local_infile为1，开启从本地加载文件导入数据的开关
+set global local_infile=1;
+# 执行load指令将准备好的数据加载到表结构中
+load data local infile '文件路径' into table '表名' fields terminated by '分隔符' lines terminated by '行分隔符';
+```
+### 主键优化
+在InnoDB存储引擎中，表数据都是根据主键顺序组织存放的，这种存储方式的表称为索引组织表

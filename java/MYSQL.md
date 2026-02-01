@@ -139,5 +139,9 @@ explain执行计划个字段含义
 1. **id**：select查询的序列号，表示查询中执行select语句或者是操作表的顺序（id相同，执行顺序从上到下；id不同，值越大，越先执行）
 2. **select_type**：表示select的类型，常见的取值有SIMPLE（简单表，即不使用表连接或者子查询）、PRIMARY（主查询，即外层的查询）、UNION（UNION中的第二个或者后面的查询语句）、SUNQUERY（SELECT/WHERE之后包含了子查询）
 3. **type**：表示连接类型，性能由好到差的连接类型为null,system,const,eq_ref,ref,range,index,all
-4. **possible_key**：
+4. **possible_key**：显示可能应用在这张表上的索引，一个或多个
+5. **key**：实际使用的索引，如果为null，则没有使用索引
+6. **key_len**：索引中使用的字节数，该值为索引字段最大可能长度，并非实际使用长度，在不损失精度的前提下，长度越短越好
+7. **rows**：MySQL认为必须要执行查询的行数，在innodb引擎的表中，是一个估计值，不一定准确
+8. **filtered**：表示返回结果的行数站需要读取行数的百分比，filtered的值越大越好
 

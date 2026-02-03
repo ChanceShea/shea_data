@@ -714,3 +714,4 @@ public class Main {
 ```
 ![](assets/Java基础/file-20260203143950299.png)
 可以看到，反射也可以破坏单例模式
+## 工厂模式

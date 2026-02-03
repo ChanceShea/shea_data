@@ -584,4 +584,78 @@ public class Server {
 ## 创建者模式
 创建者模式主要关注“怎么创建对象”，主要特点是将对象的创建与使用分离，可以降低耦合度，使用者不需要关注如何创建对象，只需要使用即可
 ### 单例模式
-单例模式指的是
+单例模式指的是一个单一的类，该类负责创建自己的实例对象，并且只有这个类可以创建实例对象，且创建的实例对象有且只有一个，该类实例对象可以通过访问方法直接访问，不需要实例化类
+**饿汉式**：类加载时就会创建实例对象
+```java
+public class Singleton {  
+	// 私有化构造方法，防止外界创建对象
+    private Singleton() {}  
+    private static final Singleton instance = new Singleton();  
+      
+    public static Singleton getInstance() {  
+        return instance;  
+    }  
+}
+```
+**静态内部类**
+JVM在加载外部类过程中，不会加载静态内部类，只有在调用内部类的属性或方法时才会被加载，而静态内部类可以保证类制备实例化一次，并且严格保证实例化顺序
+```java
+public class Singleton {  
+  
+    private Singleton() {}  
+  
+    private static class Holder {  
+        private static final Singleton INSTANCE = new Singleton();  
+    }  
+    public static Singleton getInstance() {  
+        return Holder.INSTANCE;  
+    }  
+}
+```
+**枚举类**
+枚举类实现单例模式是十分推荐的方法，因为枚举类型是线程安全的，并且只会被装载一次
+```java
+public enum Singleton {
+	INSTANCE;
+}
+```
+**懒汉式**：类加载时不会创建实例对象，只有首次使用的时候才会创建实例对象
+```java
+public class Singleton {  
+  
+    private Singleton() {}  
+  
+    private static Singleton instance;  
+  
+    public static Singleton getInstance() {  
+        if (instance == null) {  
+            instance = new Singleton();  
+        }  
+        return instance;  
+    }  
+}
+```
+但是上述代码是线程不安全的，如果同时有两个线程进入该方法，都会判断instance为null，因此两个线程都会实例化一个对象
+线程安全版(double check)
+```java
+public class Singleton {  
+  
+    private Singleton() {}  
+  
+    private static volatile Singleton instance;  
+  
+    public static Singleton getInstance() {  
+        if (instance == null) {  
+            synchronized (Singleton.class) {  
+                if (instance == null) {  
+                    instance = new Singleton();  
+                }  
+            }  
+        }  
+        return instance;  
+    }  
+}
+```
+**tips**：为什么需要两次判断instance是否为null？为什么要使用volatile关键字？
+1. 多线程场景下，如果instance已经被实例化了，则可以不用创建对象，直接返回实例对象。第二次判断instance是否为null，是为了确保只创建了一个实例对象
+2. volatile关键字可以确保创建对象过程不被JVM指令重排优化，实例化对象不是一个原子操作，实际上包含了三步，**分配内存空间，初始化对象，将引用指向内存地址**，由于JVM的指令重排，可能会导致其他线程看到未完全初始化的对象，从而出现空指针问题

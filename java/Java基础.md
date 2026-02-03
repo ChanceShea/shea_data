@@ -778,3 +778,66 @@ public class Main {
 2. 增加了抽象层和理解难度
 ## 抽象工厂模式
 抽象工厂模式是一种创建型设计模式，它能创建一系列相关的对象，而无需指定其具体类。它提供了一个接口，用于创建**相关或依赖对象的家族**，而不需要明确指定具体类。
+在原有咖啡代码不变的情况下，新增以下代码
+```java
+public abstract class Dessert {    
+    public abstract void show();  
+}
+public class Tiramisu extends Dessert{  
+    @Override  
+    public void show() {  
+        System.out.println("提拉米苏");  
+    }  
+}
+public class MatchaMousse extends Dessert {  
+  
+    @Override  
+    public void show() {  
+        System.out.println("抹茶慕斯");  
+    }  
+}
+```
+```java
+public interface DessertFactory {  
+  
+    Coffee createCoffee();  
+  
+    Dessert createDessert();  
+}
+public class AmericanDessertFactory implements DessertFactory {  
+    @Override  
+    public Coffee createCoffee() {  
+        return new AmericanCoffee();  
+    }  
+  
+    @Override  
+    public Dessert createDessert() {  
+        return new MatchaMousse();  
+    }  
+}
+public class ItalyDessertFactory implements DessertFactory {  
+    @Override  
+    public Coffee createCoffee() {  
+        return new LatteCoffee();  
+    }  
+  
+    @Override  
+    public Dessert createDessert() {  
+        return new Tiramisu();  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        ItalyDessertFactory italyDessertFactory = new ItalyDessertFactory();  
+        Coffee latte = italyDessertFactory.createCoffee();  
+        Dessert tiramisu = italyDessertFactory.createDessert();  
+        System.out.println(latte);  
+        System.out.println(tiramisu);  
+    }  
+}
+```
+![](assets/Java基础/file-20260203200506092.png)
+可以看到，我们创建对象时，完全不需要关注其具体如何创建，只需要确定需要创建的是哪一类对象，然后new出对象工厂，就可以根据工厂提供的方法，创建出一类对象

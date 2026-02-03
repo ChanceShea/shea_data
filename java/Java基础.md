@@ -715,3 +715,66 @@ public class Main {
 ![](assets/Java基础/file-20260203143950299.png)
 可以看到，反射也可以破坏单例模式
 ## 工厂模式
+定义一个用于创建对象的接口，让子类决定实例化哪个对象，工厂方法使对象的实例化延迟到其工厂的字类
+首先需要定义一个工厂接口
+```java
+public interface CoffeeFactory {  
+    Coffee createCoffee();  
+}
+```
+分别实现工厂接口
+```java
+public class AmericanCoffeeFactory implements CoffeeFactory {  
+    @Override  
+    public Coffee createCoffee() {  
+        return new AmericanCoffee();  
+    }  
+}
+```
+```java
+public class LatteCoffeeFactory implements CoffeeFactory {  
+    @Override  
+    public Coffee createCoffee() {  
+        return new LatteCoffee();  
+    }  
+}
+```
+```java
+public interface Coffee {  
+}
+```
+```java
+public class AmericanCoffee implements Coffee {  
+}
+```
+```java
+public class LatteCoffee implements Coffee {  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        CoffeeStore coffeeStore = new CoffeeStore();  
+        coffeeStore.setCoffeeFactory(new LatteCoffeeFactory());  
+        Coffee latte = coffeeStore.order();  
+        coffeeStore.setCoffeeFactory(new AmericanCoffeeFactory());  
+        Coffee american = coffeeStore.order();  
+        System.out.println(latte);  
+        System.out.println(american);  
+    }  
+}
+```
+![](assets/Java基础/file-20260203161819699.png)
+我们通过工厂模式将创建对象这一步骤交给工厂来实现，对于不同的实现类，可以提供使用同样的方法来创建对象
+**优点**：
+1. 将对象的创建与使用分离
+2. 添加新产品的时候只需要新增工厂类，无需修改已有代码
+3. 每个工厂类只负责创建一种产品
+4. 创建逻辑集中在工厂类中
+---
+**缺点**：
+1. 类的数量增加，每次新增产品都需要新增多个类
+2. 增加了抽象层和理解难度
+## 抽象工厂模式
+抽象工厂模式是一种创建型设计模式，它能创建一系列相关的对象，而无需指定其具体类。它提供了一个接口，用于创建**相关或依赖对象的家族**，而不需要明确指定具体类。

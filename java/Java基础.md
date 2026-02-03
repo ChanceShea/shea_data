@@ -659,3 +659,58 @@ public class Singleton {
 **tips**：为什么需要两次判断instance是否为null？为什么要使用volatile关键字？
 1. 多线程场景下，如果instance已经被实例化了，则可以不用创建对象，直接返回实例对象。第二次判断instance是否为null，是为了确保只创建了一个实例对象
 2. volatile关键字可以确保创建对象过程不被JVM指令重排优化，实例化对象不是一个原子操作，实际上包含了三步，**分配内存空间，初始化对象，将引用指向内存地址**，由于JVM的指令重排，可能会导致其他线程看到未完全初始化的对象，从而出现空指针问题
+#### 破坏单例模式
+除了枚举类的创建单例对象以外，其他方法的单例模式都可以通过序列化和反射来破坏单例模式
+**序列化和反序列化**
+```java
+public class Main {  
+  
+    public static void main(String[] args) throws Exception {  
+        writeObject();  
+        Singleton singleton1 = readObject();  
+        Singleton singleton2 = readObject();  
+        System.out.println(singleton1 == singleton2);  
+    }  
+  
+    public static Singleton readObject() throws Exception {  
+        ObjectInputStream ois = new ObjectInputStream(new FileInputStream("C:\\Users\\xgw\\Desktop\\shea\\a.txt"));  
+        Singleton singleton = (Singleton) ois.readObject();  
+        ois.close();  
+        return singleton;  
+    }  
+  
+  
+    public static void writeObject() throws IOException {  
+        Singleton singleton = Singleton.getInstance();  
+        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("C:\\Users\\xgw\\Desktop\\shea\\a.txt"));  
+        oos.writeObject(singleton);  
+        oos.close();  
+    }  
+}
+```
+![](assets/Java基础/file-20260203143646169.png)
+显而易见，最后得到的两个对象的地址不同，单例模式被破坏
+**解决方法**
+在Singleton类中重写readResolve方法，直接返回单例对象，在调用readObject方法的时候，会判断是否有重写readResolve方法，如果没有，则会直接new一个新的对象，如果有，则会调用重写的readResolve方法
+```java
+public Object readResolve() {  
+    return Holder.INSTANCE;  
+}
+```
+![](assets/Java基础/file-20260203144610397.png)
+**反射**
+```java
+public class Main {  
+  
+    public static void main(String[] args) throws Exception {  
+        Class<Singleton> clazz = Singleton.class;  
+        Constructor<Singleton> constructor = clazz.getDeclaredConstructor();  
+        constructor.setAccessible(true);  
+        Singleton singleton1 = constructor.newInstance();  
+        Singleton singleton2 = constructor.newInstance();  
+        System.out.println(singleton1 == singleton2);  
+    }  
+}
+```
+![](assets/Java基础/file-20260203143950299.png)
+可以看到，反射也可以破坏单例模式

@@ -847,3 +847,28 @@ public class Main {
 克隆分为浅克隆和深克隆
 **浅克隆**：创建一个新的对象，这个对象的属性和原来的对象完全相同，对于非基本类型，属性的引用仍指向原对象的内存地址
 **深克隆**：创建一个新的对象，对于非基本类型，也会创建新的对象，其引用会指向新的内存地址
+```java
+public class User implements Cloneable {  
+    @Override  
+    public User clone() {  
+        try {  
+            System.out.println("复制User对象");  
+            return (User) super.clone();  
+        } catch (CloneNotSupportedException e) {  
+            throw new AssertionError();  
+        }  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        User user = new User();  
+        User user1 = user.clone();  
+        System.out.println(user == user1);  
+    }  
+}
+```
+![](assets/Java基础/file-20260203210054064.png)
+可以看到，通过clone()方法克隆出了一个新对象

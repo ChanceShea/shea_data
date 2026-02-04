@@ -872,3 +872,4 @@ public class Main {
 ```
 ![](assets/Java基础/file-20260203210054064.png)
 可以看到，通过clone()方法克隆出了一个新对象
+#### 深克隆

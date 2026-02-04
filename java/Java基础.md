@@ -1150,4 +1150,56 @@ public class Main {
 ![](assets/Java基础/file-20260204162448656.png)
 代理对象调用sayHello()方法，本质上就是在调用InvocationHandler接口中实现的invoke方法
 #### CGLIB动态代理
-对于实现接口的
+从newProxyInstance方法的参数中我们可以知道，jdk动态代理的代理类必须是实现了某个接口的类，那么对于没有实现接口的类，我们可以使用cglib动态代理来实现
+```java
+public class UserServiceImpl  {  
+    public void sayHello() {  
+        System.out.println("Hello World");  
+    }  
+}
+public class ProxyFactory implements MethodInterceptor {  
+  
+    private final UserServiceImpl target = new UserServiceImpl();  
+  
+    public UserServiceImpl getProxyObject(){  
+        Enhancer enhancer = new Enhancer();  
+        // 设置父类的字节码对象  
+        enhancer.setSuperclass(UserServiceImpl.class);  
+        // 设置回调函数  
+        enhancer.setCallback(this);  
+        // 创建代理对象  
+        UserServiceImpl userService = (UserServiceImpl) enhancer.create();  
+        return userService;  
+    }  
+  
+    @Override  
+    public Object intercept(Object obj, Method method, Object[] args, MethodProxy proxy) throws Throwable {  
+        System.out.println("打印日志，当前时间："+ System.currentTimeMillis());  
+        return method.invoke(target, args);  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        ProxyFactory proxyFactory = new ProxyFactory();  
+        UserServiceImpl proxyObject = proxyFactory.getProxyObject();  
+        proxyObject.sayHello();  
+    }  
+}
+```
+![](assets/Java基础/file-20260204194815176.png)
+**cglib动态代理 VS jdk动态代理**
+1. jdk动态代理的代理类必须要实现接口，cglib动态代理的代理类则不需要，cglib是通过继承目标类创建字类作为代理类，因为cglib是通过继承创建代理类，因此对于final修饰的方法，cglib无法进行代理
+2. jdk代理比cglib代理性能更差，因为jdk代理使用的是反射机制，而cglib使用的是字节码
+**优点**：
+- 代理模式在客户端与目标对象之间起到了一个中介作用和保护目标对象的作用
+- 代理对象可以扩展目标对象的功能
+- 代理模式能将客户端与目标对象分离，在一定程度上降低了系统的耦合度
+**缺点**：
+- 增加了系统的复杂度
+### 适配器模式
+**将一个类的接口转换成客户端期望的另一个接口**，使得原本由于接口不兼容而不能一起工作的那些类能一起工作，类似于电源适配器的作用
+适配器模式分为类适配器模式和对象适配器模式
+#### 类适配器模式

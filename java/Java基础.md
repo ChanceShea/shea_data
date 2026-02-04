@@ -1073,3 +1073,48 @@ public class Main {
 }
 ```
 ![](assets/Java基础/file-20260204144610872.png)
+## 结构型模式
+结构型模式描述如何将类或对象按某种布局组成更大的结构，它分为类结构型模式和对象结构型模式。前者采用继承机制来组织接口和类，后者采用组合或聚合来组合对象。结构型模式的核心目标是简化系统的设计，通过识别对象之间简单的关系来满足功能需求。
+### 代理模式
+代理模式，即给某一个对象提供一个代理对象，由代理对象来控制对原对象的操作，代理对象指向原对象的引用
+#### 静态代理
+静态代理是代理模式的一种，通过创建一个代理类来代表原对象，在编译时就已经确定了代理关系
+```java
+public interface UserService {    
+    void sayHello();  
+}
+public class UserServiceImpl implements UserService {  
+    @Override  
+    public void sayHello() {  
+        System.out.println("Hello World");  
+    }  
+}
+```
+```java
+public class UserProxy implements UserService {  
+  
+    private UserService userService;  
+  
+    public UserProxy(UserService userService) {  
+        this.userService = userService;  
+    }  
+    @Override  
+    public void sayHello() {  
+        System.out.println("开始代理，记录日志 " + System.currentTimeMillis());  
+        userService.sayHello();  
+        System.out.println("代理结束，记录日志 " + System.currentTimeMillis());  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        UserProxy proxy = new UserProxy(new UserServiceImpl());  
+        proxy.sayHello();  
+    }  
+}
+```
+![](assets/Java基础/file-20260204161001233.png)
+#### JDK动态代理
+Java中提供了一个动态代理类Proxy，Proxy提供了一个创建代理对象的静态方法newProxyInstance()来获取代理对象

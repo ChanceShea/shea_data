@@ -1150,3 +1150,4 @@ public class Main {
 ![](assets/Java基础/file-20260204162448656.png)
 代理对象调用sayHello()方法，本质上就是在调用InvocationHandler接口中实现的invoke方法
 #### CGLIB动态代理
+对于实现接口的

@@ -1203,3 +1203,46 @@ public class Main {
 **将一个类的接口转换成客户端期望的另一个接口**，使得原本由于接口不兼容而不能一起工作的那些类能一起工作，类似于电源适配器的作用
 适配器模式分为类适配器模式和对象适配器模式
 #### 类适配器模式
+```java
+public interface TypeC {    
+    void connectTypeC();  
+}
+public class TypeCImpl implements TypeC{  
+    @Override  
+    public void connectTypeC() {  
+        System.out.println("TypeC connected");  
+    }  
+}
+```
+```java
+public interface USB {  
+    void connectUSB();  
+}
+public class USBImpl implements USB{  
+    @Override  
+    public void connectUSB() {  
+        System.out.println("USB connected");  
+    }  
+}
+```
+```java
+public class Computer {  
+    public void connectAdapter(USB usb){  
+        usb.connectUSB();  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        Computer computer = new Computer();  
+        USB usb = new USBImpl();  
+        computer.connectAdapter(usb);  
+        TypeC2USBAdapter adapter = new TypeC2USBAdapter();  
+        computer.connectAdapter(adapter);  
+    }  
+}
+```
+![](assets/Java基础/file-20260204202237702.png)
+上述代码中，Computer类原先只能连接USB接口，在适配器的作用下，将TypeC接口转换成USB接口，成功让Computer类连接上TypeC接口

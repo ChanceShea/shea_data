@@ -1077,6 +1077,7 @@ public class Main {
 结构型模式描述如何将类或对象按某种布局组成更大的结构，它分为类结构型模式和对象结构型模式。前者采用继承机制来组织接口和类，后者采用组合或聚合来组合对象。结构型模式的核心目标是简化系统的设计，通过识别对象之间简单的关系来满足功能需求。
 ### 代理模式
 代理模式，即给某一个对象提供一个代理对象，由代理对象来控制对原对象的操作，代理对象指向原对象的引用
+同时，代理模式都可以在不修改原代码的基础上，对代码进行增强
 #### 静态代理
 静态代理是代理模式的一种，通过创建一个代理类来代表原对象，在编译时就已经确定了代理关系
 ```java
@@ -1118,3 +1119,34 @@ public class Main {
 ![](assets/Java基础/file-20260204161001233.png)
 #### JDK动态代理
 Java中提供了一个动态代理类Proxy，Proxy提供了一个创建代理对象的静态方法newProxyInstance()来获取代理对象
+```java
+public class ProxyFactory {  
+  
+    private final UserServiceImpl userServiceImpl = new UserServiceImpl();  
+      
+    public UserService getUserService() {  
+        UserService userService = (UserService) Proxy.newProxyInstance(  
+                userServiceImpl.getClass().getClassLoader(),  
+                userServiceImpl.getClass().getInterfaces(),  
+                (proxy, method, args) -> {  
+                    System.out.println("开始代理，记录日志 " + System.currentTimeMillis());  
+                    return method.invoke(userServiceImpl, args);   
+                }  
+        );  
+        return userService;  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        ProxyFactory proxyFactory = new ProxyFactory();  
+        UserService userService = proxyFactory.getUserService();  
+        userService.sayHello();  
+    }  
+}
+```
+![](assets/Java基础/file-20260204162448656.png)
+代理对象调用sayHello()方法，本质上就是在调用InvocationHandler接口中实现的invoke方法
+#### CGLIB动态代理

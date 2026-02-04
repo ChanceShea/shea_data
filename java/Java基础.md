@@ -1246,3 +1246,22 @@ public class Main {
 ```
 ![](assets/Java基础/file-20260204202237702.png)
 上述代码中，Computer类原先只能连接USB接口，在适配器的作用下，将TypeC接口转换成USB接口，成功让Computer类连接上TypeC接口
+#### 对象适配器模式
+对象适配器模式可采用将现有组件库中已经实现的组件引入适配器类中，该类同时实现当前系统的业务接口
+```java
+public class TypeC2USBAdapter implements USB {  
+    private TypeC typeC;  
+      
+    public TypeC2USBAdapter(TypeC typeC) {  
+        this.typeC = typeC;  
+    }  
+    @Override  
+    public void connectUSB() {  
+        System.out.println("适配器将TypeC转换为USB");  
+        typeC.connectTypeC();  
+    }  
+}
+```
+只需要将原先的继承的类改为成员变量形式即可
+### 装饰者模式
+装饰器模式，即在不改变现有对象结构的情况下，动态地给该对象增加一些职责

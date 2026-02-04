@@ -873,3 +873,203 @@ public class Main {
 ![](assets/Java基础/file-20260203210054064.png)
 可以看到，通过clone()方法克隆出了一个新对象
 #### 深克隆
+深克隆有两种方法可以实现，一是字类实现克隆接口，父类的拷贝构造函数中对其进行克隆，二是通过序列化的方式，对类进行深克隆
+```java
+public class Student implements Cloneable {  
+  
+    private String name;  
+  
+    public String getName() {  
+        return name;  
+    }  
+  
+    public void setName(String name) {  
+        this.name = name;  
+    }  
+  
+    @Override  
+    public Student clone() {  
+        try {  
+            return (Student) super.clone();  
+        } catch (CloneNotSupportedException e) {  
+            throw new AssertionError();  
+        }  
+    }  
+}
+public class Classroom implements Cloneable{  
+  
+    private Student student;  
+  
+    public Student getStudent() {  
+        return student;  
+    }  
+  
+    public void setStudent(Student student) {  
+        this.student = student;  
+    }  
+  
+    @Override  
+    public Classroom clone() {  
+        try {  
+            Classroom cloned = (Classroom) super.clone();  
+            if(this.student != null){  
+                this.student = this.student.clone();  
+            }  
+            return cloned;  
+        } catch (CloneNotSupportedException e) {  
+            throw new AssertionError();  
+        }  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        Classroom classroom = new Classroom();  
+        Student stu = new Student();  
+        stu.setName("Shea");  
+        classroom.setStudent(stu);  
+        Classroom clone = classroom.clone();  
+        clone.getStudent().setName("Shea11");  
+        System.out.println("原对象:" + classroom.getStudent().getName());  
+        System.out.println("克隆对象:" + clone.getStudent().getName());  
+    }  
+}
+```
+![](assets/Java基础/file-20260204143422681.png)
+**序列化实现深克隆**
+```java
+public class Student implements Serializable {  
+  
+    private String name;  
+  
+    public String getName() {  
+        return name;  
+    }  
+  
+    public void setName(String name) {  
+        this.name = name;  
+    }  
+}
+public class Classroom implements Cloneable, Serializable {  
+  
+    private Student student;  
+  
+    public Student getStudent() {  
+        return student;  
+    }  
+  
+    public void setStudent(Student student) {  
+        this.student = student;  
+    }  
+  
+    @Override  
+    public Classroom clone() {  
+        try {  
+            return (Classroom) super.clone();  
+        } catch (CloneNotSupportedException e) {  
+            throw new AssertionError();  
+        }  
+    }  
+}
+
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) throws Exception {  
+        Classroom classroom = new Classroom();  
+        Student stu = new Student();  
+        stu.setName("Shea");  
+        classroom.setStudent(stu);  
+        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("C:\\Users\\xgw\\Desktop\\shea\\a.txt"));  
+        oos.writeObject(classroom);  
+        ObjectInputStream ois = new ObjectInputStream(new FileInputStream("C:\\Users\\xgw\\Desktop\\shea\\a.txt"));  
+        Classroom clone = (Classroom) ois.readObject();  
+        ois.close();  
+        oos.close();  
+        clone.getStudent().setName("Shea11");  
+        System.out.println("原对象:" + classroom.getStudent().getName());  
+        System.out.println("克隆对象:" + clone.getStudent().getName());  
+    }  
+}
+```
+![](assets/Java基础/file-20260204143952777.png)
+### 建造者模式
+建造者模式将复杂的对象的构造分离出来，由builder对象专门负责构建其内部的属性，用户不需要知道其内部具体的构造细节
+```java
+public class Computer {  
+  
+    private String cpu;  
+    private String ram;  
+    private String disk;  
+    private String keyboard;  
+    private String mouse;  
+  
+    public static class Builder {  
+        private String cpu;  
+        private String ram;  
+        private String disk;  
+        private String keyboard;  
+        private String mouse;  
+  
+        public Builder cpu(String cpu) {  
+            this.cpu = cpu;  
+            return this;  
+        }  
+        public Builder ram(String ram) {  
+            this.ram = ram;  
+            return this;  
+        }  
+        public Builder disk(String disk) {  
+            this.disk = disk;  
+            return this;  
+        }  
+        public Builder keyboard(String keyboard) {  
+            this.keyboard = keyboard;  
+            return this;  
+        }  
+        public Builder mouse(String mouse) {  
+            this.mouse = mouse;  
+            return this;  
+        }  
+        public Computer build() {  
+            Computer computer = new Computer();  
+            computer.cpu = this.cpu;  
+            computer.ram = this.ram;  
+            computer.disk = this.disk;  
+            computer.keyboard = this.keyboard;  
+            computer.mouse = this.mouse;  
+            return computer;  
+        }  
+    }  
+  
+    @Override  
+    public String toString() {  
+        return "Computer{" +  
+                "cpu='" + cpu + '\'' +  
+                ", ram='" + ram + '\'' +  
+                ", disk='" + disk + '\'' +  
+                ", keyboard='" + keyboard + '\'' +  
+                ", mouse='" + mouse + '\'' +  
+                '}';  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        Computer computer = new Computer.Builder()  
+                .cpu("Intel i9")  
+                .ram("16GB")  
+                .disk("512GB")  
+                .keyboard("Logitech")  
+                .mouse("Logitech")  
+                .build();  
+        System.out.println(computer);  
+    }  
+}
+```
+![](assets/Java基础/file-20260204144610872.png)

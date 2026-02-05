@@ -1509,3 +1509,85 @@ public class Main {
 - 不符合开闭原则，修改麻烦
 ### 组合模式
 允许你将对象组合成树形结构来表示“部分-整体”的层次关系。组合模式让客户端可以统一地处理单个对象和组合对象，无需关心它们的具体差异
+```java
+public interface FileSystemComponent {  
+    void showDetails();  
+    void add(FileSystemComponent component);  
+    void remove(FileSystemComponent component);  
+}
+public class Directory implements FileSystemComponent {  
+  
+    private String name;  
+    private List<FileSystemComponent> children;  
+  
+    public Directory(String name) {  
+        this.name = name;  
+        this.children = new ArrayList<FileSystemComponent>();  
+    }  
+  
+    @Override  
+    public void showDetails() {  
+        System.out.println("目录：" + name);  
+        for (FileSystemComponent component : children) {  
+            component.showDetails();  
+        }  
+    }  
+  
+    @Override  
+    public void add(FileSystemComponent component) {  
+        children.add(component);  
+  
+    }  
+  
+    @Override  
+    public void remove(FileSystemComponent component) {  
+        children.remove(component);  
+    }  
+}
+public class File implements FileSystemComponent {  
+  
+    private String name;  
+    private int size;  
+  
+    public File(String name, int size) {  
+        this.name = name;  
+        this.size = size;  
+    }  
+  
+    @Override  
+    public void showDetails() {  
+        System.out.println("文件：" + name + "，大小:" + size);  
+    }  
+  
+    @Override  
+    public void add(FileSystemComponent component) {  
+        throw new UnsupportedOperationException("File does not support add operation");  
+    }  
+  
+    @Override  
+    public void remove(FileSystemComponent component) {  
+        throw new UnsupportedOperationException("File does not support remove operation");  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        FileSystemComponent root = new Directory("root");  
+        FileSystemComponent work = new Directory("work");  
+  
+        File file1 = new File("file1.txt", 1024);  
+        File file2 = new File("file2.txt", 2048);  
+        File file3 = new File("file3.txt", 3072);  
+  
+        root.add(work);  
+        work.add(file1);  
+        work.add(file2);  
+        root.add(file3);  
+  
+        root.showDetails();  
+    }  
+}
+```
+![](assets/Java基础/file-20260205200403956.png)

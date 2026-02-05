@@ -1363,3 +1363,74 @@ public class Main {
 - 静态代理是在代理类内部创建，以此来隐藏目标对象
 ### 桥接模式
 将抽象与实现分离，使它们可以独立变化。它是用组合关系代替继承关系来实现，从而降低了抽象和实现这两个可变维度的耦合度
+```java
+public interface Color {  
+    void show();  
+}
+public class Green implements Color{  
+    @Override  
+    public void show() {  
+        System.out.print("Green ");  
+    }  
+}
+public class Blue implements Color{  
+    @Override  
+    public void show() {  
+        System.out.print("Blue ");  
+    }  
+}
+```
+```java
+public abstract class Shape {  
+  
+    protected Color color;  
+  
+    public Shape(Color color) {  
+        this.color = color;  
+    }  
+  
+    abstract void draw();  
+}
+public class Circle extends Shape {  
+  
+    public Circle(Color color) {  
+        super(color);  
+    }  
+  
+    @Override  
+    void draw() {  
+        color.show();  
+        System.out.println("Circle");  
+    }  
+}
+public class Tangle extends Shape {  
+  
+    public Tangle(Color color) {  
+        super(color);  
+    }  
+  
+    @Override  
+    void draw() {  
+        color.show();  
+        System.out.println("Tangle");  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        Shape circle = new Circle(new Blue());  
+        Shape circle2 = new Circle(new Green());  
+        Shape tangle = new Tangle(new Blue());  
+        Shape tangle2 = new Tangle(new Green());  
+        circle.draw();  
+        circle2.draw();  
+        tangle.draw();  
+        tangle2.draw();  
+    }  
+}
+```
+![](assets/Java基础/file-20260205104429381.png)
+可以看到，如果我们不使用桥接模式来实现，可能会导致类爆炸，每一种颜色的图形就需要一个单独的类，而使用桥接模式，可以通过聚合来减少类的增加。如果有新的颜色或者图形增加，只需要新增一个类实现接口即可
+### 外观模式

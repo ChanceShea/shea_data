@@ -1265,3 +1265,90 @@ public class TypeC2USBAdapter implements USB {
 只需要将原先的继承的类改为成员变量形式即可
 ### 装饰者模式
 装饰器模式，即在不改变现有对象结构的情况下，动态地给该对象增加一些职责
+```java
+public interface Coffee {  
+  
+    Double getPrice();  
+  
+    String getDesc();  
+}
+public class AmericanCoffee implements Coffee {  
+    @Override  
+    public Double getPrice() {  
+        return 9.9;  
+    }  
+  
+    @Override  
+    public String getDesc() {  
+        return "American Coffee";  
+    }  
+}
+```
+```java
+abstract class CoffeeDecorator implements Coffee {  
+  
+    protected Coffee coffee;  
+  
+    public CoffeeDecorator(Coffee coffee) {  
+        this.coffee = coffee;  
+    }  
+  
+    @Override  
+    public Double getPrice() {  
+        return coffee.getPrice();  
+    }  
+  
+    @Override  
+    public String getDesc() {  
+        return coffee.getDesc();  
+    }  
+}
+public class MilkDecorator extends CoffeeDecorator {  
+  
+    public MilkDecorator(Coffee coffee) {  
+        super(coffee);  
+    }  
+  
+    @Override  
+    public Double getPrice() {  
+        return super.getPrice() + 2.0;  
+    }  
+  
+    @Override  
+    public String getDesc() {  
+        return super.getDesc() + ", Milk";  
+    }  
+}
+public class SugarDecorator extends CoffeeDecorator {  
+  
+    public SugarDecorator(Coffee coffee) {  
+        super(coffee);  
+    }  
+  
+    @Override  
+    public Double getPrice() {  
+        return super.getPrice() + 1.0;  
+    }  
+  
+    @Override  
+    public String getDesc() {  
+        return super.getDesc() + ", Sugar";  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        Coffee coffee = new AmericanCoffee();  
+        System.out.println(coffee.getDesc() + " $" + coffee.getPrice());  
+  
+        coffee = new MilkDecorator(coffee);  
+        System.out.println(coffee.getDesc() + " $" + coffee.getPrice());  
+  
+        coffee = new SugarDecorator(coffee);  
+        System.out.println(coffee.getDesc() + " $" + coffee.getPrice());  
+    }  
+}
+```
+上述代码中，我们可以在不修改原有的咖啡类的同时，对咖啡进行加糖和加牛奶的操作

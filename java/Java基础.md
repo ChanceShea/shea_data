@@ -1434,4 +1434,76 @@ public class Main {
 ![](assets/Java基础/file-20260205104429381.png)
 可以看到，如果我们不使用桥接模式来实现，可能会导致类爆炸，每一种颜色的图形就需要一个单独的类，而使用桥接模式，可以通过聚合来减少类的增加。如果有新的颜色或者图形增加，只需要新增一个类实现接口即可
 ### 外观模式
-又叫门面模式，是一种通过多个复杂的子系统提供一个一致的接口，而使这些子系统更加容易被访问的模式，该模式对外有一个统一接口，外部应用程序不关心
+又叫门面模式，是一种通过多个复杂的子系统提供一个一致的接口，而使这些子系统更加容易被访问的模式，该模式对外有一个统一接口，外部应用程序不关心内部子系统的具体实现细节
+```java
+public class TV {  
+    public void on(){  
+        System.out.println("TV is on");  
+    }  
+  
+    public void off(){  
+        System.out.println("TV is off");  
+    }  
+}
+public class AirCondition {  
+    public void on(){  
+        System.out.println("AirCondition is on");  
+    }  
+  
+    public void off(){  
+        System.out.println("AirCondition is off");  
+    }  
+}
+public class Light {  
+    public void on(){  
+        System.out.println("Light is on");  
+    }  
+  
+    public void off(){  
+        System.out.println("Light is off");  
+    }  
+}
+```
+```java
+public class SmartAssistFacade {  
+  
+    private final Light light;  
+    private final TV tv;  
+    private final AirCondition airCondition;  
+  
+    public SmartAssistFacade() {  
+        this.light = new Light();  
+        this.tv = new TV();  
+        this.airCondition = new AirCondition();  
+    }  
+  
+    public void on(){  
+        light.on();  
+        tv.on();  
+        airCondition.on();  
+    }  
+  
+    public void off(){  
+        light.off();  
+        tv.off();  
+        airCondition.off();  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        SmartAssistFacade smartAssistFacade = new SmartAssistFacade();  
+        smartAssistFacade.on();  
+        smartAssistFacade.off();  
+    }  
+}
+```
+![](assets/Java基础/file-20260205182929427.png)
+原先要控制多个家具的开关，我们需要对每一个家具都调用on和off方法，但是通过外观模式，创建一个类统一来开关家具
+**优点**：
+- 降低了子系统和客户端的耦合度，使得子系统的变化不会影响调用它的客户类
+- 对客户屏蔽了子系统组件，减少了客户处理的对象数目，并使得子系统使用起来更容易
+**缺点**：
+- 不符合开闭原则，修改麻烦

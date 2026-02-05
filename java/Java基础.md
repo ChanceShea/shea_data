@@ -1510,5 +1510,75 @@ public class Main {
 ### 组合模式
 允许你将对象组合成树形结构来表示“部分-整体”的层次关系。组合模式让客户端可以统一地处理单个对象和组合对象，无需关心它们的具体差异
 ```java
-
+public interface PopulationNode {  
+    int computePopulation();  
+}
+public class Province implements PopulationNode {  
+  
+    private final String name;  
+    private List<PopulationNode> cities =  new ArrayList<>();  
+  
+    public Province(String name) {  
+        this.name = name;  
+    }  
+  
+    @Override  
+    public int computePopulation() {  
+        return cities.stream().mapToInt(PopulationNode::computePopulation).sum();  
+    }  
+}
+public class City implements PopulationNode {  
+  
+    private final String name;  
+    List<PopulationNode> districts = new ArrayList<>();  
+  
+    public City(String name) {  
+        this.name = name;  
+    }  
+  
+    public void addDistrict(District district) {  
+        districts.add(district);  
+    }  
+  
+    @Override  
+    public int computePopulation() {  
+        return districts.stream().mapToInt(PopulationNode::computePopulation).sum();  
+    }  
+}
+public class District implements PopulationNode{  
+  
+    private final String name;  
+    private final int population;  
+  
+    public District(String name, int population) {  
+        this.name = name;  
+        this.population = population;  
+    }  
+  
+    @Override  
+    public int computePopulation() {  
+        return population;  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        Province province = new Province("江西");  
+        City city1 = new City("南昌");  
+        City city2 = new City("景德镇");  
+        District district1 = new District("东湖区", 100000);  
+        District district2 = new District("昌江区", 200000);  
+        District district3 = new District("珠山区", 300000);  
+        District district4 = new District("abc", 400000);  
+        city1.addDistrict(district1);  
+        city1.addDistrict(district2);  
+        city2.addDistrict(district3);  
+        city2.addDistrict(district4);  
+        province.addCity(city1);  
+        province.addCity(city2);  
+        System.out.println(province.computePopulation());  
+    }  
+}
 ```

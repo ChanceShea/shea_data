@@ -1582,3 +1582,77 @@ public class Main {
     }  
 }
 ```
+### 享元模式
+通过共享技术来有效地支持大量细粒度对象的复用。它通过共享已经存在的对象来大幅度减少需要创建对象的数量，避免创建大量相似对象，从而提高系统资源利用率
+享元模式将对象的内部状态和外部状态分离
+- **内部状态**：对象中不变的，可以共享的部分
+- **外部状态**：对象中变化的，不能共享的部分，有客户端代码在需要时传入
+```java
+public abstract class AbstractBox {  
+  
+    // 获取图形  
+    public abstract String getShape();  
+    // 显示图形及颜色  
+    public void display(String color){  
+        System.out.println("Shape: " + getShape() + ", Color: " + color);  
+    }  
+}
+public class IBox extends AbstractBox {  
+    @Override  
+    public String getShape() {  
+        return "I";  
+    }  
+}
+public class LBox extends AbstractBox {  
+    @Override  
+    public String getShape() {  
+        return "L";  
+    }  
+}
+public class OBox extends AbstractBox {  
+    @Override  
+    public String getShape() {  
+        return "O";  
+    }  
+}
+```
+```java
+public class BoxFactory {  
+  
+    private final HashMap<String,AbstractBox> map;  
+    private static final BoxFactory instance = new BoxFactory();  
+    private BoxFactory() {  
+        this.map = new HashMap<>();  
+        map.put("I", new IBox());  
+        map.put("O", new OBox());  
+        map.put("L", new LBox());  
+    }  
+  
+    public static BoxFactory getInstance() {  
+        return instance;  
+    }  
+  
+    public AbstractBox getShape(String name){  
+        return map.get(name);  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        BoxFactory instance = BoxFactory.getInstance();  
+        AbstractBox i = instance.getShape("I");  
+        AbstractBox o = instance.getShape("O");  
+        AbstractBox l = instance.getShape("L");  
+        i.display("Red");  
+        o.display("Blue");  
+        l.display("Green");  
+        AbstractBox i1 = instance.getShape("I");  
+        i1.display("Gray");  
+        System.out.println(i == i1);  
+    }  
+}
+```
+![](assets/Java基础/file-20260206150211606.png)
+两次从工厂中取出来的对象是同一个，没有新建一个对象，而是利用缓存中的原有的对象

@@ -1656,3 +1656,82 @@ public class Main {
 ```
 ![](assets/Java基础/file-20260206150211606.png)
 两次从工厂中取出来的对象是同一个，没有新建一个对象，而是利用缓存中的原有的对象
+**优点**：
+- 极大减少内存中相似或相同对象数量，节约系统资源，提高系统性能
+- 享元模式中的外部状态相对独立，且不影响内部状态
+**缺点**：
+- 为了使对象可以共享，需要将享元对象的部分状态外部化，分离内部状态和外部状态，是程序逻辑复杂
+## 行为型模式
+行为型模式用于描述程序在运行时复杂的流程控制，即描述多个类或对象之间怎么相互协作共同完成单个对象都无法完成的任务
+行为型模式分为类行为模式和对象行为模式，前者采用继承机制在类间分派行为，后者采用组合或聚合在对象间分配行为
+### 模版方法模式
+定义一个操作中的算法骨架，而将算法的一些步骤延迟到子类中，使得子类可以不改变改算法结构的情况下重定义该算法的某些特定步骤
+```java
+public abstract class Vegetables {  
+  
+    public final void cook(){  
+        pourOil();  
+        headOil();  
+        pourVegetable();  
+        pourSauce();  
+        fry();  
+    }  
+  
+    public void pourOil(){  
+        System.out.println("倒油");  
+    }  
+    public void headOil(){  
+        System.out.println("加热");  
+    }  
+    public abstract void pourVegetable();  
+    public abstract void pourSauce();  
+  
+    public void fry(){  
+        System.out.println("翻炒");  
+    }  
+}
+public class Cabbage extends Vegetables{  
+    @Override  
+    public void pourVegetable() {  
+        System.out.println("倒入包菜");  
+    }  
+  
+    @Override  
+    public void pourSauce() {  
+        System.out.println("加入辣椒");  
+    }  
+}
+public class ChineseCabbage extends Vegetables {  
+    @Override  
+    public void pourVegetable() {  
+        System.out.println("倒入白菜");  
+    }  
+  
+    @Override  
+    public void pourSauce() {  
+        System.out.println("加入蒜蓉");  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        Cabbage cabbage = new Cabbage();  
+        cabbage.cook();  
+        System.out.println("================================");  
+        ChineseCabbage chineseCabbage = new ChineseCabbage();  
+        chineseCabbage.cook();  
+    }  
+}
+```
+![](assets/Java基础/file-20260206195809389.png)
+模版方法模式中要有一个final修饰的模版方法，不可被子类继承，防止被重写后改变了算法的框架
+**优点**：
+- 提高了代码的复用性
+- 实现了反向控制，通过父类调用子类的操作，通过子类对具体实现扩展不同的行为，实现了反向控制
+**缺点**：
+- 对每个不同的实现都要定义一个类，导致类数量增肌，系统庞大
+- 父类中的抽象方法都由子类实现，子类执行的结果会影响父类的结果，提高了代码阅读的难度
+### 策略模式
+定义了一系列算法，并将每个算法封装起来，使它们可以相互替换，且算法的变化不会影响使用算法的用户，把使用算法的职责和算法的实现分隔开，并委派给不同的对象对这些算法进行管理

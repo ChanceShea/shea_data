@@ -1781,5 +1781,76 @@ public class DefaultCustomService implements CustomService {
 ```
 ### 命令模式
 它将一个请求封装为一个对象，从而使你可以用不同的请求对客户进行参数化，支持请求的排队、记录、撤销等操作。
-
+```java
+public interface Command {  
+    void execute();  
+  
+    // 可选操作，支持撤销  
+    void undo();  
+}
+public class LightOnCommand implements Command {  
+  
+    private Light light;  
+  
+    public LightOnCommand(Light light) {  
+        this.light = light;  
+    }  
+  
+    @Override  
+    public void execute() {  
+        light.turnOn();  
+    }  
+  
+    @Override  
+    public void undo() {  
+        light.turnOff();  
+    }  
+}
+```
+```java
+public class Light {  
+  
+    public void turnOn() {  
+        System.out.println("Light is on");  
+    }  
+  
+    public void turnOff() {  
+        System.out.println("Light is off");  
+    }  
+}
+```
+```java
+public class Invoker {  
+  
+    private Command command;  
+  
+    public void setCommand(Command command) {  
+        this.command = command;  
+    }  
+  
+    public void pressButton(){  
+        command.execute();  
+    }  
+  
+    public void pressUndoButton(){  
+        command.undo();  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        Light light = new Light();  
+        Command lightOn = new LightOnCommand(light);  
+  
+        Invoker invoker = new Invoker();  
+        invoker.setCommand(lightOn);  
+  
+        invoker.pressButton(); // 执行命令  
+        invoker.pressUndoButton(); // 撤销命令  
+    }  
+}
+```
+将Command请求封装成对象，从而可以将调用者(Invoker)和接受者(Receiver)解耦
 

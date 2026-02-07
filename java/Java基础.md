@@ -1735,3 +1735,51 @@ public class Main {
 - 父类中的抽象方法都由子类实现，子类执行的结果会影响父类的结果，提高了代码阅读的难度
 ### 策略模式
 定义了一系列算法，并将每个算法封装起来，使它们可以相互替换，且算法的变化不会影响使用算法的用户，把使用算法的职责和算法的实现分隔开，并委派给不同的对象对这些算法进行管理
+```java
+public interface CustomService {  
+    String show();  
+}
+@Component  
+@SupportCustom(UserType.NORMAL)  
+public class NormalCustomService implements CustomService{  
+    @Override  
+    public String show() {  
+        return "Normal Custom Service";  
+    }  
+}
+@Component  
+@SupportCustom(UserType.SMALL_R)  
+public class SmallRCustomService implements CustomService {  
+    @Override  
+    public String show() {  
+        return "Small R Custom Service";  
+    }  
+}
+@Component  
+@SupportCustom(UserType.BIG_R)  
+public class BigRCustomService implements CustomService {  
+    @Override  
+    public String show() {  
+        return "Big R Custom Service";  
+    }  
+}
+@Component  
+@SupportCustom(UserType.PERSONAL)  
+public class PersonalCustomService implements CustomService {  
+    @Override  
+    public String show() {  
+        return "Personal Custom Service";  
+    }  
+}
+@Component  
+public class DefaultCustomService implements CustomService {  
+    @Override  
+    public String show() {  
+        return "Default Custom Service";  
+    }  
+}
+```
+### 命令模式
+它将一个请求封装为一个对象，从而使你可以用不同的请求对客户进行参数化，支持请求的排队、记录、撤销等操作。
+
+

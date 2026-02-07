@@ -1855,3 +1855,61 @@ public class Main {
 将Command请求封装成对象，从而可以将调用者(Invoker)和接受者(Receiver)解耦
 ### 责任链模式
 为了避免请求发送者与多个请求处理者耦合在一起，让多个对象都有机会处理请求，将这些对象连接成一条链，并沿着这条链传递请求，直到有对象处理它为止
+```java
+public abstract class Handler {  
+    protected Handler successor;  
+  
+    public void setSuccessor(Handler successor) {  
+        this.successor = successor;  
+    }  
+  
+    public abstract void handleRequest(int request);  
+}
+public class HandlerA extends Handler {  
+    @Override  
+    public void handleRequest(int request) {  
+        if(request <= 10){  
+            System.out.println("HandlerA 处理请求" + request);  
+        }else if(successor != null){  
+            successor.handleRequest(request);  
+        }  
+    }  
+}
+public class HandlerB extends Handler {  
+    @Override  
+    public void handleRequest(int request) {  
+        if(request <= 20){  
+            System.out.println("HandlerB 处理请求" + request);  
+        }else if(successor != null){  
+            successor.handleRequest(request);  
+        }  
+    }  
+}
+public class HandlerC extends Handler {  
+    @Override  
+    public void handleRequest(int request) {  
+        if(request <= 30){  
+            System.out.println("HandlerC 处理请求" + request);  
+        } else {  
+            System.out.println("无处理请求的方法 " + request);  
+        }  
+    }  
+}
+```
+```java
+public class Main {  
+    public static void main(String[] args) {  
+        Handler handlerA = new HandlerA();  
+        Handler handlerB = new HandlerB();  
+        Handler handlerC = new HandlerC();  
+        handlerA.setSuccessor(handlerB);  
+        handlerB.setSuccessor(handlerC);  
+        int[] request = {5,15,25,35};  
+        for (int i : request) {  
+            handlerA.handleRequest(i);  
+        }  
+    }  
+}
+```
+![](assets/Java基础/file-20260207161359715.png)
+通过策略模式，我们可以不需要知道具体是哪个对象处理请求，只需要将请求传给第一个对象即可，如果第一个对象无法处理，则会自动传给下一个对象，每个对象都只处理自己职责范围内的请求

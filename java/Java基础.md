@@ -1993,4 +1993,98 @@ public class Main {
 ![](assets/Java基础/file-20260207214800027.png)
 ### 观察者模式
 定义了对象之间的一种一对多依赖关系，当一个对象（被观察者/主题）的状态发生改变时，所有依赖它的对象（观察者）都会得到通知并自动更新
+```java
+public interface Subject {  
+    // 添加订阅者  
+    void attach(Observer observer);  
+  
+    // 删除订阅者  
+    void detach(Observer observer);  
+  
+    // 通知所有订阅者  
+    void notifyObservers(String message);  
+}
+public class Subscription implements Subject{  
+  
+    private Set<Observer> observers = new HashSet<>();  
+    private ExecutorService executor = Executors.newFixedThreadPool(10);  
+  
+    @Override  
+    public void attach(Observer observer) {  
+        observers.add(observer);  
+    }  
+  
+    @Override  
+    public void detach(Observer observer) {  
+        observers.remove(observer);  
+    }  
+  
+    @Override  
+    public void notifyObservers(String message) {  
+        observers.forEach(observer -> observer.update(message));  
+        // 用户多时，可以使用多线程通知  
+//        CompletableFuture[] array = observers.stream().map(  
+//                observer -> CompletableFuture.runAsync(  
+//                        () -> observer.update(message), executor  
+//                )  
+//        ).toArray(CompletableFuture[]::new);  
+//        CompletableFuture.allOf(array).join();  
+    }  
+  
+    public void shutdown() {  
+        executor.shutdown();  
+        try {  
+            if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {  
+                executor.shutdownNow();  
+            }  
+        } catch (InterruptedException e) {  
+            executor.shutdownNow();  
+            Thread.currentThread().interrupt();  
+        }  
+    }  
+}
+```
+```java
+public interface Observer {  
+    void update(String message);  
+}
+public class User implements Observer {  
+  
+    private String name;  
+  
+    public User(String name) {  
+        this.name = name;  
+    }  
+  
+    @Override  
+    public void update(String message) {  
+        System.out.println(name + " received message: " + message);  
+    }  
+  
+    @Override  
+    public boolean equals(Object o) {  
+        if (o == null || getClass() != o.getClass()) return false;  
+        User user = (User) o;  
+        return Objects.equals(name, user.name);  
+    }  
+  
+    @Override  
+    public int hashCode() {  
+        return Objects.hashCode(name);  
+    }  
+}
+```
+```java
+public class Main {  
+    public static void main(String[] args) {  
+        Subscription subscription = new Subscription();  
+        subscription.attach(new User("Alice"));  
+        subscription.attach(new User("Bob"));  
+        subscription.attach(new User("Charlie"));  
+        subscription.attach(new User("Alice"));  
+        subscription.notifyObservers("Hello, observers!");  
+    }  
+}
+```
+![](assets/Java基础/file-20260208102651381.png)
 

@@ -1915,3 +1915,79 @@ public class Main {
 通过责任链模式，我们可以不需要知道具体是哪个对象处理请求，只需要将请求传给第一个对象即可，如果第一个对象无法处理，则会自动传给下一个对象，每个对象都只处理自己职责范围内的请求
 ### 状态模式
 将对象的状态封装成独立的类，并将委托行为委托给当前状态对象，而不是在对象内部使用大量的条件语句（if-else 或 switch-case）来判断状态
+```java
+public interface VoteState {  
+    void vote(String user,String voteItem,VoteManager manager);  
+}
+public class NormalVoteState implements VoteState {  
+    @Override  
+    public void vote(String user, String voteItem, VoteManager manager) {  
+        manager.getVoteMap().put(user, voteItem);  
+        System.out.println("恭喜投票成功");  
+    }  
+}
+public class RepeatVoteState implements VoteState {  
+    @Override  
+    public void vote(String user, String voteItem, VoteManager manager) {  
+        System.out.println("请勿重复投票");  
+    }  
+}
+public class SpiteVoteState implements VoteState {  
+    @Override  
+    public void vote(String user, String voteItem, VoteManager manager) {  
+        String s = manager.getVoteMap().get(user);  
+        if(s!=null) {  
+            manager.getVoteMap().remove(user);  
+        }  
+        System.out.println("疑似刷票行为，取消投票资格");  
+    }  
+}
+public class BlackVoteState implements VoteState {  
+    @Override  
+    public void vote(String user, String voteItem, VoteManager manager) {  
+        System.out.println("黑名单用户，没有投票资格");  
+    }  
+}
+```
+```java
+public class VoteManager {  
+    private VoteState state = null;  
+    private Map<String,String> voteMap = new HashMap<>();  
+    private Map<String,Integer> voteCount = new HashMap<>();  
+  
+    public Map<String,String> getVoteMap() {  
+        return voteMap;  
+    }  
+  
+    public void vote(String user,String voteItem){  
+        Integer votes = this.voteCount.get(user);  
+        if(votes == null){  
+            votes = 0;  
+        }  
+        votes++;  
+        this.voteCount.put(user,votes);  
+        if(votes == 1){  
+            state = new NormalVoteState();  
+        } else if (votes > 1 && votes <= 5) {  
+            state = new SpiteVoteState();  
+        } else if (votes > 5 && votes <= 8) {  
+            state = new SpiteVoteState();  
+        } else if (votes > 8){  
+            state = new BlackVoteState();  
+        }  
+        state.vote(user,voteItem,this);  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        VoteManager voteManager = new VoteManager();  
+        for (int i = 0; i < 10; i++) {  
+            voteManager.vote("shea","A");  
+        }  
+    }  
+}
+```
+![](assets/Java基础/file-20260207214800027.png)

@@ -2189,3 +2189,74 @@ public class Main {
 ![](assets/Java基础/file-20260210203228774.png)
 ### 迭代器模式
 它提供一种方法顺序访问一个聚合对象中的各个元素，而又不暴露该对象的内部表示
+```java
+public class User implements Iterable<String>{  
+  
+    private String name;  
+    private int age;  
+    private String address;  
+    private String phone;  
+  
+    public User(String name, int age, String address, String phone) {  
+        this.name = name;  
+        this.age = age;  
+        this.address = address;  
+        this.phone = phone;  
+    }  
+  
+    @Override  
+    public String toString() {  
+        return "User{" +  
+                "name='" + name + '\'' +  
+                ", age=" + age +  
+                ", address='" + address + '\'' +  
+                ", phone='" + phone + '\'' +  
+                '}';  
+    }  
+  
+    @Override  
+    public Iterator<String> iterator() {  
+        return new UserIterator();  
+    }  
+  
+    class UserIterator implements Iterator<String> {  
+  
+        int count = 0;  
+        static Field[] fields;  
+  
+        static{  
+            fields = User.class.getDeclaredFields();  
+            for (Field field : fields) {  
+                field.setAccessible(true);  
+            }  
+        }  
+  
+        @Override  
+        public boolean hasNext() {  
+            return count < fields.length;  
+        }  
+  
+        @Override  
+        public String next() {  
+            Field field = fields[count++];  
+            try {  
+                return String.valueOf(field.get(User.this));  
+            } catch (IllegalAccessException e) {  
+                throw new RuntimeException(e);  
+            }  
+        }  
+    }  
+}
+```
+```java
+public class Main {  
+    public static void main(String[] args) {  
+        User user = new User("Shea", 18, "Shanghai", "12345678901");  
+        for (String field : user) {  
+            System.out.println(field);  
+        }  
+    }  
+}
+```
+![](assets/Java基础/file-20260210212254642.png)**tips**：为什么增强for循环和forEach循环，不能对集合中添加或删除元素？
+增强for循环和forEach循环都是通过Iterator迭代器实现的，其内部类会定义一个modCount和exceptedModCount，每一次调用next()函数时，都会检查modCount和exceptedModCount的值是否相等，如果在循环中对集合进行增加和删除元素，则会导致modCount的值发生变化，就会抛出异常

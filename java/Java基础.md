@@ -2089,3 +2089,103 @@ public class Main {
 ![](assets/Java基础/file-20260208102651381.png)
 ### 中介者模式
 通过引入一个中介对象来封装一系列对象之间的交互，从而降低对象之间的直接耦合，使对象可以独立地改变它们之间的交互
+```java
+public abstract class Mediator {    
+    public abstract void concat(String message,Person person);  
+}
+public class MediatorStructure extends Mediator {  
+  
+    private Tenant tenant; // 租户  
+    private HouseOwner houseOwner; // 房东  
+  
+    @Override  
+    public void concat(String message, Person person) {  
+        if(person == houseOwner){  
+            tenant.getMessage(message);  
+        }else {  
+            houseOwner.getMessage(message);  
+        }  
+    }  
+  
+    public HouseOwner getHouseOwner() {  
+        return houseOwner;  
+    }  
+  
+    public Tenant getTenant() {  
+        return tenant;  
+    }  
+  
+    public void setTenant(Tenant tenant) {  
+        this.tenant = tenant;  
+    }  
+  
+    public void setHouseOwner(HouseOwner houseOwner) {  
+        this.houseOwner = houseOwner;  
+    }  
+}
+```
+```java
+public abstract class Person {  
+  
+    protected String name;  
+    protected Mediator mediator;  
+  
+    public Person(String name, Mediator mediator) {  
+        this.name = name;  
+        this.mediator = mediator;  
+    }  
+  
+}
+public class Tenant extends Person {  
+  
+    public Tenant(String name, Mediator mediator) {  
+        super(name, mediator);  
+    }  
+  
+    // 和中介沟通  
+    public void concat(String message) {  
+        mediator.concat(message,this);  
+    }  
+  
+    // 获取信息  
+    public void getMessage(String message) {  
+        System.out.println("租房者 " + name + " 获取到信息: " + message);  
+    }  
+}
+public class HouseOwner extends Person {  
+  
+    public HouseOwner(String name, Mediator mediator) {  
+        super(name, mediator);  
+    }  
+  
+    // 和中介沟通  
+    public void concat(String message) {  
+        mediator.concat(message,this);  
+    }  
+  
+    // 获取信息  
+    public void getMessage(String message) {  
+        System.out.println("房东 " + name + " 获取到信息: " + message);  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        MediatorStructure mediator = new MediatorStructure();  
+  
+        Tenant tenant = new Tenant("Shea", mediator);  
+        HouseOwner houseOwner = new HouseOwner("John", mediator);  
+  
+        mediator.setTenant(tenant);  
+        mediator.setHouseOwner(houseOwner);  
+  
+        tenant.concat("我要租房");  
+        houseOwner.concat("你需要什么样的房子");  
+    }  
+}
+```
+![](assets/Java基础/file-20260210203228774.png)
+### 迭代器模式
+它提供一种方法顺序访问一个聚合对象中的各个元素，而又不暴露该对象的内部表示

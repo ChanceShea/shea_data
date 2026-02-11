@@ -2430,3 +2430,101 @@ public class Main {
 ![](assets/Java基础/file-20260211183551164.png)
 #### 黑箱备忘录模式
 备忘录角色对发起人角色提供一个宽接口，为其他对象提供一个窄接口
+```java
+public interface Memento {  
+}
+```
+```java
+public class GameRole {  
+  
+    private int vit;  
+    private int atk;  
+    private int def;  
+  
+    public void initState(){  
+        this.vit = 100;  
+        this.atk = 100;  
+        this.def = 100;  
+    }  
+  
+    public void fight(){  
+        this.vit = 0;  
+        this.atk = 0;  
+        this.def = 0;  
+    }  
+  
+    public Memento saveState(){  
+        return new RoleStateMemento(vit, atk, def);  
+    }  
+  
+    public void recoverState(Memento memento){  
+        RoleStateMemento roleStateMemento = (RoleStateMemento) memento;  
+        this.vit = roleStateMemento.getVit();  
+        this.atk = roleStateMemento.getAtk();  
+        this.def = roleStateMemento.getDef();  
+    }  
+  
+    public void displayState(){  
+        System.out.println("角色状态：");  
+        System.out.println("生命值：" + this.vit);  
+        System.out.println("攻击力：" + this.atk);  
+        System.out.println("防御力：" + this.def);  
+    }  
+  
+    private class RoleStateMemento implements Memento{  
+        private int vit; // 生命值  
+        private int atk; // 攻击力  
+        private int def; // 防御力  
+  
+        public RoleStateMemento(int vit, int atk, int def) {  
+            this.vit = vit;  
+            this.atk = atk;  
+            this.def = def;  
+        }  
+  
+        public int getVit() {  
+            return vit;  
+        }  
+  
+        public int getAtk() {  
+            return atk;  
+        }  
+  
+        public int getDef() {  
+            return def;  
+        }  
+    }  
+}
+```
+```java
+public class RoleStateMementoCaretaker {  
+  
+    private Memento memento;  
+  
+    public Memento getMemento() {  
+        return memento;  
+    }  
+  
+    public void setMemento(Memento memento) {  
+        this.memento = memento;  
+    }  
+}
+```
+```java
+public class Main {  
+    public static void main(String[] args) {  
+        GameRole role = new GameRole();  
+        role.initState(); // 初始化角色状态  
+        role.displayState();  
+        RoleStateMementoCaretaker caretaker = new RoleStateMementoCaretaker();  
+        caretaker.setMemento(role.saveState()); // 保存角色状态  
+        role.fight(); // 角色战斗  
+        role.displayState();  
+        role.recoverState(caretaker.getMemento()); // 恢复角色状态  
+        role.displayState();  
+    }  
+}
+```
+### 解释器模式
+给定一个语言，定义它的文法表示，并定义一个解释器，这个解释器使用该标识来解释语言中的句子
+

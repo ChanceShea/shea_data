@@ -2260,3 +2260,5 @@ public class Main {
 ```
 ![](assets/Java基础/file-20260210212254642.png)**tips**：为什么增强for循环和forEach循环，不能对集合中添加或删除元素？
 增强for循环和forEach循环都是通过Iterator迭代器实现的，其内部类会定义一个modCount和exceptedModCount，每一次调用next()函数时，都会检查modCount和exceptedModCount的值是否相等，如果在循环中对集合进行增加和删除元素，则会导致modCount的值发生变化，就会抛出异常
+### 访问者模式
+封装一些作用于某种数据结构中的各元素的操作，它可以在不改变这个数据结构的前提下定义作用于这些元素的新的操作

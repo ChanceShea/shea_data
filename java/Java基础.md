@@ -2336,3 +2336,97 @@ public class Main {
 - **宽接口**：与管理者看到的窄接口相反，发起人对象可以看到一个宽接口，这个宽接口允许它读取所有的数据，以便根据这些数据恢复发起人对象的内部状态
 #### 白箱备忘录模式
 备忘录角色对任何对象都提供一个宽接口，备忘录角色的内存存储的状态对所有对象公开
+```java
+public class GameRole {  
+    private int vit; // 生命值  
+    private int atk; // 攻击力  
+    private int def; // 防御力  
+  
+    public void initState(){  
+        this.vit = 100;  
+        this.atk = 100;  
+        this.def = 100;  
+    }  
+  
+    public void fight(){  
+        this.vit = 0;  
+        this.atk = 0;  
+        this.def = 0;  
+    }  
+  
+    public RoleStateMemento saveState(){  
+        return new RoleStateMemento(vit, atk, def);  
+    }  
+  
+    public void recoverState(RoleStateMemento memento){  
+        this.vit = memento.getVit();  
+        this.atk = memento.getAtk();  
+        this.def = memento.getDef();  
+    }  
+  
+    public void displayState(){  
+        System.out.println("角色状态：");  
+        System.out.println("生命值：" + this.vit);  
+        System.out.println("攻击力：" + this.atk);  
+        System.out.println("防御力：" + this.def);  
+    }  
+}
+```
+```java
+public class RoleStateMemento {  
+    private int vit; // 生命值  
+    private int atk; // 攻击力  
+    private int def; // 防御力  
+  
+    public RoleStateMemento(int vit, int atk, int def) {  
+        this.vit = vit;  
+        this.atk = atk;  
+        this.def = def;  
+    }  
+  
+    public int getVit() {  
+        return vit;  
+    }  
+  
+    public int getDef() {  
+        return def;  
+    }  
+  
+    public int getAtk() {  
+        return atk;  
+    }  
+}
+```
+```java
+public class RoleStateMementoCaretaker {  
+  
+    private RoleStateMemento roleStateMemento;  
+  
+    public RoleStateMemento getRoleStateMemento() {  
+        return roleStateMemento;  
+    }  
+  
+    public void setRoleStateMemento(RoleStateMemento roleStateMemento) {  
+        this.roleStateMemento = roleStateMemento;  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        GameRole role = new GameRole();  
+        role.initState(); // 初始化角色状态  
+        role.displayState();  
+        RoleStateMementoCaretaker caretaker = new RoleStateMementoCaretaker();  
+        caretaker.setRoleStateMemento(role.saveState()); // 保存角色状态  
+        role.fight(); // 角色战斗  
+        role.displayState();  
+        role.recoverState(caretaker.getRoleStateMemento()); // 恢复角色状态  
+        role.displayState();  
+    }  
+}
+```
+![](assets/Java基础/file-20260211183551164.png)
+#### 黑箱备忘录模式
+备忘录角色对发起人角色提供一个宽接口，为其他对象提供一个窄接口

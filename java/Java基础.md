@@ -2262,3 +2262,72 @@ public class Main {
 增强for循环和forEach循环都是通过Iterator迭代器实现的，其内部类会定义一个modCount和exceptedModCount，每一次调用next()函数时，都会检查modCount和exceptedModCount的值是否相等，如果在循环中对集合进行增加和删除元素，则会导致modCount的值发生变化，就会抛出异常
 ### 访问者模式
 封装一些作用于某种数据结构中的各元素的操作，它可以在不改变这个数据结构的前提下定义作用于这些元素的新的操作
+```java
+public interface Person {  
+  
+    void feed(Cat cat);  
+  
+    void feed(Dog dog);  
+}
+public class User implements Person {  
+    @Override  
+    public void feed(Cat cat) {  
+        System.out.println("User is feeding cat");  
+    }  
+  
+    @Override  
+    public void feed(Dog dog) {  
+        System.out.println("User is feeding dog");  
+    }  
+}
+```
+```java
+public interface Animal {  
+    // 接收访问者访问的功能  
+    void accept(Person person);  
+}
+public class Cat implements Animal {  
+    @Override  
+    public void accept(Person person) {  
+        person.feed(this);  
+        System.out.println("Cat is being fed");  
+    }  
+}
+public class Dog implements Animal {    
+    @Override  
+    public void accept(Person person) {  
+        person.feed(this);  
+        System.out.println("Dog is being fed");  
+    }  
+}
+```
+```java
+public class Home {  
+  
+    private List<Animal> nodeList = new ArrayList<>();  
+  
+    public void add(Animal animal) {  
+        nodeList.add(animal);  
+    }  
+  
+    public void action(Person person) {  
+        for (Animal animal : nodeList) {  
+            animal.accept(person);  
+        }  
+    }  
+}
+```
+```java
+public class Main {  
+    public static void main(String[] args) {  
+        Home home = new Home();  
+        home.add(new Cat());  
+        home.add(new Dog());  
+        User user = new User();  
+        home.action(user);  
+    }  
+}
+```
+![](assets/Java基础/file-20260211171349005.png)
+### 备忘录模式
+它允许在不暴露对象实现细节的情况下捕获和恢复对象的内部状态。它通过将状态保存在备忘录对象中，实现状态的保存和恢复，同时保持封装性

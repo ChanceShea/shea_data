@@ -2527,4 +2527,89 @@ public class Main {
 ```
 ### 解释器模式
 给定一个语言，定义它的文法表示，并定义一个解释器，这个解释器使用该标识来解释语言中的句子
+```java
+public abstract class AbstractExpression {  
+  
+    public abstract int interpret(Context context);  
+}
+public class Variable extends AbstractExpression {  
+  
+    private String name;  
+  
+    public Variable(String name) {  
+        this.name = name;  
+    }  
+  
+    @Override  
+    public int interpret(Context context) {  
+        return context.getValue(this);  
+    }  
+  
+    @Override  
+    public String toString() {  
+        return name;  
+    }  
+}
+public class Plus extends AbstractExpression {  
+  
+    private AbstractExpression left;  
+    private AbstractExpression right;  
+  
+    public Plus(AbstractExpression left, AbstractExpression right) {  
+        this.left = left;  
+        this.right = right;  
+    }  
+  
+    @Override  
+    public int interpret(Context context) {  
+        return left.interpret(context) + right.interpret(context);  
+    }  
+  
+    @Override  
+    public String toString() {  
+        return left.toString() + "+" + right.toString();  
+    }  
+}
+public class Minus extends AbstractExpression {  
+    private AbstractExpression left;  
+    private AbstractExpression right;  
+  
+    public Minus(AbstractExpression left, AbstractExpression right) {  
+        this.left = left;  
+        this.right = right;  
+    }  
+    @Override  
+    public int interpret(Context context) {  
+        return left.interpret(context) - right.interpret(context);  
+    }  
+  
+    @Override  
+    public String toString() {  
+        return left.toString() + "-" + right.toString();  
+    }  
+}
+```
+```java
+public class Main {  
+  
+    public static void main(String[] args) {  
+        Context context = new Context();  
+        Variable a = new Variable("a");  
+        context.assign(a,10);  
+        Variable b = new Variable("b");  
+        context.assign(b,20);  
+        Variable c = new Variable("c");  
+        context.assign(c,30);  
+        Variable d = new Variable("d");  
+        context.assign(d,40);  
+  
+        // a + b - c + d  
+        AbstractExpression expression = new Plus(a,new Plus(new Minus(b,c),d));  
+        int res = expression.interpret(context);  
+        System.out.println(expression + " = " + res);  
+    }  
+}
+```
+![](assets/Java基础/file-20260211191751153.png)
+
 

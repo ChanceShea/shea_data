@@ -4,21 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "ba89f90c049c1aec",
+        "id": "52825a377476739d",
         "type": "tabs",
         "children": [
           {
-            "id": "9d78386616354746",
+            "id": "fabb15f7f57e9614",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/Java基础.md",
+                "file": "java/Spring.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Java基础"
+              "title": "Spring"
             }
           }
         ]
@@ -80,17 +80,16 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/Java基础.md",
+                "file": "java/Spring.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Java基础 的大纲"
+              "title": "Spring 的大纲"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
@@ -196,8 +195,9 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "9d78386616354746",
+  "active": "fabb15f7f57e9614",
   "lastOpenFiles": [
+    "java/Java基础.md",
     "java/assets/Java基础/file-20260211191751153.png",
     "java/assets/Java基础/file-20260211183551164.png",
     "java/assets/Java基础/file-20260211171349005.png",
@@ -208,12 +208,10 @@
     "java/assets/Java基础/file-20260207161359715.png",
     "java/assets/Java基础/file-20260206195809389.png",
     "java/assets/Java基础/file-20260206150211606.png",
-    "java/assets/Java基础/file-20260205200403956.png",
     "java/assets/Java基础",
     "java/Spring.md",
     "java/Nginx.md",
     "java/Mybatis.md",
-    "java/Java基础.md",
     "java/Java并发编程.md",
     "java/杂.md",
     "java/MySQL.md",

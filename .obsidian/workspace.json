@@ -80,16 +80,17 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/Spring.md",
+                "file": "java/MySQL.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Spring 的大纲"
+              "title": "MySQL 的大纲"
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
@@ -197,18 +198,19 @@
   },
   "active": "5b4def52a95b66ac",
   "lastOpenFiles": [
+    "java/assets/MySQL/file-20260218234949498.png",
+    "java/assets/MySQL/file-20260218234820183.png",
+    "java/assets/MySQL/file-20260218234809477.png",
+    "java/assets/MySQL/file-20260218234732874.png",
+    "java/assets/MySQL/file-20260218233859920.png",
+    "java/assets/MySQL/file-20260218233400487.png",
+    "java/assets/MySQL/file-20260218231259619.png",
+    "java/assets/MySQL/file-20260218230814885.png",
     "java/Spring.md",
     "java/Java基础.md",
     "java/assets/Java基础/file-20260211191751153.png",
     "java/assets/Java基础/file-20260211183551164.png",
     "java/assets/Java基础/file-20260211171349005.png",
-    "java/assets/Java基础/file-20260210212254642.png",
-    "java/assets/Java基础/file-20260210203228774.png",
-    "java/assets/Java基础/file-20260208102651381.png",
-    "java/assets/Java基础/file-20260207214800027.png",
-    "java/assets/Java基础/file-20260207161359715.png",
-    "java/assets/Java基础/file-20260206195809389.png",
-    "java/assets/Java基础/file-20260206150211606.png",
     "java/assets/Java基础",
     "java/Nginx.md",
     "java/Mybatis.md",

@@ -89,8 +89,7 @@
               "title": "MySQL 的大纲"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
@@ -198,6 +197,10 @@
   },
   "active": "5b4def52a95b66ac",
   "lastOpenFiles": [
+    "java/Java并发编程.md",
+    "java/Mybatis.md",
+    "java/Java基础.md",
+    "java/MySQL.md",
     "java/assets/MySQL/file-20260221205707933.png",
     "java/assets/MySQL/file-20260221201352398.png",
     "java/assets/MySQL/file-20260219222544069.png",
@@ -208,15 +211,10 @@
     "java/assets/MySQL/file-20260218234949498.png",
     "java/assets/MySQL/file-20260218234820183.png",
     "java/assets/MySQL/file-20260218234809477.png",
-    "java/assets/MySQL/file-20260218234732874.png",
     "java/Spring.md",
-    "java/Java基础.md",
     "java/assets/Java基础",
     "java/Nginx.md",
-    "java/Mybatis.md",
-    "java/Java并发编程.md",
     "java/杂.md",
-    "java/MySQL.md",
     "java/assets/MySQL",
     "java/assets",
     "java/JVM.md",

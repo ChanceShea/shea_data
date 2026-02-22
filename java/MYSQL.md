@@ -53,6 +53,11 @@ MySQL的InnoDB引擎默认使用的事务隔离级别是可重复读，它很大
 Read View是InnoDB引擎在可重复读(RR)和读已提交(RC)隔离级别下，实现MVCC的核心组件，本质上就是一个数据快照，对于RR和RC，其区别就只是生成Read View的时机不同
 RC是在启动事务的时候就生成一个Read View，然后整个事务期间都只使用这一个Read View
 RR是在每个语句执行前都会重新生成一个Read View
+Read View中有四个重要字段
+- m_ids：指的是在创建Read View时，当前数据库中活跃事务的事务id列表（活跃事务指的是启动了但还没有提交的事务）
+- min_trx_id：指的是在创建Read View时，当前数据库中活跃事务中事务id最小的事务，也就是m_ids的最小值
+- max_trx_id：指的是创建Read View时，当前数据库中应该给下一个事务的id值，也就是全局事务中最大的事务id值+1
+- creator_trx_id：指的是创建改Read View的事务的事务id
 
 ## 存储引擎
 MySQL存储引擎是MySQL数据库的核心组件，它决定了数据如何存储、索引和事务处理等底层操作。MySQL采用插件式存储引擎架构，允许用户根据应用需求选择合适的引擎。

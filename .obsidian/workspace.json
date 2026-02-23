@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "a6b67e3505f2fa1b",
+        "id": "35dfaa9c986f53fa",
         "type": "tabs",
         "children": [
           {
-            "id": "5b4def52a95b66ac",
+            "id": "1c9654b45f668f14",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -130,12 +130,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "LLM/LLM.md",
+                "file": "java/MySQL.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "LLM 的出链列表"
+              "title": "MySQL 的出链列表"
             }
           },
           {
@@ -177,7 +177,8 @@
               "title": "标签"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
@@ -196,8 +197,9 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "5b4def52a95b66ac",
+  "active": "1c9654b45f668f14",
   "lastOpenFiles": [
+    "java/MySQL.md",
     "java/assets/MySQL/file-20260222194608320.png",
     "java/assets/MySQL/file-20260222194528436.png",
     "java/assets/MySQL/file-20260221224228343.png",
@@ -207,12 +209,10 @@
     "java/Java并发编程.md",
     "java/Mybatis.md",
     "java/Java基础.md",
-    "java/MySQL.md",
     "java/assets/MySQL/file-20260221205707933.png",
     "java/assets/MySQL/file-20260221201352398.png",
     "java/assets/MySQL/file-20260219222544069.png",
     "java/assets/MySQL/file-20260219222542845.png",
-    "java/assets/MySQL/file-20260219222417373.png",
     "java/Spring.md",
     "java/assets/Java基础",
     "java/Nginx.md",

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/MySQL.md",
+                "file": "java/Redis.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "MySQL"
+              "title": "Redis"
             }
           }
         ]
@@ -80,13 +80,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/MySQL.md",
+                "file": "java/Redis.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "MySQL 的大纲"
+              "title": "Redis 的大纲"
             }
           }
         ],
@@ -199,8 +199,8 @@
   },
   "active": "38cca0dbd3d54e89",
   "lastOpenFiles": [
-    "java/assets/MySQL/file-20260131200659953.png",
     "java/MySQL.md",
+    "java/assets/MySQL/file-20260131200659953.png",
     "java/assets/MySQL/file-20260224211341297.png",
     "java/Spring.md",
     "java/assets/MySQL/file-20260223195435972.png",

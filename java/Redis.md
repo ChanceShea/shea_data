@@ -33,6 +33,50 @@ mset user:1:name shea user:1:age 18 user:2:name zhangsan user:2:age 20
 ```
 **常规计数**
 因为Redis处理命令是单线程，所以执行命令的过程是原子的。因此String数据类型适用于计数场景
+```redis
+# 初始化文章的阅读量
+set article:readcount:1001 0
+# 阅读量加1
+incr article:readcount:1001
+# 获取文章阅读量
+get article:readcount:1001
+```
+**分布式锁**
+SETNX命令可以实现**key不存在时才插入**，我们可以用它来实现分布式锁，当key不存在时，则插入成功，可以表示加锁成功，反之加锁失败，同时要对这个键值对设定一个过期时间，以保证某个线程不会一直占用这个锁
+```redis
+# 方法一
+set key value nx ex seconds # 通过set命令直接设置
+# 方法二
+setnx key value # setnx命令设置锁
+expire key seconds # 设置过期时间
+```
+但是方法而并不是原子操作，可能在我们设置完锁后，Redis客户端就崩溃了，之后并没有设置过期时间，就会导致这个锁不会自动释放
+```lua
+if redis.call('setnx', KEYS[1], ARGV[1]) == 1 then
+    return redis.call('expire', KEYS[1], ARGV[2])
+else
+    return 0
+end
+```
+同时，解锁操作也不是原子的，因为在我们删除这个键值对的时候，需要先判断执行操作的客户端是否是加锁客户端，如果是，才能将这个锁删除
+```lua
+if redis.call("get",KEYS[1]) == ARGV[1] then
+	return redis.call("del",KEYS[1])
+else
+	return 0
+end
+```
+但这并不是最好的实现分布式锁的机制，后续会介绍redisson实现的分布式锁([[#看门狗机制]])
+**共享session信息**
+通常在开发后台管理系统时，会使用Session来保存用户的会话状态，这些Session信息会被保存在服务器端，但这只适用于单体系统，对于分布式系统不适用
+例如，用户一的session信息被存储在服务器一，但第二次访问时用户一被分配到服务器二，但是此时服务器二并没有用户一的session信息，就会出现需要重复登录的问题
+因此我们需要借助Redis来对这些session信息来进行统一的存储和管理，这样无论请求发送到哪台服务器，服务器都会去同一个Redis中获取相关的session信息
+### List
+List类型的底层数据结构是由双向链表或压缩列表来实现的
+- 如果列表的元素小于512个（默认值，由list-max-ziplist-entries参数配置），列表每个元素的值都小于64字节（默认值，由list-max-ziplist-value参数配置），Redis会使用压缩列表来作为List类型的底层数据结构
+- 如果列表的元素不满足上述条件，则会使用双向链表作为底层数据结构
+**Redis 3.2版本之后，List数据类型底层数据结构就只由quicklist实现了**
+
 ## 避免死锁
 
 即持有锁的服务宕机了，导致锁无法被释放，形成死锁

@@ -20,8 +20,23 @@
               "icon": "lucide-file",
               "title": "Redis"
             }
+          },
+          {
+            "id": "873389a6daef9040",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "计算机网络.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "计算机网络"
+            }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -80,17 +95,16 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/Redis.md",
+                "file": "计算机网络.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Redis 的大纲"
+              "title": "计算机网络 的大纲"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
@@ -197,8 +211,14 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "d81a4024b9b57172",
+  "active": "873389a6daef9040",
   "lastOpenFiles": [
+    "assets/计算机网络/file-20260301201319616.png",
+    "assets/计算机网络/file-20260301195341010.png",
+    "assets/计算机网络",
+    "assets",
+    "java/Redis.md",
+    "计算机网络.md",
     "java/assets/Redis/file-20260301153229066.png",
     "java/assets/Redis/file-20260301151203585.png",
     "java/assets/Redis/file-20260301151107944.png",
@@ -208,8 +228,6 @@
     "java/assets/Redis/file-20260228152522000.png",
     "java/assets/Redis/file-20260227192404317.png",
     "java/assets/Redis/file-20260227164831844.png",
-    "java/assets/Redis/file-20260227144331129.png",
-    "java/assets/Redis/file-20260226195434227.png",
     "java/assets/Redis",
     "java/MySQL.md",
     "java/Spring.md",
@@ -222,15 +240,12 @@
     "java/assets/MySQL",
     "java/assets",
     "java/JVM.md",
-    "java/Redis.md",
     "LLM/Python.md",
     "LLM/Java.md",
     "LLM/assets/Java",
     "未命名.base",
     "2026-01-23.md",
     "LLM/assets/LLM",
-    "LLM/assets",
-    "LLM",
-    "新建 文本文档.txt"
+    "LLM/assets"
   ]
 }

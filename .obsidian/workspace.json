@@ -104,7 +104,8 @@
               "title": "计算机网络 的大纲"
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
@@ -213,6 +214,8 @@
   },
   "active": "873389a6daef9040",
   "lastOpenFiles": [
+    "assets/计算机网络/file-20260302162519004.png",
+    "assets/计算机网络/file-20260302161721875.png",
     "assets/计算机网络/file-20260301224346964.png",
     "assets/计算机网络/file-20260301224345842.png",
     "assets/计算机网络/file-20260301223943960.png",
@@ -222,8 +225,6 @@
     "assets/计算机网络/file-20260301222439526.png",
     "assets/计算机网络/file-20260301222052039.png",
     "assets/计算机网络/file-20260301221416053.png",
-    "assets/计算机网络/file-20260301221331512.png",
-    "assets/计算机网络/file-20260301221048578.png",
     "assets/计算机网络",
     "assets",
     "java/Redis.md",

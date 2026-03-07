@@ -273,3 +273,62 @@ print(f"切分后的字符数：{sum([len(doc.page_content) for doc in split_doc
 切分后的文件数量712
 切分后的字符数：305676
 ```
+### 搭建向量数据库
+首先我们需要获取到所有的文档，并对文档做一些处理
+```python
+import os  
+  
+from dotenv import load_dotenv, find_dotenv  
+from langchain_community.document_loaders import PyMuPDFLoader, UnstructuredMarkdownLoader  
+  
+_ = load_dotenv(find_dotenv())  
+  
+file_paths = []  
+folder_path = "../resources"  
+for root,dirs,files in os.walk(folder_path):  
+    for file in files:  
+        file_path = os.path.join(root,file)  
+        file_paths.append(file_path)  
+print(file_paths)  
+# 遍历文件路径并把实例化的loader存到到loaders里  
+loaders = []  
+for file_path in file_paths:  
+    file_type = file_path.split(".")[-1]  
+    if file_type == "pdf":  
+        loaders.append(PyMuPDFLoader(file_path))  
+    elif file_type == "md":  
+        loaders.append(UnstructuredMarkdownLoader(file_path))  
+# 下载文件并存储到texts列表  
+texts = []  
+for loader in loaders:  
+    texts.extend(loader.load())  
+  
+text = texts[0]  
+print(f"每一个元素的类型：{type(text)}.",  
+    f"该文档的描述性数据：{text.metadata}",  
+    f"查看该文档的内容:\n{text.page_content[0:]}",  
+    sep="\n------\n")
+```
+```
+['../resources\\pumpkin_book.pdf', '../resources\\Redis.md', '../resources\\Java并发编程.md', '../resources\\MySQL.md']
+每一个元素的类型：<class 'langchain_core.documents.base.Document'>.
+------
+该文档的描述性数据：{'producer': 'xdvipdfmx (20200315)', 'creator': 'LaTeX with hyperref', 'creationdate': '2023-11-17T15:20:45+00:00', 'source': '../resources\\pumpkin_book.pdf', 'file_path': '../resources\\pumpkin_book.pdf', 'total_pages': 196, 'format': 'PDF 1.5', 'title': '', 'author': '', 'subject': '', 'keywords': '', 'moddate': '', 'trapped': '', 'modDate': '', 'creationDate': "D:20231117152045-00'00'", 'page': 0}
+------
+查看该文档的内容:
+本:2.0.0
+发布日期:2023.11
+南  ⽠  书
+PUMPKIN
+B  O  O  K
+谢	睿 州 贾彬彬
+```
+获取到文档之后，需要对文档进行分割
+```python
+text_splitter = RecursiveCharacterTextSplitter(  
+    chunk_size=500,  
+    chunk_overlap=50  
+)  
+split_docs = text_splitter.split_documents(texts)
+```
+**构建Chroma向量数据库**

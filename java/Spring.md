@@ -85,6 +85,8 @@ Spring Bean的生命周期主要分为四个阶段
 4. **销毁** ：当Spring容器被关闭时（例如，调用 ApplicationContext.close()），容器会管理Bean的销毁过程
    **@PreDestroy 注解方法**： 
    如果Bean的方法上标注了 @PreDestroy 注解，该方法会被调用
+**tips：单例Bean的线程不安全问题**
+
 ### Bean的三种初始化方法
 1. @PostConstruct：Spring的扩展功能，在Spring中需要手动配置对应的后处理器
 2. InitializingBean：实现InitializingBean接口，并重写afterPropertiesSet方法

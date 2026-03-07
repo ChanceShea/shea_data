@@ -332,3 +332,157 @@ text_splitter = RecursiveCharacterTextSplitter(
 split_docs = text_splitter.split_documents(texts)
 ```
 **构建Chroma向量数据库**
+```python
+from langchain_openai import OpenAIEmbeddings  
+# 定义embeddings  
+embedding = OpenAIEmbeddings(  
+    api_key=os.environ.get("OPENAI_API_KEY"),  
+    base_url="https://api.siliconflow.cn/v1",  
+    model="Qwen/Qwen3-Embedding-0.6B"  
+)  
+# 定义持久化路径  
+persist = "../db/vector_db/chroma"  
+  
+from langchain_community.vectorstores import Chroma  
+vectordb = Chroma.from_documents(  
+    documents = split_docs,  
+    embedding = embedding,  
+    persist_directory = persist,  
+)  
+  
+print(f"向量数据库中存储的数量：{vectordb._collection.count()}")
+```
+```
+向量数据库中存储的数量：1073
+```
+Chroma的相似度搜索使用的是余弦距离
+$$
+similarity=cos(A,B)=\frac{A*B}{||A||*||B||}=\frac{\sum_{i=1}^na_ib_i}{{\sqrt{\sum_{i=1}^na_i^2}}{\sqrt{\sum_{i=1}^n=b_i^2}}}
+$$
+其中$a_i$、$b_i$分别是向量A、B的分量
+当需要数据库严谨的返回按余弦相似度排序的结果时
+```python
+question="介绍一下Redis缓存穿透问题"  
+sim_docs=vectordb.similarity_search(question,k=3)  
+print(f"检索到的内容数：{len(sim_docs)}")  
+for i,sim_doc in enumerate(sim_docs):  
+    print(f"检索到的第{i}个内容是：\n{sim_doc.page_content[:200]}",end="\n--------------\n")
+```
+```
+检索到的内容数：3
+检索到的第0个内容是：
+四大特性(ACID)
+
+A(Atomicity)：原子性，事务是原子的，其中的操作要么同时成功，要么同时失败 C(Consistency)：一致性，事务完成时，所有的数据保持一致的状态 I(Isolation)：隔离性，事务与事务之间是隔离的，互不影响 D(Durability)：持久性，事务一旦提交或回滚，数据就会持久化到磁盘中，数据是持久的
+
+并发事务问题
+--------------
+检索到的第1个内容是：
+业务刚上线的时候，最好提前把数据缓存起来，而不是等待用户来访问才开始构建缓存，这就叫缓存预热 针对Redis故障宕机而引发的缓存雪崩问题 有以下几种应对方式 - 服务熔断或请求限流机制：因为Redis故障宕机而导致缓存雪崩问题时，可以启动服务熔断机制，暂停业务应用对缓存服务的访问，直接返回错误，不用再访问数据库，从而降低对数据库的访问压力，等到Redis恢复正常，再允许业务访问缓存服务 但是服务熔
+--------------
+检索到的第2个内容是：
+缓存击穿
+
+缓存中某个热点数据过期了，而此时大量的请求访问了该热点数据，就无法从缓存中读取，直接访问数据库，数据库就容易被高并发请求冲垮，这就是缓存击穿 解决缓存击穿，有以下两种方案 - 互斥锁：保证同一时间只有一个业务线程去更新缓存，其他请求要么等到锁释放后重新读取缓存，要么就返回空值或默认值 - 不给热点数据设置过期时间，由后台异步更新缓存，或者在热点数据快要过期时，提前通知后台线程更新缓存并
+--------------
+```
+由于分块策略以及使用的embedding模型参数较小，并且，只是用了相似度检索。因此可能检索出来的结果不是特别的正确
+如果只考虑检索出内容的相关性，可能会导致内容过于单一，可能会丢失重要信息
+最大边际相关性(MMR)可以帮助我们在保持相关性的同时，增加内容的丰富度
+核心思想是在已经选择了一个相关性高的文档之后，再选择一个与已选文档相关性较低但是信息丰富的文档。这样可以在保持相关性的同时，增加内容多样性，避免过于单一的结果
+```python
+mmr_docs = vectordb.max_marginal_relevance_search(question,k=3)
+for i, sim_doc in enumerate(mmr_docs): 
+	print(f"MMR 检索到的第{i}个内容: \n{sim_doc.page_content[:200]}", end="\n--------------\n")
+```
+```
+MMR 检索到的第0个内容: 
+四大特性(ACID)
+
+A(Atomicity)：原子性，事务是原子的，其中的操作要么同时成功，要么同时失败 C(Consistency)：一致性，事务完成时，所有的数据保持一致的状态 I(Isolation)：隔离性，事务与事务之间是隔离的，互不影响 D(Durability)：持久性，事务一旦提交或回滚，数据就会持久化到磁盘中，数据是持久的
+
+并发事务问题
+--------------
+MMR 检索到的第1个内容: 
+缓存击穿
+
+缓存中某个热点数据过期了，而此时大量的请求访问了该热点数据，就无法从缓存中读取，直接访问数据库，数据库就容易被高并发请求冲垮，这就是缓存击穿 解决缓存击穿，有以下两种方案 - 互斥锁：保证同一时间只有一个业务线程去更新缓存，其他请求要么等到锁释放后重新读取缓存，要么就返回空值或默认值 - 不给热点数据设置过期时间，由后台异步更新缓存，或者在热点数据快要过期时，提前通知后台线程更新缓存并
+--------------
+MMR 检索到的第2个内容: 
+synchronized
+
+@Slf4j
+public class Test {
+
+    static boolean flag = true;
+
+    public static final Object object = new Object();
+
+    public static void main(String[] args) {
+
+        new Thread(() ->
+--------------
+```
+# 构建RAG应用
+## 基于LangChain调用DeepSeek
+LangChain提供了对于多种大模型的封装，基于LangChain的接口可以便捷地调用ChatGPT并将其集合在以LangChain为基础框架搭建的个人应用中
+```python
+import os  
+from dotenv import load_dotenv  
+
+load_dotenv()  
+openai_api_key = os.environ.get("OPENAI_API_KEY")  
+  
+from langchain_openai import ChatOpenAI  
+llm = ChatOpenAI(  
+    temperature=0.0,  
+    base_url="https://api.siliconflow.cn",  
+    api_key=openai_api_key,  
+    model="deepseek-ai/DeepSeek-V3.2"  
+)  
+print(llm)
+```
+```
+profile={} client=<openai.resources.chat.completions.completions.Completions object at 0x000002774A684980> async_client=<openai.resources.chat.completions.completions.AsyncCompletions object at 0x000002774A685550> root_client=<openai.OpenAI object at 0x0000027749093A10> root_async_client=<openai.AsyncOpenAI object at 0x000002774A6852B0> model_name='deepseek-ai/DeepSeek-V3.2' temperature=0.0 model_kwargs={} openai_api_key=SecretStr('**********') openai_api_base='https://api.siliconflow.cn'
+```
+我们只看几个重要的结果变量
+- model_name：所使用的模型，上述代码中使用的是deepseek-ai/DeepSeek-V3.2
+- temperature：温度系数，值越小，大模型给出的结果越保守，值越大，大模型给出的结果越新奇，更富有想象力
+- openai_api_key：OpenAI API Key，如果不使用环境变量设置，也可以在实例化时设置
+接下来就可以使用我们选择的LLM
+```python
+output = llm.invoke("请介绍一下MySQL的MVCC")  
+print(f"\n{output}")
+```
+```
+content='好的，我来详细介绍一下 MySQL 的 MVCC。\n\n## 什么是 MVCC？\n\n**MVCC** 全称是 **Multi-Version Concurrency Control**，即**多版本并发控制**。它是一种用于提高数据库并发性能的机制，通过保存数据在某个时间点的快照，让读写操作可以并发执行而无需相互阻塞。\n\n## 核心思想\n\nMVCC 的核心思想是：**为每一行数据维护多个版本**。当一个事务读取数据时，它看到的是在其开始时间点已经提交的数据版本，而不是当前最新的数据。这样，读操作不会阻塞写操作，写操作也不会阻塞读操作。\n\n## MySQL 中 MVCC 的实现\n\n在 InnoDB 存储引擎中，MVCC 主要通过以下三个关键组件实现：\n\n### 1. 隐藏字段\nInnoDB 为每行数据添加了三个隐藏字段：...' additional_kwargs={'refusal': None} response_metadata={'token_usage': {'completion_tokens': 1100, 'prompt_tokens': 10, 'total_tokens': 1110, 'completion_tokens_details': {'accepted_prediction_tokens': None, 'audio_tokens': None, 'reasoning_tokens': 0, 'rejected_prediction_tokens': None}, 'prompt_tokens_details': None}, 'model_provider': 'openai', 'model_name': 'deepseek-ai/DeepSeek-V3.2', 'system_fingerprint': '', 'id': '019cc7479a83d72e1a0f1d9b7dbefbe9', 'finish_reason': 'stop', 'logprobs': None} id='lc_run--019cc747-9370-7081-a575-8346a89126c0-0' tool_calls=[] invalid_tool_calls=[] usage_metadata={'input_tokens': 10, 'output_tokens': 1100, 'total_tokens': 1110, 'input_token_details': {}, 'output_token_details': {'reasoning': 0}}
+```
+在开发大模型应用的时候，通常不会直接将用户的输入传递给LLM。通常，会将用户的输入添加到一个较大的文本中，称为提示模版，该文本提供有关当前特定任务的附加上下文
+PromptTemplates是一种预定义的，可结构化的提示框架。可以将静态的提示文本和动态输入的变量结合，例如
+```python
+template = "你是一个翻译助手，可以帮助我将 {input_language} 翻译成 {output_language}."
+human_template = "{text}"  
+chat_prompt = ChatPromptTemplate([  
+    ("system",template),  
+    ("human",human_template),  
+])  
+text = "我带着比身体重的行李，\  
+游入尼罗河底，\  
+经过几道闪电 看到一堆光圈，\  
+不确定是不是这里。\  
+"  
+invoke = chat_prompt.invoke({"input_language": "中文", "output_language": "英文", "text": text})  
+print(invoke)
+```
+```
+messages=[SystemMessage(content='你是一个翻译助手，可以帮助我将 中文 翻译成 英文.', additional_kwargs={}, response_metadata={}), HumanMessage(content='我带着比身体重的行李，游入尼罗河底，经过几道闪电 看到一堆光圈，不确定是不是这里。', additional_kwargs={}, response_metadata={})]
+```
+接下来调用llm和message来输出回答
+```python
+content="With luggage heavier than my body, I dive into the Nile's depths, past several flashes of lightning, and see a cluster of halos—unsure if this is the place." additional_kwargs={'refusal': None} response_metadata={'token_usage': {'completion_tokens': 37, 'prompt_tokens': 46, 'total_tokens': 83, 'completion_tokens_details': {'accepted_prediction_tokens': None, 'audio_tokens': None, 'reasoning_tokens': 0, 'rejected_prediction_tokens': None}, 'prompt_tokens_details': None}, 'model_provider': 'openai', 'model_name': 'deepseek-ai/DeepSeek-V3.2', 'system_fingerprint': '', 'id': '019cc7520d25d85bb259ffef3305b5ca', 'finish_reason': 'stop', 'logprobs': None} id='lc_run--019cc752-0620-72f1-9566-656ddb882efc-0' tool_calls=[] invalid_tool_calls=[] usage_metadata={'input_tokens': 46, 'output_tokens': 37, 'total_tokens': 83, 'input_token_details': {}, 'output_token_details': {'reasoning': 0}}
+```
+OutputParsers将语言模型的原始输出转换为可以在下游使用的格式。OutputParsers有几种主要类型
+- 将LLM文本转换为结构化信息
+- 将ChatMessage转换为字符串
+- 将除消息之外的调用返回额外的信息转换为字符串
+最后，将模型输出传递给output_parser，它是一个BaseOutputParser，这意味着它接受字符串或BaseMessage作为输入。StrOutputParser可以将任意输入转换为字符串

@@ -515,4 +515,4 @@ I carry luggage heavier than my body, diving into the depths of the Nile. After 
 ```python
 chain = prompt | model | output_parser
 ```
-上述代码中，我们使用LCEL将不同的组件拼凑成一个链，在此链中，用户输入传递到提示模版，然后提示模版输出传递到模型，然后模型shu
+上述代码中，我们使用LCEL将不同的组件拼凑成一个链，在此链中，用户输入传递到提示模版，然后提示模版输出传递到模型，然后模型输出传递到输出解析器。|符号类似于Unix管道运算符，它将不同的组件链接在一起，将一个组件的输出作为下一个组件的输入

@@ -578,3 +578,32 @@ public class Test {
 ```
 ### 创建检索链
 可以使用LangChain的LCEL来构建workflow
+```python
+def combine_docs(docs):  
+    return "\n\n".join(doc.page_content for doc in docs)  
+  
+combiner = RunnableLambda(combine_docs)  
+retrieval_chain = retriever | combiner  
+msg = retrieval_chain.invoke("mysql是什么")  
+print(msg)
+```
+```
+1 1 1 2 2 2 3 5 5 4 3 3 5 4 4
+
+可以看到，客户端B的insert语句生成的id不连续 当主库发生了这种情况，binlog面对t表的更新只会记录这两个客户端的insert语句，如果binlog_format=statment(binlog日志格式介绍看[[#binlog]])，记录的语句就是原始语句，记录的顺序要么先记客户端A的insert语句，要么先记客户端B的insert语句，这取决于哪个事务优先提交 但不论是哪种，这个binlog到从库去执行，这时候从库是按顺序执行语句的，只有当执行完一条SQL语句，才会继续执行下一条，因此，在从库上，不会发生两个客户端一起往t表中插入数据的场景，所以在从库上，执行了客户端B的insert语句，生成的结果里面，id都是连续的，这是就发生了主从库数据不一致的问题 要解决这个问题，binlog日志格式要设置为row，当设置binlog的格式为row时，就不再记录SQL语句，而是记录每一行数据变更前后的值，这样在binlog里面记录的是主库分配的自增值，到从库中执行的时候，主库的自增值是什么，从库的自增值就是什么
+
+1 1 1 2 2 2 3 5 5 4 3 3 5 4 4
+
+可以看到，客户端B的insert语句生成的id不连续 当主库发生了这种情况，binlog面对t表的更新只会记录这两个客户端的insert语句，如果binlog_format=statment(binlog日志格式介绍看[[#binlog]])，记录的语句就是原始语句，记录的顺序要么先记客户端A的insert语句，要么先记客户端B的insert语句，这取决于哪个事务优先提交 但不论是哪种，这个binlog到从库去执行，这时候从库是按顺序执行语句的，只有当执行完一条SQL语句，才会继续执行下一条，因此，在从库上，不会发生两个客户端一起往t表中插入数据的场景，所以在从库上，执行了客户端B的insert语句，生成的结果里面，id都是连续的，这是就发生了主从库数据不一致的问题 要解决这个问题，binlog日志格式要设置为row，当设置binlog的格式为row时，就不再记录SQL语句，而是记录每一行数据变更前后的值，这样在binlog里面记录的是主库分配的自增值，到从库中执行的时候，主库的自增值是什么，从库的自增值就是什么
+
+select * from t where id >= (
+    select id from t order by id limit 10000000,1
+) order by id limit 10;
+
+对于这条查询语句，会优先执行子查询，也就是在B+树上查询10000000+1条数据，并获取最后一条数据的主键id，然后在外面的查询中，直接通过where条件，获取大于等于子查询中最后一条数据主键id的数据，然后从这条数据开始往后查询10条数据 这个sql与第一个sql最大的区别就是，不再需要进行千万次的回表操作，分页查询里面的每一次查询都只在聚簇索引上进行，提高了性能 3. 覆盖索引：如果只需要查询少量的字段，我们可以直接在这些字段上建立一个联合索引，这样，在查询的时候，就可以直接从索引树上返回结果，就不需要进行回表操作了
+
+可重复读隔离级别，为什么只是部分解决幻读
+```
+RunnableLambda是LangChain中的一个工具类，作用是把普通的Python函数包装成LangChain中的Runnable对象，从而可以加入LCEL的链式调用中
+LCEL中要求所有的组成元素都是Runnable类型，前面的ChatModel、PromptTemplate等都是继承自Runnable类。上方的retrieval_chain是由检索器retriever及组合起combiner组成，由|符号串联，数据从左向右传递，即问题先被retriever检索得到检索结果，再被combiner进一步处理得到输出
+### 构建检索问答链

@@ -517,3 +517,64 @@ chain = prompt | model | output_parser
 ```
 上述代码中，我们使用LCEL将不同的组件拼凑成一个链，在此链中，用户输入传递到提示模版，然后提示模版输出传递到模型，然后模型输出传递到输出解析器。|符号类似于Unix管道运算符，它将不同的组件链接在一起，将一个组件的输出作为下一个组件的输入
 ## 构建检索问答链
+首先需要加载向量数据库
+```python
+import os  
+  
+from dotenv import load_dotenv  
+from langchain_chroma import Chroma  
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings  
+  
+load_dotenv()  
+openai_api_key = os.getenv("OPENAI_API_KEY")  
+open_ai = ChatOpenAI(api_key=openai_api_key, base_url="https://api.siliconflow.cn", model="deepseek-ai/DeepSeek-V3.2")  
+output = open_ai.invoke("你好，请你自我介绍一下")  
+print(output)  
+# 这里使用的嵌入模型要和构建向量库时使用的嵌入模型一样
+embedding = OpenAIEmbeddings(api_key=openai_api_key, model="Qwen/Qwen3-Embedding-0.6B",  
+                                 base_url="https://api.siliconflow.cn/v1", )  
+persist_path = "../db/vector_db/chroma"  
+chroma = Chroma(persist_directory=persist_path, embedding_function=embedding, )  
+print(f"向量库中存储的数量：{chroma._collection.count()}")
+```
+测试一下加载的向量数据库，可以通过`as_retriever`方法把向量数据库构造成检索器。
+接下来，可以使用LangChain的LCEL来构建workflow
+```python
+question = "什么是缓存穿透"  
+retriever = chroma.as_retriever(  
+    search_kwargs={"k":3}  
+)  
+docs = retriever.invoke(question)  
+for i,doc in enumerate(docs):  
+    print(f"第{i+1}个内容是：\n{doc.page_content}")
+```
+```
+第1个内容是：
+缓存击穿
+
+缓存中某个热点数据过期了，而此时大量的请求访问了该热点数据，就无法从缓存中读取，直接访问数据库，数据库就容易被高并发请求冲垮，这就是缓存击穿 解决缓存击穿，有以下两种方案 - 互斥锁：保证同一时间只有一个业务线程去更新缓存，其他请求要么等到锁释放后重新读取缓存，要么就返回空值或默认值 - 不给热点数据设置过期时间，由后台异步更新缓存，或者在热点数据快要过期时，提前通知后台线程更新缓存并重新设置过期时间
+
+缓存穿透
+第2个内容是：
+缓存击穿
+
+缓存中某个热点数据过期了，而此时大量的请求访问了该热点数据，就无法从缓存中读取，直接访问数据库，数据库就容易被高并发请求冲垮，这就是缓存击穿 解决缓存击穿，有以下两种方案 - 互斥锁：保证同一时间只有一个业务线程去更新缓存，其他请求要么等到锁释放后重新读取缓存，要么就返回空值或默认值 - 不给热点数据设置过期时间，由后台异步更新缓存，或者在热点数据快要过期时，提前通知后台线程更新缓存并重新设置过期时间
+
+缓存穿透
+第3个内容是：
+Character 缓存的范围是 0~127
+
+Integer 缓存的范围是 -128~127，最小值不能变，但是最大值可以通过调整虚拟机参数来改变
+
+Boolean 缓存了 TRUE 和 FALSE
+
+String 缓存池
+
+String 缓存池中当String 对象为字面量时，会自动存入缓存池中，String 是新建对象时，则不会加入缓存池中，会放在堆内存里
+
+String 还可以通过intern()方法，手动将字符串添加进缓存池中
+
+public class Test {
+```
+### 创建检索链
+可以使用LangChain的LCEL来构建workflow

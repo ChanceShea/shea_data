@@ -86,7 +86,20 @@ Spring Bean的生命周期主要分为四个阶段
    **@PreDestroy 注解方法**： 
    如果Bean的方法上标注了 @PreDestroy 注解，该方法会被调用
 **tips：单例Bean的线程不安全问题**
-
+单例Bean作为成员变量，多线程环境下，单例Bean在执行某个方法前，可能就会先被其他线程修改。当多个请求并发访问时，它们操作的是同一个对象。如果这个对象内部有可以修改的成员变量，那么这些线程就可能相互干扰，导致数据不一致
+**解决方法**
+- 无状态Bean，对于一些无状态Bean，或者其内部的成员变量不可变。每个Bean对象的行为都由方法参数决定，就不会有其他线程修改成员变量的可能性了。
+- 使用方法参数，不使用成员变量，而是改为使用局部变量，每个方法都使用局部变量
+```java
+public class test {
+	// 不通过IoC容器管理
+	public void func(int count){
+		// 方法体
+	}
+}
+```
+- 使用synchronized，synchronized同步机制，可以防止多线程一起请求访问成员变量，就可以防止数据不一致。但是这个方法的性能不好，不能并发请求
+- 使用ThreadLocal，每个线程获取ThreadLocal的值，ThreadLocal都会创建一个变量副本供线程使用，就不会出现多个请求同时修改一个变量的问题
 ### Bean的三种初始化方法
 1. @PostConstruct：Spring的扩展功能，在Spring中需要手动配置对应的后处理器
 2. InitializingBean：实现InitializingBean接口，并重写afterPropertiesSet方法

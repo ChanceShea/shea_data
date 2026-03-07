@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/Spring.md",
+                "file": "LLM/Python.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Spring"
+              "title": "Python"
             }
           }
         ]
@@ -93,7 +93,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -197,6 +198,7 @@
   },
   "active": "873389a6daef9040",
   "lastOpenFiles": [
+    "java/Spring.md",
     "LLM/Python.md",
     "计算机网络.md",
     "assets/计算机网络/file-20260305210622102.png",
@@ -214,7 +216,6 @@
     "java/Redis.md",
     "java/assets/Redis",
     "java/MySQL.md",
-    "java/Spring.md",
     "java/Java并发编程.md",
     "java/Mybatis.md",
     "java/Java基础.md",

@@ -607,3 +607,43 @@ select * from t where id >= (
 RunnableLambda是LangChain中的一个工具类，作用是把普通的Python函数包装成LangChain中的Runnable对象，从而可以加入LCEL的链式调用中
 LCEL中要求所有的组成元素都是Runnable类型，前面的ChatModel、PromptTemplate等都是继承自Runnable类。上方的retrieval_chain是由检索器retriever及组合起combiner组成，由|符号串联，数据从左向右传递，即问题先被retriever检索得到检索结果，再被combiner进一步处理得到输出
 ### 构建检索问答链
+```python
+template = """  
+使用以下上下文来回答最后的问题。如果你不知道答案，就说你不知道，不要试图编造答  
+案。最多使用三句话。尽量使答案简明扼要。请你在回答的最后说“谢谢你的提问！”。  
+{context}  
+问题: {input}  
+"""  
+prompt = PromptTemplate(template=template)  
+qa_chain = (  
+    RunnableParallel({"context":retrieval_chain,"input":RunnablePassthrough()})  
+    | prompt  
+    | open_ai  
+    | StrOutputParser()  
+)  
+question1 = "什么是南瓜书"  
+question2 = "什么是Redis缓存雪崩"  
+res1 = qa_chain.invoke(question1)  
+print(f"question1的结果: \n{res1}\n")  
+res2 = qa_chain.invoke(question2)  
+print(f"question2的结果: \n{res2}")
+```
+```
+question1的结果: 
+南瓜书是《机器学习公式详解》一书的别称，旨在解析周志华《机器学习》（西瓜书）中省略或难以理解的公式推导细节。它适合在学习西瓜书时，遇到公式推导困难时查阅，尤其适用于希望深入理解公式的读者。谢谢你的提问！
+
+question2的结果: 
+Redis缓存雪崩是指在某一时段，大量缓存数据同时过期失效或Redis服务宕机，导致所有请求直接涌向数据库，造成数据库瞬时压力过大甚至崩溃的现象。它可以由缓存层大规模失效或服务不可用引起。谢谢你的提问！
+```
+上面代码中把检索链当做子链作为prompt的context，再使用`RunnablePassthrough`存储用户的问题作为prompt的input。又因为这两个操作是并行的，所以使用`RunnableParallel`将它们并行运行
+利用大模型自己回答
+```python
+s1 = open_ai.invoke(question1).content  
+s2 = open_ai.invoke(question2).content  
+print(s1)  
+print(s2)
+```
+LLM 对于一些近几年的知识以及非常识性的专业问题，回答的并不是很好。而加上我们的本地知识，就可以帮助 LLM 做出更好的回答
+### 向检索链添加聊天记录
+我们实现了通过上传本地的知识文档，然后将他们保存到向量知识库，通过将查询问题与向量知识库的召回结果进行结合输入到LLM中，我们就到的了一个相比于直接让LLM回答要好得多的结果。而在与大模型交互时，上下文记忆存储也是一个很重要的问题，要让大模型记得前面问过什么和回答过什么，使得对话更具有连续性
+我们可以通过ChatPromptTemplate将先前的对话嵌入到语言模型中，使其具有连续对话的功能。ChatPromptTemplate可以接收聊天消息历史记录，这些历史记录将在回答问题时和问题一起传给大模型，从而将它们添加到上下文中

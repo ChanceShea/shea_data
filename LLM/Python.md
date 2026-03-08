@@ -701,3 +701,61 @@ print(res.content)
 ```
 ### 带有信息压缩的检索链
 因为在搭建问答链带有支持多轮对话的功能，所以与单论对话的问答链相比，会多面临向上方输出结果的问题，即用户最新的对话语义不全，在使用用户问题查询向量数据库时很难检索到相关信息。像上方的“你可以介绍一下他吗？”，实际上是“你可以介绍下周志华老师吗？”的意思。为了解决这个问题，将采取信息压缩的方式，让llm根据历史记录完善用户问题
+```python
+condense_question_system_template = (  
+    "请根据聊天记录完善用户最新的问题，"  
+    "如果用户最新的问题不需要完善则返回用户的问题"  
+)  
+condense_question_prompt = ChatPromptTemplate([  
+    ("system",condense_question_system_template),  
+    ("placeholder","{chat_history}"),  
+    ("human","{input}")  
+])  
+  
+retrieve_docs = RunnableBranch(  
+    # 分支1：若聊天记录中没有chat_history，则直接使用用户问题查询向量数据库  
+    (lambda x: not x.get("chat_history", False), (lambda x: x["input"]) | retriever,),  
+    # 分支2：若聊天记录中有chat_history，则先让llm根据聊天记录完善问题再查询向量数据库  
+    condense_question_prompt | open_ai | StrOutputParser() | retriever  
+)  
+  
+def combine_docs(docs):  
+    return "\n\n".join(doc.page_content for doc in docs["context"])  
+qa_chain2 = (  
+    RunnablePassthrough.assign(context=combine_docs)  
+    | qa_prompt  
+    | open_ai  
+    | StrOutputParser()  
+)  
+qa_history_chain = RunnablePassthrough.assign(  
+    context = (lambda x:x) | retrieve_docs  
+).assign(answer=qa_chain2)  
+# 不带聊天记录
+res1 = qa_history_chain.invoke({ 
+	"input": "西瓜书是什么？", 
+	"chat_history": [] 
+})
+# 带聊天记录  
+res2 = qa_history_chain.invoke({
+	"input": "南瓜书跟它有什么关系？", 
+	"chat_history": [
+		("human", "西瓜书是什么？"), 
+		(  "ai", "西瓜书是指周志华老师的《机器学习》一书，是机器学习领域的经典入门教材之一。"), 
+]})  
+print(res2)
+```
+**tips**
+上面这段代码暂时有点问题，检索出来的context与问题几乎无关，但是得到的答案却和问题有关联
+## 部署知识库助手
+### Streamlit
+Streamlit是一个用于快速创建数据应用程序的开源python库。它的设计目标是让数据科学家能够轻松地将数据分析和机器学习模型转化为具有交互性的web应用程序，无需深入了解web开发。和Flask/Django不同之处在于，它不需要去编写任何前端代码，只需要编写普通的Python模块，就可以在短时间内创建美观并具备高度交互性的界面，从而快速生成数据分析或机器学习的结果
+Streamlit提供了一组简单而强大的基础模块，用于构建数据应用程序
+- st.write()：最基本的模块之一，用于在应用程序中呈现文本、图像、表格等内容
+- st.title()、st.header()、st.subheader()：这些模块用于添加标题、子标题和分组标题，以组织应用程序的布局
+- st.text()、st.markdown()：用于添加文本内容，支持markdown语法
+- st.image()：用于添加图像到应用程序中
+- st.dataframe()：用于呈现Pandas数据框
+- st.table()：用于呈现简单的数据表格
+- st.pyplot()、st.altair_chart()、st.plotly_chart()：用于呈现Matplotlib、Altair或Plotly绘制的图表
+- st.button()、st.checkbox()、st.radio()：用于添加按钮，复选框和单选按钮，以触发特定的操作
+- st.selectbox()、st.multiselect()、st.slider()、st.text_input()：用于添加交互式小部件，允许用户在应用程序中进行选择、输入或滑动操作

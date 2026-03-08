@@ -46,7 +46,7 @@ JSON.SET user $ '{"name":"Tom","age":30}'
 ```
 NX：仅当路径不存在时设置，XX：仅当路径存在时设置
 在RedisJSON上下文中，**$** 是JSONPath表达式，表示根元素(整个JSON文档)
-**.** 或 **[]** 表示子元素选择器
+**.** 或 **\[]** 表示子元素选择器
 2. 获取JSON值
 ```
 JSON.GET key [path]
@@ -202,7 +202,7 @@ http://localhost:9094/ai/embed/query?text=华山
 ## 检索增强生成(RAG)
 RAG是一种结合信息检索与文本生成的技术，通过"先查资料后回答"的机制，让LLM在生成答案前先从外部数据库检索相关信息，然后基于检索结果回答
 ### 知识库构建
-手机、清洗领域文档，分块并向量化存储。文档分块通过Token粒度文本分割类TokenTextSplitter来完成。分割后的Document添加增强元数据（如chunk索引，TOken数，来源），方便后续检索溯源
+收集、清洗领域文档，分块并向量化存储。文档分块通过Token粒度文本分割类TokenTextSplitter来完成。分割后的Document添加增强元数据（如chunk索引，Token数，来源），方便后续检索溯源
 TokenTextSplitter类的transform()方法分隔带元数据的Document对象列表，最终返回新的Document列表
 ```java
 List<Document> tokens = new TokenTextSplitter().transform(documents);

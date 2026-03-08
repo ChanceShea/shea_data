@@ -30,6 +30,27 @@ print(completion)
 ChatCompletion(id='019bf33d0b1a7eafefdc165adcb41345', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='Hello! How can I assist you today? 😊', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=None))], created=1769312422, model='deepseek-ai/DeepSeek-V3.1', object='chat.completion', service_tier=None, system_fingerprint='', usage=CompletionUsage(completion_tokens=11, prompt_tokens=15, total_tokens=26, completion_tokens_details=CompletionTokensDetails(accepted_prediction_tokens=None, audio_tokens=None, reasoning_tokens=0, rejected_prediction_tokens=None), prompt_tokens_details=None))
 ```
 completion.choices\[0].message.content 就是我们需要的AI回复
+```python
+import os  
+  
+from dotenv import load_dotenv  
+from openai import OpenAI  
+  
+load_dotenv()  
+  
+openai = OpenAI(  
+    base_url="https://api.siliconflow.cn",  
+    api_key=os.getenv("OPENAI_API_KEY"),  
+)  
+resp = openai.chat.completions.create(model="deepseek-ai/DeepSeek-V3.2", messages=[  
+    {"role": "system", "content": "你是一个Python编程专家，并且回答简洁易懂"},  
+    {"role": "assistant", "content": "好的，我是一个Python编程专家，并且回答简洁"},  
+    {"role": "user", "content": "请介绍一下yield"}],stream=True)  
+  
+for chunk in resp:  
+    print(chunk.choices[0].delta.content,end='',flush=True)
+```
+上述代码是流式输出的结果，输出回答时不能直接使用print函数，而是要使用for循环输出
 **参数**
 model：调用的模型
 messages：即prompt，ChatCompletion的messages需要传入一个列表，列表中包括了多个不同角色的prompt(system,user)

@@ -1,7 +1,59 @@
 # Java基础
 
----
-
+## Map
+**常见的Map集合**
+- **HashMap**是基于哈希表实现的Map，它根据键的哈希值来存储和获取键值对，JDK1.8中使用数组+链表+红黑树实现。HashMap是非线程安全的，多线程环境下，多个线程同时对HashMap进行操作时，可能会导致数据不一致或出现死循环的问题
+- **LinkedHashMap**继承自HashMap，在HashMap的基础上，使用双向链表维护了键值对的插入顺序或访问顺序，使得迭代顺序与插入顺序或访问顺序一致
+- **TreeMap**是基于红黑树实现的Map，它可以对键进行排序，默认按照自然顺序排序，也可以通过指定比较起进行排序。TreeMap是非线程安全的，在多线程环境下，如果多个线程对TreeMap进行操作，可能会破坏红黑树的结构，导致数据不一致
+- **Hashtable**是早期Java提供的线程安全的Map实现，它的实现方式和Map类似，但在方法上使用了synchronized关键字来保证线程安全。通过在每个可能修改Hashtable状态的方法上加上了synchronized关键字，使得同一时刻只能有一个线程访问Hashtable的这些方法，从而保证了线程安全
+- **ConcurrentHashMap**在JDK1.8以前，采用分段锁的技术来提高并发性能。在ConcurrentHashMap中，将数据分为多个段，每个段都有自己的锁。在进行修改操作时，只需要获取相应段的锁，而不是整个Map的锁，就可以允许多个线程同时访问不同的段，提高了并发效率。JDK1.8之后，采用volatile+CAS或synchronized来保证线程安全
+**对Map进行快速遍历**
+- 可以采用forEach循环和entrySet()方法，可以同时获取Map中的键和值
+```java
+public class MapTest {  
+    public static void main(String[] args) {  
+        Map<String,Integer> map = new HashMap<>();  
+        map.put("A", 1);  
+        map.put("B", 2);  
+        map.put("C", 3);  
+        map.put("D", 4);  
+        map.put("E", 5);  
+        for (Map.Entry<String, Integer> entry : map.entrySet()) {  
+            System.out.println(entry.getKey() + " " + entry.getValue());  
+        }  
+    }  
+}
+```
+- 采用forEach循环和keySet()方法，可以只遍历Map中的键，性能较好
+```java
+public class MapTest {  
+    public static void main(String[] args) {  
+        Map<String,Integer> map = new Hashtable<>();  
+        map.put("A", 1);  
+        map.put("B", 2);  
+        map.put("C", 3);  
+        map.put("D", 4);  
+        map.put("E", 5);  
+        for (String key : map.keySet()) {  
+            System.out.println(key + " : " + map.get(key));  
+        }  
+    }  
+}
+```
+- 使用迭代器，获取entrySet()或keySet()的迭代器，也可以实现遍历Map，这种方法在需要删除元素等操作时比较有效
+- lambda表达式和forEach()方法，这种方式简洁和函数式
+- Stream API，Java 8 后使用Stream API也可以遍历Map，将Map转换为Stream流，可以进行各种操作
+### HashMap
+HashMap底层是一个长为16的动态数组，当有键值对添加时，就会通过哈希函数映射到对应下标位置，数组的每个元素都是一个链表
+当链表长度大于8时，链表就会变成红黑树，当链表长度小于6时，就会从红黑树变回链表
+当数组中的元素数量大于默认负载因子(0.75，即达到数组容量的0.75)时，数组就会扩容为原来的两倍大小
+多线程环境下，同时对数据进行修改，会发生数据丢失的问题。HashMap是线程不安全的
+### ConcurrentHashMap
+ConcurrentHashMap就是在HashMap的基础上，保证线程安全
+jdk8之前，采用分段锁实现线程安全，将HashMap分为多个段，修改某个段中的数据时，就对该段加锁，读数据时则不需要加锁
+段内数组使用volatile修饰，保证其多线程环境下的可见性
+jdk8后采用CAS和synchronized对其进行加锁
+为什么要改成CAS？因为原来的分段锁，对每一段数组都需要进行加锁，占用过多资源，段锁相比于节点颗粒度过大
 ## Java是如何做到一次编译，到处运行的
 
 Java可以通过jvm虚拟机实现“一次编译，到处运行”是因为java代码编译后会生成的.class字节码文件，jvm虚拟机会将其翻译成对应操作系统的机器码。例如Springboot打包后生成的jar包，部署到linux虚拟机之后，无需再次编译，可以直接运行。而部分语言（如c++）编译后生成的是对应操作系统的机器码，在windows系统上生成的是.exe文件，而在linux系统上生成的则是.elf文件，因此c++代码在另一个操作系统上就需要重新编译之后才可以运行

@@ -62,7 +62,68 @@ print(result["messages"][-1].content)
 ```
 ### 示例
 构建一个实用的天气智能体
-
+```python
+import os  
+import requests  
+from dotenv import load_dotenv  
+from langchain.agents import create_agent  
+from langchain.tools import tool  
+from langgraph.checkpoint.memory import InMemorySaver  
+from pydantic import BaseModel,Field  
+from langchain_openai import ChatOpenAI  
+  
+load_dotenv()  
+  
+system_prompt = ("你是一个精通天气预报的专家，你可以使用下面的工具："  
+                 "-get_weather_for_location：查询特定城市的天气")  
+  
+@tool # 创建工具，工具允许模型通过调用定义的函数与外部系统交互  
+def get_weather_for_location(city:str)->str:  
+    """  
+    获取一个给定城市的天气  
+    :param city: 城市中文  
+    :return: 天气对象，包含查询状态、天气信息或错误描述  
+    """    url=f"https://wttr.in/{city}?format=3"  
+    headers={"User-Agent":"Mozilla/5.0"}  
+    response=requests.get(url,headers=headers,timeout=100)  
+    weather_info = response.text.strip()  
+    if not weather_info:  
+        return f"未查询到{city}的天气信息"  
+    return weather_info  
+  
+llm = ChatOpenAI(  
+    base_url="https://api.siliconflow.cn",  
+    api_key=os.getenv("OPENAI_API_KEY"),  
+    model="Qwen/Qwen3-8B",  
+)  
+  
+# 定义响应格式  
+class WeatherOutput(BaseModel):  
+    """获取城市天气的输出结果模型"""  
+    city:str = Field(description="查询到城市名称")  
+    temperature:str = Field(description="温度（如25℃）")  
+    weather:str = Field(description="天气状况（如：晴）")  
+  
+# 添加记忆，为智能体添加记忆，以在交互过程中保持状态。这允许智能体记住之前的对话和上下文  
+checkpointer = InMemorySaver()  
+  
+# 创建代理并运行  
+agent = create_agent(  
+    model=llm,  
+    system_prompt=system_prompt,  
+    tools=[get_weather_for_location],  
+    response_format=WeatherOutput,  
+    checkpointer=checkpointer,  
+)  
+  
+if __name__ == "__main__":  
+    config = {"configurable":{"thread_id":"1"}}  
+    resp = agent.invoke(  
+        {"messages":[{"role":"user","content":"今天南昌的天气如何"}]},  
+        config=config,  
+    )  
+    print(resp['structured_response'])
+```
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

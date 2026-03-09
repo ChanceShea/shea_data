@@ -39,6 +39,29 @@ LangChain Agent的核心组件如下
 	- 如果不需要，直接生成结果(result)返回给用户
 	- 如果需要，就生成一个具体的工具调用指令（action）。外部工具接收到模型的action指令后，执行响应的操作，然后将执行结果作为观察数据（observation）返回给模型
 - 结果生成(result)：模型会结合原始请求、工具返回的observation，最终生成准确的回答
+```python
+import os  
+from dotenv import load_dotenv  
+from langchain_openai import ChatOpenAI  
+from langchain.agents import create_agent  
+load_dotenv()  
+  
+api_key = os.getenv("OPENAI_API_KEY")  
+  
+llm = ChatOpenAI(  
+    base_url="https://api.siliconflow.cn",  
+    model="Qwen/Qwen3-8B",  
+    api_key=api_key,  
+)  
+system_prompt = "你是一个翻译专家，请将中文翻译成英文"  
+agent = create_agent(model=llm,system_prompt=system_prompt)  
+  
+messages=["我是一个热爱学习的机器人"]  
+result=agent.invoke({"messages":messages})  
+print(result["messages"][-1].content)
+```
+### 示例
+构建一个实用的天气智能体
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

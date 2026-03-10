@@ -124,6 +124,87 @@ if __name__ == "__main__":
     )  
     print(resp['structured_response'])
 ```
+### 构建基础智能体
+一个基础的智能体包含三个组件
+![](assets/Python/file-20260309214304921.png)
+- Prompt是输入与指令，它是用户向模型传达意图、提供上下文和设定任务的具体文本。Prompt的质量和清晰度直接决定了模型的理解方向和输出边界
+- Model是处理与生成的核心，模型接收Prompt后，基于其预训练获得的海量知识所形成的能力，对输入进行理解、推理和计算，最终生成一个概率分布，指向最可能的文本序列
+- Result是输出与反馈，它是模型处理Prompt后产生的最终文本输出。Result既是流程的重点，夜场作为评估和优化Prompt与模型效果的起点，形成反馈循环
+用户意图通过Prompt表达，Model将Prompt转化为内部表示并进行计算，最终输出Result，Result的质量反过来可以指导用户优化Prompt或开发者该井Model
+```python
+import os  
+from dotenv import load_dotenv  
+from langchain_openai import ChatOpenAI  
+  
+load_dotenv()  
+  
+api_key = os.getenv("OPENAI_API_KEY")  
+messages = [  
+    ("system","你是一个农业专家，请为我答疑"),  
+    ("human","冬天下雪，会给来年作物生长带来哪些方面的好处")  
+]  
+  
+llm = ChatOpenAI(  
+    base_url="https://api.siliconflow.cn",  
+    api_key=api_key,  
+    model="Qwen/Qwen3-8B",  
+)  
+  
+res = llm.invoke(messages)  
+print(res)
+```
+```text
+content='冬天下雪对来年作物生长有许多潜在的好处，主要体现在以下几个方面：\n\n---\n\n### 一、**保温作用**\n- ...' additional_kwargs={'refusal': None} response_metadata={'token_usage': {'completion_tokens': 915, 'prompt_tokens': 38, 'total_tokens': 953, 'completion_tokens_details': {'accepted_prediction_tokens': None, 'audio_tokens': None, 'reasoning_tokens': 0, 'rejected_prediction_tokens': None}, 'prompt_tokens_details': None}, 'model_provider': 'openai', 'model_name': 'Qwen/Qwen3-8B', 'system_fingerprint': '', 'id': '019cd2dc0e6b2d0aae7e25aca434cf2b', 'finish_reason': 'stop', 'logprobs': None} id='lc_run--019cd2dc-0c4d-7c22-9ed2-eee7c5738198-0' tool_calls=[] invalid_tool_calls=[] usage_metadata={'input_tokens': 38, 'output_tokens': 915, 'total_tokens': 953, 'input_token_details': {}, 'output_token_details': {'reasoning': 0}}
+```
+#### 消息
+消息是LangChain中模型上下文的基本单位。它们代表模型的输入和输出，承载与LLM交互时表示对话状态所需的内容和元数据
+消息是包含以下内容的对象
+- 角色，识别消息类型（例如 system，user，human）
+- 内容，表示消息的实际内容（如 文本，图像，音频，文档等）
+- 元数据，可选字段（如响应信息，消息ID和令牌使用情况）
+在LangCHain和LLM的交互体系中，提示词和消息是紧密关联但层次不同的概念，消息是承载提示词的结构化载体，提示词是消息中传递给模型的核心指令内容
+- 提示词：传递给模型的指令、问题、上下文信息的综合。明确模型的任务目标，应到模型生成预期输出
+- 消息：LangChain/LLM交互中标准化的通信格式，包含角色、内容等。元数据区分对话角色，携带上下文历史，让模型理解对话逻辑
+在LangChain的对话式交互中，用户输入的提示词会被封装成HumanMessage，而模型的输出会被封装成AIMessage
+消息对象有 SystemMessage、HumanMessage、AIMessage，这些对象都由langchain.messages包提供
+- SystemMessage：表示一组初始指令，用于预设模型的行为。可以使用系统消息来设置语气、定义模型的角色并建立响应指南
+- HumanMessage：表示用户输入和交互。可以包含文本、图像、音频、文件以及任何其他多模态内容
+- AIMessage：当调用模型时，模型会返回AIMessage对象，其中包含响应中的所有相关元数据
+- ToolMessage：当模型调用工具时，工具执行结束后会返回ToolMessage，其中包含响应中的所有相关元数据
+创建消息有三种方式
+- 调用消息对象
+```python
+from langchain.messages import SystemMessage,HumanMessage  
+messages = [  
+    SystemMessage("你是一个农业专家，请为我答疑"),  
+    HumanMessage("请告诉我如何预防橘子的黑点病")  
+]
+```
+- 使用字典
+```python
+messages = [  
+    {"role":"system","content":"你是一个农业专家，请为我答疑"},  
+    {"role":"human","content":"请告诉我如何预防橘子的黑点病"}  
+]
+```
+- 使用元组
+```python
+messages = [  
+    ("system","你是一个农业专家，请为我答疑"),  
+    ("human","请告诉我如何预防橘子的黑点病")  
+]
+```
+因为ai模型会区分消息的来源，所以我们可以利用AIMessage手动造一条AI的回复插入对话记录中，让模型后续处理是把这条回复当成真实的上下文，从而达到一些目的
+```python
+messages_again = [
+	("ai","如果你要购买桔子，我会告诉你挑选没有黑点病桔子的方法"),
+	("human","我想买1公斤桔子")
+]
+```
+#### 消息模版
+LangChain的消息末班是标准化Prompt结构、动态填充变量、支持多角色对话的核心工具，适用于单轮生成、多轮对话、工具调用等场景
+LangChain中消息模板主要是ChatPromptTemplate，用于创建灵活的模版化提示
+
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

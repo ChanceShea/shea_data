@@ -428,7 +428,26 @@ LangChain中使用独立模型最简单的方法是使用`init_chat_model`和`Ch
 - ChatOpenAI是LangChain中对接OpenAI聊天模型的专属核心类，参数精准对应OpenAI API，适合明确使用OpenAI模型的场景
 - init_chat_model是LangChain提供的通用初始化函数，支持通过字符串快速创建任意厂商的聊天模型示例，适合多模型适配、快速开发的场景
 ### 构建典型智能体
+典型智能体将语言模型和工具结合，创建能够对任务进行推理、决定使用哪些工具并迭代地解决问题的系统
+![](assets/Python/file-20260310141300817.png)
+- request：整个流程的起点，是用户或外部系统向模型发出的指令、问题或任务目标
+- model：系统的大脑，负责接收请求并进行推理、决策。它会根据内部的知识和策略，决定下一步要做什么。接收来自request的输入和来自memory的历史信息，输出下一步的行动指令
+- memory：记忆库，用于存储历史交互信息、中间结果和上下文数据。既接收model的信息进行存储，也向model提供历史信息以辅助决策
+- tools：模型执行具体操作的执行器。当模型判断需要外部信息或执行特定动作时，就会调用工具。接收来自model或memory的action，执行具体操作并返回结果
+- result：最终输出。当模型通过自身推理或工具反馈获得足够信息后，就会生成最终结果并返回给用户。同时，它也会生成observation，将结果的有效性、状态等信息回传给model，形成闭环
+**create_agent的核心参数**
+- model：LLM/ChatModel实例。用于智能体的语言模型，可以是一个字符串标识符或一个直接的聊天模型示例
+- tools：工具列表。智能体可调用的工具
+- system_prompt：字符串/ChatPromptTemplate。一个可选的用于LLM的系统提示，提示会被转换为一个SystemMessage并添加到消息列表的开头
+- context_schema：Pydantic BaseModel。结构化输入schema，约束用户输入格式
+- response_format：Pydantic BaseModel。结构化输出schema，强制智能体按固定格式返回结果
+- checkpointer：Checkpointer。一个可选的检查点保存期对象。用于为单个线程持久化图的状态
+- store：存储示例。一个可选的存储对象，用在多个线程之间持久化数据
+```python
 
+```
+LangChain智能体的执行逻辑中，messages会按时间顺序记录整个对话流程的所有消息，包括用户输入的问题，智能体的思考/工具调用日志，智能体最终回答
+智能体执行过程中会产生多轮消息
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

@@ -284,8 +284,151 @@ print(res.content)
 def format_messages(self, **kwargs: Any) -> list[BaseMessage]:
 ```
 ```python
-
+from langchain_core.prompts import ChatPromptTemplate  
+from ai_demo3.test3 import llm  
+system_template = "你是一名农业电商文案专家，根据提示关键字为农产品生成{times}条吸引人的描述。"  
+human_template = '''  
+产品名称：{product_name}  
+核心卖点：{key_features}  
+目标人群：{target_audience}  
+'''  
+  
+chat_prompt = ChatPromptTemplate.from_messages([("system", system_template), ("human", human_template), ])  
+  
+filled_prompt = chat_prompt.format_messages(  
+    times=5,  
+    product_name="赣南脐橙",  
+    key_features="果型椭圆、果肉脆嫩、汁多化渣",  
+    target_audience="老年人、学生"  
+)  
+res = llm.invoke(filled_prompt)  
+print(res.content)
 ```
+```text
+当然可以！以下是为“赣南脐橙”针对老年人和学生群体设计的5条吸引人的电商文案：
+---
+**1. 赣南脐橙，营养满满，甜蜜每一口！**  
+果型椭圆，肉质脆嫩，汁多化渣，是健康又实惠的水果选择。老年人补充维C，学生补充能量，赣南脐橙，自然好味道！
+---
+**2. 健康好果，美味加倍 —— 赣南脐橙**  
+果肉脆嫩，汁水丰盈，化渣口感好！无论是老人补养还是学生课间加餐，都是上佳之选，好吃又有营养！
+---
+**3. 学生党必备，老人也爱的赣南脐橙！**  
+自然甜润，果肉细腻，化渣不黏牙，赣南脐橙让每一口都清爽又满足。送给爸妈，也适合自己！
+---
+**4. 赣南脐橙，清甜多汁，营养好吸收！**  
+果型椭圆，汁多化渣，果肉脆嫩如冰糖，是老人补充维C、学生提神解馋的健康优选！
+---
+**5. 每一颗赣南脐橙，都是自然的馈赠！**  
+皮薄肉厚，汁水爆棚，果肉脆嫩不渣，适合老人慢嚼细咽，也适合学生轻松享用。赣南脐橙，甜而不腻，好果分享！
+```
+- partial()
+```python
+def partial(self, **kwargs: Any) -> ChatPromptTemplate:
+```
+```python
+prompt_partial = chat_prompt.partial(times=5, product_name="南丰蜜桔", key_features="果形扁圆、清甜爽口、有助肠道健康")  
+filled_prompt2 = prompt_partial.format_messages(  
+    target_audience="宝妈，上班族"  
+)  
+  
+res2 = llm.invoke(filled_prompt2)  
+print(res2.content)
+```
+```text
+当然可以！以下是为南丰蜜桔量身打造的5条吸引宝妈和上班族群体的农产品电商文案，每条都突出不同卖点，适合不同推广场景：
+---
+**1. 宝妈专属营养果，清甜无负担，宝宝爱上吃！**  
+南丰蜜桔，果形扁圆饱满，清甜爽口不腻人。富含膳食纤维，呵护宝宝肠道健康，妈妈也能放心吃，轻松为全家补充天然营养！
+---
+**2. 健康生活从“桔”开始，清甜解渴，排毒养颜！**  
+忙碌的你是否也常缺水、压力大？南丰蜜桔果形饱满，清甜多汁，每天一颗，轻松助你排便顺畅，保持肠道健康，活力满满！
+---
+**3. 高颜值+高营养，南丰蜜桔是宝妈和上班族的“果中贵族”**  
+果形扁圆，口感清甜，南丰蜜桔是天然的水果精华。特别适合宝妈日常补充营养，上班族调节肠胃，健康饮食从一颗好桔开始。
+---
+**4. 早餐也能有的清甜，唤醒一天的好气色！**  
+精选南丰蜜桔，果肉饱满细嫩，清甜多汁口感在线。为自己和家人送上一份天然的健康早餐，呵护肠道，提升免疫力，活力一整天！
+---
+**5. 无需挑选的天然好果，肠胃不闹脾气，吃出好状态！**  
+果形统一、清甜不涩，南丰蜜桔是宝妈和上班族首选的天然水果。富含果胶和纤维，吃一颗，肠道更通畅，心情更轻松！
+---
+如需根据不同平台（如小红书、抖音、淘宝、京东等）做版本优化，也可以告诉我，我可以为你定制不同风格的文案！
+```
+**partial() vs format_messages()**
+partial是提前绑定一部分变量，生成一个新的末班
+format_messages是一次性把所有变量填完并生成最终消息
+partial可以避免重复传相同参数，且方便与chain组合使用，partial还支持动态函数变量，可以绑定函数
+```python
+# 如果不使用partial，每次使用role参数，就需要重复绑定
+prompt.format_messages(role=role, question=q1)  
+prompt.format_messages(role=role, question=q2)  
+prompt.format_messages(role=role, question=q3)
+# 使用了partial，就可以只绑定一次role变量，后续就不再需要绑定role
+prompt2 = prompt.partial(role=role)  
+prompt2.format_messages(question=q1)  
+prompt2.format_messages(question=q2)  
+prompt2.format_messages(question=q3)
+```
+```python
+# 配置时，有些参数是固定配置，有些是运行时输入
+# partial就可以把固定配置提前绑定，就不需要每次运行时输入了
+prompt | llm | parser
+```
+```python
+# 每次format的时候，可以自动执行函数，而使用format_messages就比较麻烦
+prompt.partial(time=lambda: datetime.now())
+```
+#### 模型
+模型可以通过两种方式使用
+- 与智能体一起使用，创建智能体时可以动态指定模型
+```python
+llm = ChatOpenAI(  
+    base_url="https://api.siliconflow.cn",  
+    model="Qwen/Qwen3-8B",  
+    api_key=api_key,  
+)  
+system_prompt = "你是一个翻译专家，请将中文翻译成英文"  
+agent = create_agent(model=llm,system_prompt=system_prompt)
+```
+- 独立使用，模型可以直接调用，用于文本生成、分类或提取等任务，无需智能体框架
+```python
+llm = ChatOpenAI(  
+    base_url="https://api.siliconflow.cn",  
+    api_key=api_key,  
+    model="Qwen/Qwen3-8B",  
+)
+res = llm.invoke(messages)
+```
+区别是 
+- LLM封装成一个智能体来使用，Agent会在LLM之上增加一些能力。比如system prompt管理、工具调用、推理流程、多步骤任务处理等，更适合做复杂任务
+- 直接调用模型本身，只是把messages发个LLM得到回答，没有Agent的推理或工具能力
+**初始化模型**
+LangChain中使用独立模型最简单的方法是使用`init_chat_model`和`ChatOpenAI`从选择的聊天模型提供商初始化一个模型
+- ChatOpenAI
+	ChatOpenAI是LangChain中用于对接OpenAI系列的聊天模型的核心类，是所有OpenAI聊天模型交互的基础载体
+	介绍一些ChatOpenAI的核心参数
+	- model(str)：指定使用的OpenAI模型
+	- temperature(float)：随机性控制（范围\[0,1]）。取值越高生成越随机、发散；取值越低生成越确定、精准
+	- api_key(str)：OpenAI API密钥
+	- base_url(str)：自定义API断点
+	- max_tokens(int)：生成回复的最大令牌数（未传时使用模型默认上限）
+	- streaming(bool)：是否开启流式输出（需要配合stream()方法使用）
+	- max_retries(int)：API调用失败时重试次数
+	- time_out(float/Tuple)：请求超时时间（单值=总超时，元组=(连接超时，读取超时)）
+	- response_format(Dict)：指定输出格式，如{"type":"json_object"}强制JSON输出
+- init_chat_model
+	init_chat_model是LangChain v1.0新增的通用初始化函数，设计目标是统一各类聊天模型的初始化入口，即使用统一的接口从任何支持的提供商初始化聊天模型。支持通过字符串/配置快速创建不同厂商的聊天模型
+	以下是一些`init_chat_model`的核心参数
+	- model(str)：字符串："gpt-3.5-turbo"。已实例化对象，直接返回该对象
+	- model_provider(str)：模型提供商，如果未在模型参数中指定，则将尝试从模型名称推断model_provider
+	- configurable_fields(Literal/list/tuple/none)：哪些模型参数可在运行中配置。none即无可配置字段，any所有字段均可配置，list\[str]|Tuple\[str,...]指定的字段可以配置。设置configurable_fields='any'意味着像api_key、base_url等字段可以在运行时修改，这可能会将模型请求重定向到不同的服务
+	- \*\*kwargs(Any)：传给底层聊天模型`__init__`方法的额外特定于模型的关键字参数。常见参数：temperature用于控制随机性的模型温度，max_tokens输出令牌的最大数量，timeout等待响应的最长时间，max_retries失败请求的最大重试次数，base_url自定义API端点URL
+	
+- ChatOpenAI是LangChain中对接OpenAI聊天模型的专属核心类，参数精准对应OpenAI API，适合明确使用OpenAI模型的场景
+- init_chat_model是LangChain提供的通用初始化函数，支持通过字符串快速创建任意厂商的聊天模型示例，适合多模型适配、快速开发的场景
+### 构建典型智能体
+
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

@@ -479,7 +479,7 @@ AIMessages对象主要有以下属性
 - tool_calls：智能体调用工具的记录列表。空列表表示该条消息是直接生成的回答，未调用任何工具
 - invalid_tool_calls：无效的工具调用记录列表。空列表表示执行过程中没有出现错误的工具调用
 - usage_metadata：LangChain封装的token使用统计元数据，与response_metadata.token_usage对应，更适配框架内的成本统计和日志分析
-**preety_print()** 是所有消息类的内置方法，核心作用是结构化、格式化打印消息的完整信息，让消息的类型、内容、元数据等信息清晰展示，替代原生的print()，更适配LangChain消息流的调试和查看需求
+**pretty_print()** 是所有消息类的内置方法，核心作用是结构化、格式化打印消息的完整信息，让消息的类型、内容、元数据等信息清晰展示，替代原生的print()，更适配LangChain消息流的调试和查看需求
 ```python
 for m in res["messages"]:  
     m.pretty_print()
@@ -494,6 +494,51 @@ I am a student at an agricultural university.
 ```
 `result["messages"[0]]`取用户输入
 `result["messages"][-1]`取最终回答
+#### 工具
+AI大模型学习到的知识是有限的，如何扩展模型的能力边界？Tools工具机制就是解决这个问题的重要机制。工具机制就是让AI大模型去调用外部的API接口，去获取外部的数据，然后让AI大模型去使用这些数据，从而扩展模型的能力边界
+LangChain工具的核心作用包括
+- 连接外部资源，如访问数据库、查询实时API、读取本地文件/网页等内容
+- 执行具体操作，如运行Python代码、发送HTTP请求、调用计算机、操作Excel
+- 增强决策能力，模型可根据工具返回的真实数据生成更准确的回答，而非依赖训练数据的幻觉
+```python
+from ai_demo3.test3 import llm  
+  
+res = llm.invoke("今天是几号")  
+print(res.content)
+```
+```text
+今天是2024年4月5日，星期五。
+```
+从上述例子中，我们可以知道LangChain在正常情况下，是无法获取实时时间的，因为没有现成的资料可以告诉大模型当前的时间。就会出现幻觉
+而对于上述例子，如果我们想要获取当前的实时时间，就可以通过工具机制来完成
+```python
+import datetime  
+  
+from langchain.agents import create_agent  
+from ai_demo3.test3 import llm  
+from langchain.tools import tool  
+  
+@tool  
+def get_current_date()->str:  
+    """  
+    获取今天的日期  
+    :return: 今天的日期  
+    """    return datetime.datetime.today().strftime('%Y-%m-%d')  
+agent = create_agent(  
+    model=llm,  
+    tools=[get_current_date],  
+)  
+messages = ["今天是几号"]  
+res = agent.invoke({"messages": messages})  
+print(res["messages"][-1].content)
+```
+```python
+今天是2026年3月10日。
+```
+**创建工具**
+默认情况下，工具名称来源于函数名称，当需要更具描述性的名称时，可以使用@tool("名称")来重新定义工具名称
+在定义工具时，需要自定义工具描述。这个描述是给大模型用的，大模型会根据这个描述来判断是否需要调用这个工具。描述信息可以在方法中直接添加注释，也可以在@tool注解的description属性中定制。所以在定义工具方法时，需要把注释写清楚
+在定义工具时，除了需要定义工具的描述，还可以定义参数的描述，这样大模型也能根据参数的描述来判断如何调用这个工具
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

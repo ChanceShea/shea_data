@@ -204,7 +204,88 @@ messages_again = [
 #### 消息模版
 LangChain的消息末班是标准化Prompt结构、动态填充变量、支持多角色对话的核心工具，适用于单轮生成、多轮对话、工具调用等场景
 LangChain中消息模板主要是ChatPromptTemplate，用于创建灵活的模版化提示
+ChatPromptTemplate是LangChain框架中专门用于构建多轮对话提示的模板类，它的核心是按消息角色定义模版结构，而占位符就是模板中用`{变量名}`表示的，运行时会被真实内容替换的位置
+**创建模版方法**
+- from_messages()
+```python
+def from_messages(  
+    cls,  
+    messages: Sequence[MessageLikeRepresentation],  
+    template_format: PromptTemplateFormat = "f-string",  
+) -> ChatPromptTemplate:
+```
+```python
+from langchain_core.prompts import ChatPromptTemplate  
+from test3 import llm  
+system_prompt = "你是一名农业电商文案专家，根据提示关键字为农产品生成{times}条吸引人的描述"  
+  
+human_template = """  
+    产品名称:{product_name}  
+    核心卖点:{key_features}  
+    目标人群:{target_audience}  
+"""  
+  
+messages = ChatPromptTemplate.from_messages([("system", system_prompt), ("human", human_template), ])  
+chat_prompt = messages  
+msg = chat_prompt.invoke(  
+    {"times": 3, "product_name": "橘子", "key_features": "个头大，多汁，甜", "target_audience": "全年龄段人"})  
+res = llm.invoke(msg)  
+  
+print(res.content)
+```
+```text
+当然可以，以下是为“橘子”产品的三条吸引人的电商文案，适用于全年龄段人群：
+---
+**1. 清甜多汁，果香满口 | 味蕾的治愈之旅！**  
+一口爆汁，甜到心坎里！大颗饱满的橘子，皮薄肉厚，汁水丰富，带你感受自然的甘甜。无论大人小孩，都爱这颗可爱的“小太阳”，冬季必备的营养小果，快来为家人囤货吧！
+---
+**2. 酸甜刚刚好，自然好味道 | 一口鲜甜，解渴又解馋！**  
+果肉细腻多汁，每一口都是阳光的味道！选用新鲜优质橘子，个头大、甜度高，果香浓郁，是秋冬季节最得人心的水果。健康又美味，全家都爱的自然甜心！
+---
+**3. 一颗橘子，满口元气 | 季节限定的幸福感！**  
+ juicy、sweet、big —— 这就是我们家的明星橘子！个头大，汁水多，甜而不腻，承包你每天的甜味时光。无论是当作零食，还是搭配早餐，都是全年龄段都能享受的美味选择！
+--- 
+如需根据不同平台（如抖音、小红书、淘宝等）或不同风格（如温馨、幽默、文艺等）调整文案，可以告诉我！
+```
+- from_template
+```python
+def from_template(cls, template: str, **kwargs: Any) -> ChatPromptTemplate:
+```
+```python
+system_prompt = ChatPromptTemplate.from_template(system_template)  
+human_prompt = ChatPromptTemplate.from_template(human_template)  
+  
+chat_prompt = ChatPromptTemplate.from_messages([  
+    system_prompt, human_prompt  
+])  
+prompt_value = chat_prompt.invoke(  
+    {"times": 3, "product_name": "橘子", "key_features": "个头大，多汁，甜", "target_audience": "全年龄段人"})  
+  
+res = llm.invoke(prompt_value)  
+print(res.content)
+```
+```text
+当然可以，以下是根据“橘子”这一产品名称，结合“个头大、多汁、甜”为核心卖点，面向全年龄段人群撰写的三则吸引人的农产品电商文案：
+---
+**1. 爆汁又甜到心坎里的美味，来自大自然的馈赠！**  
+每一颗橘子都饱满圆润，果肉多汁饱满，甜度刚刚好，一口爆汁，满口生香。无论你是孩子、老人还是上班族，都能找到属于你的那一份甜蜜滋味！新鲜采摘，自然成熟，健康又美味，快来尝尝这颗充满阳光的味道吧！
+---
+**2. 一口咬下，汁水迸发，甜而不腻的橘子来啦！**  
+大个头，甜又多汁，是秋天最治愈的水果！无论是当零食、做甜品，还是直接剥开来吃，都是绝佳选择。不加任何添加剂，纯天然口感，全年龄段都能安心享受。囤货正当时，新鲜橘子，好滋味不等人！
+---
+**3. 清甜多汁，大颗饱满，全家都爱吃的橘子！**  
+这个季节，怎能不爱上大颗又甜的橘子？果肉细腻，汁水丰富，每一口都充满自然的甘甜。从孩子到长辈，老少皆宜，营养又美味。现在下单，新鲜直达餐桌，让全家都能轻松享受秋日最甜的滋味！
+---
+如果你需要更具风格化、情感化或促销导向的版本，也可以告诉我，我可以进一步优化！
+```
+**填充变量**
+- format_messages()
+```python
+def format_messages(self, **kwargs: Any) -> list[BaseMessage]:
+```
+```python
 
+```
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

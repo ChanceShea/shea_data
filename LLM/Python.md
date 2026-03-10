@@ -444,10 +444,57 @@ LangChain中使用独立模型最简单的方法是使用`init_chat_model`和`Ch
 - checkpointer：Checkpointer。一个可选的检查点保存期对象。用于为单个线程持久化图的状态
 - store：存储示例。一个可选的存储对象，用在多个线程之间持久化数据
 ```python
-
+from langchain.agents import create_agent  
+  
+from ai_demo3.test3 import llm  
+  
+system_prompt = "你是一个专业的翻译，请将中文翻译成英文"  
+  
+agent = create_agent(model=llm,system_prompt=system_prompt)  
+messages = ["我是一个农业大学的学生"]  
+res = agent.invoke({"messages":messages})  
+print(res["messages"][-1].content)
+```
+```text
+I am a student at an agricultural university.
 ```
 LangChain智能体的执行逻辑中，messages会按时间顺序记录整个对话流程的所有消息，包括用户输入的问题，智能体的思考/工具调用日志，智能体最终回答
 智能体执行过程中会产生多轮消息
+```text
+{'messages': [HumanMessage(content='我是一个农业大学的学生', additional_kwargs={}, response_metadata={}, id='0146921b-b285-41c4-8b60-a021e1d7cc6d'), AIMessage(content='I am a student at an agricultural university.', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 9, 'prompt_tokens': 31, 'total_tokens': 40, 'completion_tokens_details': {'accepted_prediction_tokens': None, 'audio_tokens': None, 'reasoning_tokens': 0, 'rejected_prediction_tokens': None}, 'prompt_tokens_details': None}, 'model_provider': 'openai', 'model_name': 'Qwen/Qwen3-8B', 'system_fingerprint': '', 'id': '019cd673e47feb9fb129ac622d51a14c', 'finish_reason': 'stop', 'logprobs': None}, id='lc_run--019cd673-dd65-75e2-aa7c-598fdb224a9e-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 31, 'output_tokens': 9, 'total_tokens': 40, 'input_token_details': {}, 'output_token_details': {'reasoning': 0}})]}
+```
+整个结果是messages列表，按顺序存储HumanMessage 和 AIMessages
+AIMessages对象主要有以下属性
+- content：消息的核心内容，即智能体对用户问题的最终回答文本
+- additional_kwargs：附加参数字典，用于存储扩展信息。refusal字段表示大模型是否拒绝回答，None代表正常响应
+- response_metadata：大模型响应的元数据，包含调用的核心信息。
+	- token_usage：token消耗统计
+		completion_tokens_details 细分输出token类型，reasoning_tokens 0表示未启用推理token
+	- model_provider/model_name：模型提供商和具体模型名称
+	- system_fingerprint：系统指纹，用于追踪模型版本或部署信息
+	- id：响应唯一标识ID
+	- finish_reason：响应结束原因，stop表示正常完成生成
+	- logprobs：生成文本的概率对数（None表示未返回）
+- id：LangChain框架层面的消息唯一ID，用于追踪该条消息在智能体执行流程中的生命周期
+- tool_calls：智能体调用工具的记录列表。空列表表示该条消息是直接生成的回答，未调用任何工具
+- invalid_tool_calls：无效的工具调用记录列表。空列表表示执行过程中没有出现错误的工具调用
+- usage_metadata：LangChain封装的token使用统计元数据，与response_metadata.token_usage对应，更适配框架内的成本统计和日志分析
+**preety_print()** 是所有消息类的内置方法，核心作用是结构化、格式化打印消息的完整信息，让消息的类型、内容、元数据等信息清晰展示，替代原生的print()，更适配LangChain消息流的调试和查看需求
+```python
+for m in res["messages"]:  
+    m.pretty_print()
+```
+```text
+================================ Human Message =================================
+
+我是一个农业大学的学生
+================================== Ai Message ==================================
+
+I am a student at an agricultural university.
+```
+`result["messages"[0]]`取用户输入
+`result["messages"][-1]`取最终回答
+
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

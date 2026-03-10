@@ -539,6 +539,58 @@ print(res["messages"][-1].content)
 默认情况下，工具名称来源于函数名称，当需要更具描述性的名称时，可以使用@tool("名称")来重新定义工具名称
 在定义工具时，需要自定义工具描述。这个描述是给大模型用的，大模型会根据这个描述来判断是否需要调用这个工具。描述信息可以在方法中直接添加注释，也可以在@tool注解的description属性中定制。所以在定义工具方法时，需要把注释写清楚
 在定义工具时，除了需要定义工具的描述，还可以定义参数的描述，这样大模型也能根据参数的描述来判断如何调用这个工具
+```python
+from langchain.agents import create_agent  
+from langchain.tools import tool  
+import requests  
+from ai_demo3.test3 import llm  
+  
+app_id="55472461"  
+appsecret="WVSss9FJ"  
+@tool  
+def get_city_weather(city:str)->str:  
+    """  
+    获取指定城市的实时天气（支持国内城市）  
+    :param city: 城市名称（中文），如南昌，上海  
+    :return: 字符串格式的天气信息，包含温度、天气状况  
+    """    try:  
+        url=f"http://v1.yiketianqi.com/free/day?appid={app_id}&appsecret={appsecret}&unescape=1&city={city}"  
+        headers={"User-Agent":"Mozilla/5.0"}  
+        response = requests.get(url,headers=headers,timeout=10)  
+        response.raise_for_status() # 抛出HTTP错误，404 500等  
+        weather_info = response.text.strip()  
+        if not weather_info:  
+            return f"未查询到{city}的天气信息"  
+        return weather_info  
+    except requests.exceptions.Timeout:  
+        return f"请求超时，无法获取{city}的天气信息"  
+    except requests.exceptions.RequestException as e:  
+        return f"获取{city}天气失败：{str(e)}"  
+    except Exception as e:  
+        return f"未知错误：{str(e)}"  
+system_prompt = """  
+你是一名专业的天气预报员，仅负责回答城市天气相关问题，严格按照以下规则执行：  
+1.当用户询问城市天气时，必须调用get_city_weather工具获取实时数据，禁止编造信息  
+2.调用工具时，必须传入正确的中文城市名参数  
+3.获取工具返回结果后，用简洁、友好的语言整理并回复用户  
+4.如果用户未指定城市，回复：请告诉我你想查询哪个城市的天气  
+5.如果工具返回错误的信息，直接将错误信息告知用户  
+"""  
+agent = create_agent(  
+    model=llm,  
+    tools=[get_city_weather],  
+    system_prompt=system_prompt,  
+)  
+  
+messages = [  
+    {"role": "user", "content": "南昌今天的天气如何"}  
+]  
+res = agent.invoke({"messages": messages})  
+print(res["messages"][-1].content)
+```
+```text
+南昌今天是星期二，天气晴朗。白天温度为18℃，夜晚温度为7℃。风力为东风，风速2km/h。空气湿度53%，气压1016hPa。
+```
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

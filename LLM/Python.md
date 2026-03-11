@@ -591,7 +591,174 @@ print(res["messages"][-1].content)
 ```text
 南昌今天是星期二，天气晴朗。白天温度为18℃，夜晚温度为7℃。风力为东风，风速2km/h。空气湿度53%，气压1016hPa。
 ```
+#### 记忆
+记忆是一个系统，用于存储关于先前交互的信息。对于AI智能体来说，记忆至关重要，因为它使它们能够记住先前的交互，从中反馈学习，并适应用户偏好。
+LangChain中，记忆系统模拟人类的记忆模式
+- 短期记忆：指会话过程中当前轮次的上下文信息，仅在单次会话中有效，会话结束后丢失
+- 长期记忆：指需要长期保存、可跨会话检索的用户信息或历史交互内容，通常存储在向量数据库中，可随时召回
+**短期记忆**
+短期记忆让应用程序能够记住单个线程或对话中的先前交互。短期记忆是将对话历史保存在InMemorySaver中
+如果要为代理添加短期记忆，必须在创建代理时指定一个checkpointer
+```python
+agent = create_agent(
+	checkpointer=InMemorySaver()
+)
+```
+由于LangChain短期记忆是线程级的，在Agent调用时必须传入可配置的参数thread_id
+```python
+agent.invoke(
+	{"configurable":{"thread_id":线程ID}}
+)
+```
+让Agent记住同一thread_id下的历史对话内容，实现多轮会话的上下文记忆，避免每一次调用都丢失之前的交互信息
+```python
+from langchain.agents import create_agent  
+from langgraph.checkpoint.memory import InMemorySaver  
+  
+from ai_demo3.test3 import llm  
+  
+system_prompt = "你是资深农业技术专家，仅解答农业相关问题，回答简洁准确"  
+agent = create_agent(  
+    model=llm,  
+    system_prompt=system_prompt,  
+    checkpointer=InMemorySaver()  
+)  
+messages1=[{"role":"user","content":"列举三种水稻的易发病虫害"}]  
+res1 = agent.invoke(  
+    {"messages":messages1},  
+    {"configurable":{"thread_id":"1"}}  
+)  
+print(res1["messages"][-1].content)  
+print("="*50)  
+  
+messages2=[{"role":"user","content":"在这三种病虫害中，告诉我第二种的防止方法"}]  
+res2 = agent.invoke(  
+    {"messages":messages2},  
+    {"configurable":{"thread_id":"1"}}  
+)  
+print(res2["messages"][-1].content)
+```
+```text
+1. 稻瘟病  
+2. 红 叶 虫（稻飞虱）  
+3. 二化螟
+==================================================
+稻飞虱（红叶虫）的防治方法有：  
+4. 轮作换茬，减少虫源；  
+5. 播种前用噻虫嗪等种衣剂进行种子包衣；  
+6. 水稻生长期定期检查，发现虫害及时用吡虫啉、烯啶虫胺等药剂喷施。
+```
+**长期记忆**
+短期记忆仅存储在内存中，程序重启或会话结束后，记忆会丢失。长期记忆需要将信息持久化存储，并能通过检索召回，核心是“存储-检索”
+- 将用户的关键信息/历史对话嵌入为向量，存储到向量数据（可以基于Redis、MongoDB、PostgreSQL等数据库来存储聊天记录）
+- 新对话时，检索向量库中与当前问题有关的长期记忆
+- 将短期上下文+检索到的长期记忆一起传入模型
+**Redis向量数据库**
+Redis 8.0通过Vector Set数据结构提供向量存储能力，特点：
+- 亚毫秒级延迟
+- 支持HNSW算法和混合查询
+- 实时数据更新能力
+- 典型应用场景包括推荐系统、对话AI等需要实时响应的领域
+具体的Redis-Stack介绍看[[LLM/Java#向量数据库|Redis向量数据库]]
+LangChain官方提供了RedisSaver类，用于会话上下文的Redis持久化
+RedisSaver类的核心参数如下
+- redis_url(str)：Redis连接URL（与redis_client二选一）
+- redis_client(Redis/RedisCluster)：已初始化的Redis客户端（推荐复用）
+- ttl(Dict\[str,Any])：缓存过期时间（控制上下文存储时长）
+- checkpoint_prefix(str)：检查点键前缀（避免键冲突）
+- checkpoint_blob_prefix(str)：大字段（完整对话）键前缀
+- checkpoint_write_prefix(str)：写入临时键前缀（避免并发问题）
+```python
+def init_redis_client()->redis.Redis:  
+    """初始化Redis客户端"""  
+    try:  
+        client = redis.Redis(  
+            host="192.168.100.104",  
+            port=6379,  
+            db=0,  
+            password="",  
+            decode_responses=True, # 自动解码字符串，避免二进制乱码
+            socket_timeout=10  
+        )  
+        client.ping()  
+        print("Redis客户端初始化成功")  
+        return client  
+    except redis.ConnectionError as e:  
+        print(f"Redis连接失败：{e}")  
+        raise
+```
+RedisSaver创建检查点
+```python
+checkpointer = RedisSaver(  
+    redis_client=init_redis_client(),  
+)  
+checkpointer.setup()
+```
+**tips**：RedisSaver运行需要搜索索引checkpoint_write等，必须在创建RedisSaver实例后调用setup()方法，自动在Redis Stack中创建RedisSaver运行所需的所有搜索索引
+```python
+import redis  
+from langchain.agents import create_agent  
+from langgraph.checkpoint.redis import RedisSaver  
+from ai_demo3.test3 import llm  
+  
+def init_redis_client()->redis.Redis:  
+    """初始化Redis客户端"""  
+    try:  
+        client = redis.Redis(  
+            host="192.168.100.104",  
+            port=6379,  
+            db=0,  
+            password="",  
+            decode_responses=True,  
+            socket_timeout=10  
+        )  
+        client.ping()  
+        print("Redis客户端初始化成功")  
+        return client  
+    except redis.ConnectionError as e:  
+        print(f"Redis连接失败：{e}")  
+        raise  
+  
+checkpointer = RedisSaver(  
+    redis_client=init_redis_client(),  
+    checkpoint_prefix="argi_agent_checkpoint_",  
+    ttl={"checkpoint":3600*24}  
+)  
+checkpointer.setup()  
+system_prompt = "你是资深农业技术专家，仅解答农业相关问题，回答简洁准确"  
+agent = create_agent(  
+    model=llm,  
+    system_prompt=system_prompt,  
+    checkpointer=checkpointer  
+)  
+  
+messages1=[{"role":"user","content":"列举三种水稻的易发病虫害"}]  
+res1 = agent.invoke(  
+    {"messages":messages1},  
+    {"configurable":{"thread_id":"1"}}  
+)  
+print(res1["messages"][-1].content)  
+print("="*50)  
+  
+messages2=[{"role":"user","content":"在这三种病虫害中，告诉我第二种的防止方法"}]  
+res2 = agent.invoke(  
+    {"messages":messages2},  
+    {"configurable":{"thread_id":"1"}}  
+)  
+print(res2["messages"][-1].content)
+```
+```text
+Redis客户端初始化成功
+1. 稻瘟病  
+2. 稻飞虱  
+3. 纹枯病
+==================================================
+稻飞虱的防治方法如下：
 
+4. **农业措施**：选用抗虫品种，合理轮作，清除田间及周边杂草，减少虫源。
+5. **生物防治**：释放天敌昆虫（如瓢虫、寄生蜂等），或使用生物农药（如苏云金杆菌、昆虫病毒等）。
+6. **化学防治**：适时喷施高效低毒农药（如吡虫啉、噻嗪酮、烯啶虫胺等），注意轮换用药以防止抗药性。
+```
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

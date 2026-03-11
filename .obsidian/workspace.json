@@ -89,8 +89,7 @@
               "title": "Python 的大纲"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
@@ -199,6 +198,8 @@
   },
   "active": "38a5c561e3901e02",
   "lastOpenFiles": [
+    "LLM/Java.md",
+    "LLM/Python.md",
     "LLM/assets/Python/file-20260310141300817.png",
     "LLM/assets/Python/file-20260309214304921.png",
     "LLM/assets/Python/file-20260309201556392.png",
@@ -206,8 +207,6 @@
     "LLM/assets/Python",
     "java/Java基础.md",
     "java/Java并发编程.md",
-    "LLM/Python.md",
-    "LLM/Java.md",
     "java/Spring.md",
     "计算机网络.md",
     "assets/计算机网络/file-20260305210622102.png",
@@ -216,7 +215,6 @@
     "assets/计算机网络/file-20260303154436104.png",
     "assets/计算机网络/file-20260303140200115.png",
     "assets/计算机网络/file-20260302224244261.png",
-    "assets/计算机网络/file-20260302223925905.png",
     "assets/计算机网络",
     "assets",
     "java/Redis.md",

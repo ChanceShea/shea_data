@@ -1039,7 +1039,33 @@ print(res["messages"][-1].content)
 今天是2026年3月11日。
 ```
 从上述结果可以看到，钩子函数被调用了两次
-第一次是决策该调用哪个工具
+第一次是决策该调用哪个工具，这次模型调用前消息是HumanMessage
+第二次是基于工具结果生成最终回答，这次模型调用前消息是ToolMessage
+Runtime读取和更新AgentState的状态
+在工具调用前，Runtime读取AgentState，AgentState的初始状态只有HumanMessage
+在工具调用后，Runtime更新AgentState，将工具生成的结果更新response_metadata、ToolMessage
+**大模型/工具调用的包装钩子**
+大模型调用的包装钩子在每次模型调用前后执行。可以用来缓存模型请求、重试失败调用、记录token消耗
+```python
+@wrap_model_call
+def wrap_model_call(
+	request: ModelRequest ,
+	handler: Callable[[ModelRequest], ModelResponse]
+) -> ToolMessage | ModelResponse:
+```
+工具调用的包装钩子在每次工具调用前后执行。负责拦截工具的输入输出，权限校验、参数脱敏、调用日志
+```python
+@wrap_tool_call
+def wrap_tool_call(
+	request: ModelRequest ,
+    handler: Callable[[ModelRequest], ModelResponse]
+) -> ToolMessage | ModelResponse:
+```
+函数接受(request,handler)参数，它调用handler(request)来执行工具并最终返回ToolMessage或ModelMessage
+**ModelRequest**：是发给大模型的标准化请求对象，你可以把它理解为智能体给大模型的“填好的申请表”，这个“申请表”里不仅包含要问的大模型的问题，还封装了AgentState和Runtime
+改参数是用给定的覆盖项替换请求，生成一个新的请求。不是直接修改原请求，而是基于原请求复制一份，替换指定属性后生成新请求，保证原请求不被污染
+**Callable\[\[ModelRequest],ModelResponse]**：是LangChain内置的模型调用器。它接受ModelRequest入参，返回ModelResponse。它接收封装好的申请表(ModelRequest)，发给大模型后，把大模型的回复转换成标准化的ModelResponse
+**ModelResponse**：是LangChain中大模型返回结果的标准化封装对象，可以把它理解为“大模型给智能体的标准化回复单”，所有大模型的返回结果，都会被统一转换成这个格式，让智能体无需适配不同模型的返回结构
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

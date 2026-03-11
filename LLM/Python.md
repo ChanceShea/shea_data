@@ -810,6 +810,82 @@ if __name__ == '__main__':
 **自定义更新**
 自定义更新是LangChain中实现工具执行日志或进度实时推送的流式处理方式，需要通过工具来实现流式更新及实时推送
 如果需要自定义更新，必须设置stream或astream方法的参数`stream_mode="custom"`
+```python
+import asyncio  
+  
+from langchain.agents import create_agent  
+from langchain.tools import tool  
+from langgraph.config import get_stream_writer  
+from ai_demo3.test3 import llm  
+import requests  
+  
+  
+app_id="55472461"  
+appsecret="WVSss9FJ"  
+  
+@tool  
+def get_city_weather(city:str)->str:  
+    """  
+    获取指定城市天气  
+    :param city: 城市名称（中文），如南昌，北京  
+    :return: 字符串格式的天气信息，包含温度，天气状况  
+    """    writer = get_stream_writer()  
+    try:  
+        # 发送更新，流式传输任意自定义数据  
+        writer({"type":"log","content":f"正在获取城市{city}的天气..."})  
+        url=f"http://v1.yiketianqi.com/free/day?appid={app_id}&appsecret={appsecret}&unescape=1&city={city}"  
+        headers = {"User-Agent":"Mozilla/5.0"}  
+        response = requests.get(url,headers=headers,timeout=10)  
+        writer({"type":"log","content":f"获取城市{city}的天气已完成"})  
+        response.raise_for_status() # 抛出HTTP错误  
+        weather_info = response.text.strip()  
+        if not weather_info:  
+            writer({"type":"result","content":f"未查询到{city}的天气信息"})  
+            return f"未查询到{city}的天气信息"  
+        writer({"type":"result","content":weather_info})  
+        return weather_info  
+    except requests.exceptions.Timeout:  
+        writer({"type":"log","content":f"请求超时，无法获取{city}的天气信息"})  
+        return f"请求超时，无法获取{city}的天气信息"  
+    except requests.exceptions.RequestException as e:  
+        writer({"type":"log","content":f"获取{city}天气失败：{str(e)}"})  
+        return f"获取{city}天气失败：{str(e)}"  
+    except Exception as e:  
+        writer({"type":"log","content":f"获取{city}天气失败：{str(e)}"})  
+        return f"获取{city}天气失败：{str(e)}"  
+  
+agent = create_agent(  
+    model=llm,  
+    tools=[get_city_weather]  
+)  
+  
+async def stream_weather_query(messages):  
+    """  
+    异步执行Agent，流式输出日志，最后汇总输出最终结果  
+    :param messages: 用户提问  
+    :return: Agent返回结果  
+    """    async for chunk in agent.astream({"messages":messages},stream_mode="custom"):  
+        # 过滤空数据  
+        if not chunk:  
+            continue  
+        if isinstance(chunk,dict):  
+            chunk_type = chunk.get("type")  
+            content = chunk.get("content","")  
+            if chunk_type == "log":  
+                print(f"[日志]{content}")  
+            elif chunk_type == "result":  
+                print(f"[结果]{content}")  
+  
+if __name__ == '__main__':  
+    messages = ["今天南昌的天气如何"]  
+    asyncio.run(stream_weather_query(messages))
+```
+```text
+[日志]正在获取城市南昌的天气...
+[日志]获取城市南昌的天气已完成
+[结果]{"nums":0,"cityid":"101240101","city":"南昌","date":"2026-03-11","week":"星期三","update_time":"12:54","wea":"晴","wea_img":"qing","tem":"18.7","tem_day":"22","tem_night":"11","win":"东风","win_speed":"1级","win_meter":"4km\/h","air":"70","pressure":"1015","humidity":"46%"}
+```
+上述代码实现了流式更新处理
 
 
 # LLM API

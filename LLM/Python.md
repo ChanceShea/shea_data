@@ -1066,7 +1066,59 @@ def wrap_tool_call(
 改参数是用给定的覆盖项替换请求，生成一个新的请求。不是直接修改原请求，而是基于原请求复制一份，替换指定属性后生成新请求，保证原请求不被污染
 **Callable\[\[ModelRequest],ModelResponse]**：是LangChain内置的模型调用器。它接受ModelRequest入参，返回ModelResponse。它接收封装好的申请表(ModelRequest)，发给大模型后，把大模型的回复转换成标准化的ModelResponse
 **ModelResponse**：是LangChain中大模型返回结果的标准化封装对象，可以把它理解为“大模型给智能体的标准化回复单”，所有大模型的返回结果，都会被统一转换成这个格式，让智能体无需适配不同模型的返回结构
+```python
+import datetime  
+import random  
+import time  
+  
+from langchain.agents import create_agent  
+from langchain.agents.middleware import wrap_tool_call  
+from langchain_core.tools import ToolException  
+from ai_demo3.test3 import llm  
+from langchain.tools import tool  
+  
+@tool  
+def get_current_date()->str:  
+    """获取今天的日期"""  
+    # 模拟工具调用失败场景  
+    if random.random() < 0.5:  
+        raise ToolException("日期获取失败")  
+    return datetime.datetime.today().strftime("%Y-%m-%d")  
+  
+@wrap_tool_call  
+def retry_on_error(request,handler):  
+    """包装模型调用的重试中间件：工具调用失败时自动重试（最多三次）"""  
+    max_retries = 3  
+    retry_delay = 5  
+    for attempt in range(max_retries+1):  
+        try:  
+            response = handler(request)  
+            return response  
+        except ToolException as e:  
+            if attempt < max_retries:  
+                print(f"【中间件-重试】工具调用失败（第{attempt+1}次），错误：{str(e)}，{retry_delay}秒后重试")  
+                time.sleep(retry_delay)  
+                continue  
+            raise e  
+  
+if __name__ == '__main__':  
+    agent=create_agent(model=llm,  
+                       tools=[get_current_date],  
+                       middleware=[retry_on_error]  
+    )  
+    messages = ["今天是几号"]  
+    res = agent.invoke({"messages": messages},)  
+    print(res["messages"][-1].content)
+```
+```text
+【中间件-重试】工具调用失败（第1次），错误：日期获取失败，5秒后重试
+今天是2026年3月11日。
+```
+**钩子函数异步调用**
+LangGraph/LangChain等智能体框架中，生命周期钩子函数的异步调用是指以非阻塞的方式执行状态管理、上下文操作类的钩子函数，避免阻塞智能体主线程，提升多轮对话或高并发场景下的执行效率
+```python
 
+```
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

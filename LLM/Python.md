@@ -1117,8 +1117,108 @@ if __name__ == '__main__':
 **钩子函数异步调用**
 LangGraph/LangChain等智能体框架中，生命周期钩子函数的异步调用是指以非阻塞的方式执行状态管理、上下文操作类的钩子函数，避免阻塞智能体主线程，提升多轮对话或高并发场景下的执行效率
 ```python
-
+import asyncio  
+import datetime  
+import re  
+import time  
+from typing import Any, Callable  
+  
+from langchain.agents import AgentState, create_agent  
+from langchain.agents.middleware import before_model, wrap_tool_call, ModelRequest, ModelResponse  
+from langchain.tools import tool  
+from langgraph.runtime import Runtime  
+from ai_demo3.test3 import llm  
+  
+@before_model  
+async def log_agent_call(state:AgentState,runtime:Runtime):  
+    """模型调用前的日志记录中间件：记录调用时间、用户问题、会话ID"""  
+    # 获取用户最新消息  
+    messages = state.get("messages",[])  
+    user_query = messages[-1].content if messages else "无用户输入"  
+    # 打印结构化日志  
+    log_info = {  
+        "timestamp":datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  
+        "user_query":user_query,  
+        "status":"agent_start"  
+    }  
+    print(f"【中间件-日志】{log_info}")  
+    return None  
+  
+@before_model  
+async def validate_city_param(state:AgentState,runtime:Runtime)->dict[str,Any]|None:  
+    """校验用户输入的城市名是否合法：非空、非特殊字符、符合中文城市命名规则"""  
+    messages = state.get("messages",[])  
+    if not messages:  
+        return {"messages":[{"role":"assistant","content":"请告诉我你想查询哪个城市的天气"}]}  
+    user_query = messages[-1].content  
+    # 提取用户输入中的城市名  
+    city_pattern = re.compile(r'([\u4e00-\u9fa5]{2,5})(?=今天|明天|现在|省|市|县|区|镇)')  
+    city_match = city_pattern.findall(user_query)  
+    if not city_match:  
+        return {  
+            "messages":[{"role":"assistant","content":"请告诉我你想查询哪个城市的天气"}],  
+            "stop":True #终止后续模型调用  
+        }  
+    city = city_match[0]  
+    print(f"【中间件-校验】识别到合法城市名：{city}")  
+    return None  
+  
+@wrap_tool_call  
+async def retry_tool_call(  
+        request:ModelRequest,  
+        handler:Callable[[ModelRequest],ModelResponse],  
+)->ModelResponse:  
+    """包装模型调用的重试中间件，工具调用失败时自动重试"""  
+    max_retries = 3  
+    retry_delay = 0.5  
+    for _ in range(max_retries+1):  
+        try:  
+            response = await handler(request)  
+            return response  
+        except Exception as e:  
+            if _ < max_retries:  
+                print(f"【中间件-重试】工具调用失败（第{_+1}次），错误：{str(e)}，{retry_delay}秒后重试")  
+                await time.sleep(retry_delay)  
+                continue  
+            raise e  
+  
+agent = create_agent(model=llm,middleware=[log_agent_call,validate_city_param,retry_tool_call,])  
+  
+async def stream_weather_query(messages):  
+    """  
+    异步执行Agent，流式输出日志，最后汇总输出最终结果  
+    :param messages: 用户提问  
+    :return: Agent返回结果  
+    """    async for chunk in agent.astream({"messages":messages},stream_mode="custom"):  
+        # 过滤空数据  
+        if not chunk:  
+            continue  
+        if isinstance(chunk,dict):  
+            chunk_type = chunk.get("type")  
+            content = chunk.get("content","")  
+            if chunk_type == "log":  
+                print(f"[日志]{content}")  
+            elif chunk_type == "result":  
+                print(f"[结果]{content}")  
+  
+if __name__ == "__main__":  
+    # 测试用例1：正常查询（南昌天气）  
+    print("===== 测试1：正常查询南昌天气 =====")  
+    messages1 = ["南昌今天的天气如何"]  
+    asyncio.run(stream_weather_query(messages1))  
+  
+    # 测试用例2：无城市名查询（触发参数校验中间件）  
+    print("\n===== 测试2：无城市名查询 =====")  
+    messages2 = ["今天天气如何"]  
+    asyncio.run(stream_weather_query(messages2))  
+  
+    # 测试用例3：含非法字符的城市名（触发参数校验中间件）  
+    print("\n===== 测试3：非法城市名查询 =====")  
+    messages3 = ["南昌@#$今天的天气如何"]  
+    asyncio.run(stream_weather_query(messages3))
 ```
+**tips**：因为 **`@before_model` 中间件在执行时是按注册顺序串行执行的**，前一个中间件可能会 **修改 state 或直接终止流程**，从而影响后面的中间件能看到什么数据、甚至是否还能执行
+
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

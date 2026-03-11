@@ -767,6 +767,8 @@ LangChain中，invoke()和stream()是Chain、Agent、LLM等核心组件的执行
 - invoke()适用于短文本生成、快速查询，需要完整结果后再处理的场景。stream()适合长文本生成、实时展示的场景
 - invoke()简单直接，适合小任务，大任务的等待时间长。stream()内存占用更优，用户体验感好
 - invoke()同步调用，无需异步上下文。stream()异步调用为主，更适合高并发场景
+流式传输LLM Tokens的核心逻辑是：大语言模型在生成文本时，不是等所有token生成完毕再一次性返回，而是每生成一个或一组token，就立即通过网络传输给客户端，实现“边生成、边传输、边展示”的实时交互效果。LangChain中用于流式输出场景的大语言模型逐段生成的内容片段是AIMessageChunk，，它是AIMessage的分块版本，用于表示大语言模型逐段生成的内容片段。token是一个二元组（AIMessage，元数据字典），所以用token\[0]提取出AIMessageChunk对象
+如果需要流式输出LLM生成的tokens，必须设置stream或astream方法的参数`stream_mode=messages`
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

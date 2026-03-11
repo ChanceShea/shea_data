@@ -992,9 +992,54 @@ LangChain智能体常见的钩子函数如下
 - @wrap_model_call：每次模型调用前后触发。常用于完整拦截模型调用流程、添加调用超时控制、统一异常捕获、缓存模型响应
 - @wrap_tool_call：每次工具调用前后触发。常用于完整拦截工具调用流程、添加工具调用重试机制、控制工具并发执行
 - @dynamic_prompt：生成动态系统提示，模型调用前触发。常用于按用于场景动态生成/修改系统提示、复用提示模版
+---
+钩子函数原型中有两个参数`AgentState`和`Runtime`
+AgentState是运行期状态，只负责存数据
+Runtime是生命周期的运行时，负责读取State的数据做决策、执行操作、更新State，循环直到任务完成
 ```python
-
+import datetime  
+  
+from langchain.agents import AgentState, create_agent  
+from langchain.agents.middleware import before_model  
+from langgraph.runtime import Runtime  
+from langchain.tools import tool  
+from ai_demo3.test3 import llm  
+  
+@before_model  
+def before_model_call(state:AgentState,runtime:Runtime)->None:  
+    """模型调用前中间件"""  
+    messages = state.get("messages")  
+    print(f"=====模型调用前状态=====\n{state}")  
+    print(f"=====模型调用前消息=====\n{messages[-1].content}")  
+  
+@tool  
+def get_current_date()->str:  
+    """获取今天的日期"""  
+    return datetime.datetime.today().strftime("%Y-%m-%d")  
+  
+agent = create_agent(  
+    model=llm,  
+    tools=[get_current_date],  
+    middleware=[before_model_call]  
+)  
+  
+messages = ["今天是几号"]  
+res = agent.invoke({"messages": messages})  
+print(res["messages"][-1].content)
 ```
+```text
+=====模型调用前状态=====
+{'messages': [HumanMessage(content='今天是几号', additional_kwargs={}, response_metadata={}, id='9e7bfeb3-3277-4345-8492-9073cf8b7ea0')]}
+=====模型调用前消息=====
+今天是几号
+=====模型调用前状态=====
+{'messages': [HumanMessage(content='今天是几号', additional_kwargs={}, response_metadata={}, id='9e7bfeb3-3277-4345-8492-9073cf8b7ea0'), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 16, 'prompt_tokens': 141, 'total_tokens': 157, 'completion_tokens_details': {'accepted_prediction_tokens': None, 'audio_tokens': None, 'reasoning_tokens': 0, 'rejected_prediction_tokens': None}, 'prompt_tokens_details': None}, 'model_provider': 'openai', 'model_name': 'Qwen/Qwen3-8B', 'system_fingerprint': '', 'id': '019cdc31eb379461b83112718db31748', 'finish_reason': 'tool_calls', 'logprobs': None}, id='lc_run--019cdc31-e77a-7c10-a4c6-897c00c303fb-0', tool_calls=[{'name': 'get_current_date', 'args': {}, 'id': '019cdc31ee7d71239329f4b426a4b7b5', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 141, 'output_tokens': 16, 'total_tokens': 157, 'input_token_details': {}, 'output_token_details': {'reasoning': 0}}), ToolMessage(content='2026-03-11', name='get_current_date', id='0cc6a99e-f351-4d01-bc3c-a8e3ec17e756', tool_call_id='019cdc31ee7d71239329f4b426a4b7b5')]}
+=====模型调用前消息=====
+2026-03-11
+今天是2026年3月11日。
+```
+从上述结果可以看到，钩子函数被调用了两次
+
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

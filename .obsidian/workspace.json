@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "79a76d07d34a5a2d",
+        "id": "6d8b33bc1172b33a",
         "type": "tabs",
         "children": [
           {
-            "id": "38a5c561e3901e02",
+            "id": "6b8c77b074c40160",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -197,11 +197,11 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "38a5c561e3901e02",
+  "active": "6b8c77b074c40160",
   "lastOpenFiles": [
+    "LLM/Python.md",
     "LLM/assets/Python/file-20260311133256337.png",
     "LLM/Java.md",
-    "LLM/Python.md",
     "LLM/assets/Python/file-20260310141300817.png",
     "LLM/assets/Python/file-20260309214304921.png",
     "LLM/assets/Python/file-20260309201556392.png",
@@ -216,7 +216,6 @@
     "assets/计算机网络/file-20260305102444284.png",
     "assets/计算机网络/file-20260303154436104.png",
     "assets/计算机网络/file-20260303140200115.png",
-    "assets/计算机网络/file-20260302224244261.png",
     "assets/计算机网络",
     "assets",
     "java/Redis.md",

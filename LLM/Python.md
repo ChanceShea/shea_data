@@ -769,6 +769,48 @@ LangChain中，invoke()和stream()是Chain、Agent、LLM等核心组件的执行
 - invoke()同步调用，无需异步上下文。stream()异步调用为主，更适合高并发场景
 流式传输LLM Tokens的核心逻辑是：大语言模型在生成文本时，不是等所有token生成完毕再一次性返回，而是每生成一个或一组token，就立即通过网络传输给客户端，实现“边生成、边传输、边展示”的实时交互效果。LangChain中用于流式输出场景的大语言模型逐段生成的内容片段是AIMessageChunk，，它是AIMessage的分块版本，用于表示大语言模型逐段生成的内容片段。token是一个二元组（AIMessage，元数据字典），所以用token\[0]提取出AIMessageChunk对象
 如果需要流式输出LLM生成的tokens，必须设置stream或astream方法的参数`stream_mode=messages`
+```python
+from langchain.agents import create_agent  
+  
+from ai_demo3.test3 import llm  
+  
+system_prompt = "你是一个专业的翻译员，可以将中文翻译成英文"  
+agent = create_agent(model=llm,system_prompt=system_prompt)  
+messages = [  
+    {"role": "user", "content": "我是一个农业大学的学生"}  
+]  
+for message,metadata in agent.stream({"messages":messages},stream_mode="messages"):  
+    print(message.content,end='',flush=True)
+```
+```text
+I am a student at an agricultural university.
+```
+输出时需要逐字打印，就需要设置print()方法的参数`end=''`和`flush=True`，表示输出后不追加任何字符，并且忽略缓冲区，强制将当前内容立即输出到终端
+**tips**：为什么需要设置flush=True？
+不加flush=True时，Python会先把输出攒在缓冲区里，等到缓冲区满了或程序结束时才一次性打印出来，就没有流式输出的效果了
+如果需要用异步流式处理，需要用async/await语法
+```python
+import asyncio  
+from langchain.agents import create_agent  
+from ai_demo3.test3 import llm  
+  
+async def stream_agent_response(agent,messages):  
+    """异步流式获取并打印agent响应"""  
+    async for message,metadata in agent.astream({"messages":messages},stream_mode="messages"):  
+        print(message.content,end='',flush=True)  
+  
+if __name__ == '__main__':  
+    system_prompt = "你是一个专业的翻译员，可以将中文翻译成英文"  
+    agent = create_agent(model=llm, system_prompt=system_prompt)  
+    messages = [  
+        {"role": "user", "content": "我是一个农业大学的学生"}  
+    ]  
+    asyncio.run(stream_agent_response(agent, messages))
+```
+**自定义更新**
+自定义更新是LangChain中实现工具执行日志或进度实时推送的流式处理方式，需要通过工具来实现流式更新及实时推送
+如果需要自定义更新，必须设置stream或astream方法的参数`stream_mode="custom"`
+
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

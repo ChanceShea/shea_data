@@ -886,7 +886,12 @@ if __name__ == '__main__':
 [结果]{"nums":0,"cityid":"101240101","city":"南昌","date":"2026-03-11","week":"星期三","update_time":"12:54","wea":"晴","wea_img":"qing","tem":"18.7","tem_day":"22","tem_night":"11","win":"东风","win_speed":"1级","win_meter":"4km\/h","air":"70","pressure":"1015","humidity":"46%"}
 ```
 上述代码实现了流式更新处理
-
+**Agent进度**
+Agent进度是在每个Agent步骤之后获取状态更新，即查看Agent的调用流程。如果有一个agent调用工具一次，就能看到以下信息
+- LLM节点：带有工具调用请求的AIMessage
+- 工具节点：带有执行结果的ToolMessage
+- LLM节点：最终AI响应
+要流式传输agent进度，需要设置stream或astream方法参数`stream_mode="updates"`
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

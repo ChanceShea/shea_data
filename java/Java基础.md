@@ -1,4 +1,33 @@
 # Java集合
+## List
+List中主要有以下几个重要的实现类
+- Vector是Java早期提供的线程安全的动态数组，Vector内部是使用对象数组来保存数据的，可以根据需要自动的增加容量，当数组已满时，会创建新的数组，并拷贝原有数组数据
+- ArrayList是应用更加广泛的动态数组实现，它本身不是线程安全的，性能更好。与Vector类似，ArrayList也可以根据需要调整容量，不过两者的调整逻辑有区别，Vector在扩容时会提高1倍，而ArrayList是增加50%
+- LinkedList，是Java提供的双向链表，所以不需要自动调整容量，也不是线程安全的
+使用普通的for循环遍历，可以在遍历过程中修改元素，只要修改的索引不超过List范围即可
+而对于forEach循环，一般不建议在forEach循环中直接修改正在遍历的元素，这可能会导致意外的结果或`ConcurrentModificationException`异常，在forEach循环中修改元素可能会破坏迭代器内部状态，在遍历过程中修改集合结构，会导致迭代器的预期结构和实际结构不一致
+```java
+public void forEach(Consumer<? super E> action) {  
+    Objects.requireNonNull(action);  
+    final int expectedModCount = modCount;  
+    final Object[] es = elementData;  
+    final int size = this.size;  
+    for (int i = 0; modCount == expectedModCount && i < size; i++)  
+        action.accept(elementAt(es, i));  
+    if (modCount != expectedModCount)  
+        throw new ConcurrentModificationException();  
+}
+```
+在forEach时会设置一个exceptedModCount，当forEach循环中修改了元素，就会导致modCount被修改，从而导致exceptedModCount和modCount不一致，抛出异常
+对于线程安全的List，如CopyOnWriteArrayList，由于采用了写时复制的机制，在遍历的同事可以进行修改操作，不会抛出`ConcurrentModificationException`异常，但可能会读取到旧数据，因为修改操作是在新副本上进行的
+### ArrayList和LinkedList
+ArrayList和LinkedList有以下区别
+- 底层的数据结构不同：ArrayList使用数组实现，通过索引进行快速访问元素。LinkedList使用链表实现，通过节点之间的指针进行元素的访问和操作
+- 插入和删除操作的效率不同：ArrayList在尾部的插入和删除操作效率高，但在中间或开头的插入和删除效率较低，需要移动元素。LinkedList在任意位置的插入和删除效率都较高，因为只需要调整节点之间的指针，但是LinkedList不支持随机访问，除了头结点外插入和珊瑚虫的时间复杂度都是O(n)，效率也不是很高
+- 随机访问的效率不同：ArrayList支持通过索引进行快速随机访问，时间复杂度为O(1)。LinkedList需要从头到尾开始遍历链表，时间复杂度为O(n)
+- 空间占用：ArrayList在创建时需要分配一段连续的内存空间，因此会占用较大的空间，LinkedList每个节点只需要存储元素和指针，因此相对较小
+- 使用场景：ArrayList适用于频繁随机访问和尾部插入删除操作，而LinkedList适用于频繁的中间插入删除操作和不需要随机访问的场景
+- 线程安全：这两个线程都不是线程安全的，Vector是线程安全的
 
 ## Map
 **常见的Map集合**
@@ -159,10 +188,33 @@ jdk1.8中，HashMap对扩容操作做了优化。由于扩容数字的长度是2
 - Hashtable线程安全，效率更低，其内部方法基本都经过synchronized修饰，不可以有null的key和value。默认初始容量为11，每次扩容都变为原来的2n+1。创建时给定了初始容量，就会直接使用给定的大小。底层数据结构为数组+链表。现在已经基本被淘汰了
 ### ConcurrentHashMap
 ConcurrentHashMap就是在HashMap的基础上，保证线程安全
-jdk8之前，采用分段锁实现线程安全，将HashMap分为多个段，修改某个段中的数据时，就对该段加锁，读数据时则不需要加锁
-段内数组使用volatile修饰，保证其多线程环境下的可见性
-jdk8后采用CAS和synchronized对其进行加锁
-为什么要改成CAS？因为原来的分段锁，对每一段数组都需要进行加锁，占用过多资源，段锁相比于节点颗粒度过大
+jdk1.7中，使用数组+链表的形式实现，而数组又分为大数组Segment和小数组HashEntry
+Segment是一种可重入锁，HashEntry则用于存储键值对数据
+一个ConcurrentHashMap中包含一个Segment数组，一个Segment里包含一个HashEntry数组，每个HashEntry是一个链表结构的元素
+jdk1.7 ConcurrentHashMap分段锁技术将数据分成一段一段存储，然后给每段数据配一把锁，当一个线程占用锁访问其中一个段数据的时候，其他段的数据也能被其他线程访问，就能够实现并发访问
+jdk1.8后，ConcurrentHashMap使用了数组+链表/红黑树的方式优化了ConcurrentHashMap的实现
+jdk1.8 ConcurrentHashMap主要通过volatile+CAS或者synchronized来实现线程安全。添加元素时首先会判断容器是否为空
+- 如果为空，则使用volatile+CAS来初始化
+- 如果不为空，则根据存储的元素计算该位置是否为空
+	- 如果根据存储的元素计算结果为空，则利用CAS设置该节点
+	- 如果根据存储的元素计算结果不为空，则使用synchronized，然后遍历桶中的数据，并替换或新增节点到桶中，最后在判断是否需要转换为红黑树，这样就能保证并发访问时的线程安全了
+ConcurrentHashMap通过对头结点枷锁来保证线程安全，锁的粒度相比Segment来说更小了，发生冲突和加锁的频率降低了，并发操作的性能提高了
+#### 分段锁是怎么加锁的
+ConcurentHashMap中，将整个数据结构分为多个Segment，每个Segment都类似于一个小的HashMap，每个Segment都有自己的锁，不同Segment之间的操作互不影响，从而提高并发性能
+在ConcurrentHashMap中，对于插入、更新、删除等操作，需要先定位到具体的Segment，然后再在该Segment上加锁，而不是像传统HashMap一样对整个数据结构加锁。这样可以使得不同Segment之间的操作可以并行进行，提高了并发性能
+且jdk1.7中ConcurrentHashMap中的分段锁使用的是ReentrantLock，是可重入的
+#### 为什么有了synchronized还要使用CAS
+ConcurrentHashMap会权衡考虑使用哪个来加锁
+在putVal中，如果计算出来的hash槽没有存放元素，那么就可以直接使用CAS来进行设置值，这是因为在设置元素的时候，因为hash值经过了各种扰动后，造成hash碰撞的几率较低，那么就可以预测使用较少的自旋来完成具体的hash落槽操作
+当发生了hash碰撞的时候，就说明容量不够用了，或者已经有大量线程访问了，因此这时候使用synchronized来处理hash碰撞比CAS效率更高，因为发生了hash碰撞大概率是线程竞争比较激烈的情况
+#### Hashtable和ConcurrentHashMap的区别
+- jdk1.8之前，ConcurrentHashMap采用分段锁，对整个数组进行分段，每一把锁只锁容器里的一部分数据，多线程访问不同数据段里的数据，就不会存在锁竞争，提高了并发访问。jdk1.8之后，直接采用数组+链表/红黑树，并发控制使用CAS和synchronized操作，更提高了速度
+- Hashtable所有的方法都通过synchronized加锁来保证线程安全，效率很低。当两个线程同步访问时，就会陷入阻塞或者轮询状态
+## Set
+Set集合中的元素是唯一的，不会出现重复的元素
+Set集合通过内部的数据结构来实现key的无重复。当向Set集合中插入元素时，会先根据元素的hashCode值来确定元素的存储位置，然后再通过equals来判断是否已经存在相同的元素，如果存在则不会再次插入，保证了元素的唯一性
+其中
+TreeSet和LinkedHashSet是有序的。TreeSet是基于红黑树实现的，保证元素的自然顺序。LinkedHashSet是基于双重链表和哈希表的结合来实现元素的有序存储，保证元素添加的自然顺序。LinkedHashSet不仅保证元素的唯一性，还可以保证元素的插入顺序。
 
 ## Java是如何做到一次编译，到处运行的
 

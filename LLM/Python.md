@@ -1374,8 +1374,83 @@ agent = create_agent(model= llm,system_prompt=SYSTEM_PROMPT)
 ```
 - 动态模型：动态模型在运行时根据当前状态和上下文选择。支持复杂的路由逻辑和成本优化。要使用动态模型，需要用`@wrap_model_call`装饰器创建中间件，该中间件会修改请求中的模型
 ```python
-
+import os  
+  
+from dotenv import load_dotenv  
+from langchain.agents import create_agent  
+from langchain.agents.middleware import wrap_model_call, ModelResponse, ModelRequest  
+from langchain_openai import ChatOpenAI  
+  
+load_dotenv()  
+  
+api_key = os.getenv("OPENAI_API_KEY")  
+  
+basic_llm = ChatOpenAI(  
+    base_url="https://api.siliconflow.cn",  
+    api_key=api_key,  
+    model="Qwen/Qwen3-8B"  
+)  
+  
+advanced_llm = ChatOpenAI(  
+    base_url="https://api.siliconflow.cn",  
+    api_key=api_key,  
+    model="Qwen/Qwen3.5-9B"  
+)  
+  
+system_prompt = "你是一个专业的翻译，请将中文翻译成英文"  
+  
+@wrap_model_call  
+def dynamic_model_selection(request:ModelRequest,handler)->ModelResponse:  
+    """  
+    根据对话复杂度选择模型  
+    1.单条消息文本->基础模型  
+    2.消息数量>3轮->高级模型  
+    """    # 获取对话消息列表  
+    messages = request.state.get("messages",[])  
+    # 统计消息数量  
+    message_count = len(messages)  
+    if message_count > 3:  
+        model = advanced_llm  
+    else:  
+        model = basic_llm  
+    # 接收override返回的新请求对象  
+    new_request = request.override(model=model)  
+    # 用新请求对象调用handler  
+    return handler(new_request)  
+  
+agent = create_agent(  
+    model=basic_llm,  
+    middleware=[dynamic_model_selection],  
+    system_prompt=system_prompt,  
+)  
+  
+if __name__ == "__main__":  
+    short_message = [{  
+        "role":"user","content":"我是一个农业大学的学生"  
+    }]  
+    res = agent.invoke({"messages":short_message})  
+    print("=====短文本测试=====")  
+    print("译文："+res["messages"][-1].content)  
+    print("使用模型："+res["messages"][-1].response_metadata["model_name"])  
+    print("-"*50)  
+    multi_turn_messages = [  
+        {"role": "user", "content": "农业大学的主要课程有哪些？"},  
+        {"role": "assistant", "content": "农学专业的核心课程包括土壤学、植物生理学、农业生态学等。"},  
+        {"role": "user", "content": "这些课程在实际农业生产中有什么应用？"},  
+        {"role": "assistant", "content": "土壤学可以指导合理施肥，植物生理学能帮助优化灌溉方案。"},  
+        {"role": "user", "content": "除了理论学习，实践环节占比多少？"},  
+        {"role": "assistant", "content": "实践环节约占总学分的30%，包括田间实习、实验室操作等。"},  
+        {"role": "user", "content": "请把以上内容翻译成英文"}  
+    ]  
+    multi_res = agent.invoke({"messages":multi_turn_messages})  
+    print("=====多轮对话测试=====")  
+    print("\n译文："+multi_res["messages"][-1].content)  
+    print("使用模型："+multi_res["messages"][-1].response_metadata["model_name"])
 ```
+```text
+// TODO 输出暂时有问题
+```
+
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

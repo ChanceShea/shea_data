@@ -1450,6 +1450,7 @@ if __name__ == "__main__":
 ```text
 // TODO 输出暂时有问题
 ```
+**多模态模型**
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

@@ -1218,7 +1218,54 @@ if __name__ == "__main__":
     asyncio.run(stream_weather_query(messages3))
 ```
 **tips**：因为 **`@before_model` 中间件在执行时是按注册顺序串行执行的**，前一个中间件可能会 **修改 state 或直接终止流程**，从而影响后面的中间件能看到什么数据、甚至是否还能执行
-
+## 高级智能体
+LangChain智能体开发中，系统提示可以在智能体运行过程中，根据上下文状态、用户输入、工具执行结果等动态信息，实时生成或修改的系统提示词。能够让智能体的运行更灵活、更贴合当前任务场景
+### 动态系统提示
+智能体可以通过提示来塑造智能体处理任务的方式。system_prompt参数用来提供系统提示
+当未提供system_prompt时，智能体会直接从消息中推断其任务。这种提示称为静态系统提示，是在智能体启动时静态定义，全程不变
+**动态系统提示**
+对于更高级的用例，当需要根据运行时上下文或智能体状态修改系统提示时，可以通过`@wrap_model_call`装饰器创建中间件，根据模型请求动态生成系统提示
+```python
+from langchain.agents import create_agent  
+from langchain.agents.middleware import dynamic_prompt, ModelRequest  
+  
+from ai_demo3.test3 import llm  
+  
+@dynamic_prompt  
+def user_role_prompt(request:ModelRequest)->str:  
+    """根据用户角色生成系统提示词，适配农业场景问答风格"""  
+    user_role = request.runtime.context.get("user_role","user")  
+    if user_role == "expert":  
+        return "你是资深农业技术专家，针对农业问题提供详尽、专业的技术性回复，需包含原理、方法、数据支撑等细节。"  
+    elif user_role == "user":  
+        return "你是农业科普助手，用简单易懂的语言解释农业问题，避免专业术语，适合普通农户理解。"  
+    else:  
+        return "你是一个生态旅游助手，对农业专业技术不作任何回答。"  
+  
+agent = create_agent(  
+    model=llm,  
+    middleware=[user_role_prompt],  
+)  
+messages = ["土壤墒情监测和灌溉决策中的应用原理是什么"]  
+user_context = {"user_role":"user"}  
+user_res = agent.invoke({"messages":messages},context=user_context)  
+print("=== 普通用户回复 ===")  
+print(user_res["messages"][-1].content)  
+  
+expert_context = {"user_role":"expert"}  
+expert_res = agent.invoke({"messages":messages},context=expert_context)  
+print("\n=== 专家回复 ===")  
+print(expert_res["messages"][-1].content)  
+  
+other_context = {"user_role":"other"}  
+other_res = agent.invoke({"messages":messages},context=other_context)  
+print("\n=== 非指定角色回复 ===")  
+print(other_res["messages"][-1].content)
+```
+```text
+回复较多，直接略过...
+```
+基于LangChain框架的动态系统提示，能够在无需手动编写固定提示词的前提下，以轻量化配置满足多任务场景需求，同时显著提升智能体的任务适配能力，有效规避静态提示词在复杂场景下的响应僵化问题
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

@@ -1,4 +1,4 @@
-# Java基础
+# Java集合
 
 ## Map
 **常见的Map集合**
@@ -108,7 +108,55 @@ final Node<K,V> getNode(Object key) {
 	如果键值对集合是红黑树结构，在红黑树中使用哈希码和equals()方法进行查找。根据键的哈希码，定位到红黑树的某个节点，然后逐个比较，直到找到相同的键或到达红黑树末尾。如果找到了相同的键，则用新值替代旧值。如果没找到相同的键，则将新的键值对添加到红黑树中
 - 检查负载因子是否超过阈值(0.75)，如果键值对的数量与数组长度的比值大于阈值，则需要进行扩容操作
 - 扩容操作。先创建一个两倍大小的数组，将旧数组中的键值对重新计算哈希码并分配到新数组中的对应位置。更新HashMap的数组引用和阈值参数
-
+#### 为什么String适合做key
+用String做key，因为String对象是不可变的，一旦创建就不能被修改，这保证了key的稳定性。如果key是可变的，可能会导致hashCode和equals方法的不一致，进而影响HashMap的正确性
+#### HashMap key可以为null吗
+可以
+HashMap中使用hash()方法来计算key的哈希值，当key为空时，会直接令key的哈希值为0，不使用hashCode()方法
+HashMap虽然支持key和value为null，但是null作为key只能有一个，null作为value可以有多个。因为HashMap中，如果key值一样，那么会覆盖相同key值的value为最新，所以key为null只能有一个
+```java
+static final int hash(Object key) {  
+    int h;  
+    return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);  
+}
+```
+#### 重写HashMap的equals和hashCode方法
+HashMap使用key对象的hashCode()和equals()方法去决定key-value对的索引。当我们试着从HashMap中获取值的时候，这些方法也会被用到。如果这些方法没有被正确实现，就有可能出现两个不同的key产生相同的hashCode()和equals()输出，然后HashMap就认为它们是相同的，然后覆盖它们，而非把它们存储到不同的地方
+同样的，所有不允许存储重复数据的集合类都使用hashCode()和equals()去查找重复，所以实现这两个方法必须要遵循以下规则
+- 如果`o1.equals(o2)`那么`o1.hashCode() == o2.hashCode()`总是为true
+- 如果`o1.hashCode == o2.hashCode()`，不意味着`o1.equals(o2)`总是为true
+#### 重新HashMap的equals方法不当会出现的问题
+HashMap在比较元素时，会先通过hashCode进行比较,如果相同，再使用equals方法进行比较
+所以equals相等的两个对象，hashCode一定相等 hashCode相等的两个对象，equals不一定相等（散列冲突）
+重写了equals方法，不重写hashCode方法时，可能会出现equals方法返回true，而hashCode方法却返回false，就可能导致HashMap等类存储多个一模一样的对象，导致出现覆盖存储的数据的问题，这与HashMap只能由唯一的key的规范不符合
+#### 多线程下出现的问题
+- jdk1.7的HashMap使用头插法插入元素，多线程环境下，扩容的时候可能导致环形链表的出现，形成死循环。因此，1.8之后使用尾插法插入元素，在扩容时会保持链表元素原本的顺序，不会出现环形链表的问题
+- 多线程同时执行put操作，如果计算出来的索引位置时相同的，会造成前一个key被后一个key覆盖，从而导致元素的丢失。
+#### HashMap的扩容机制
+HashMap默认的负载因子是0.75，即存储的元素数量超过了总容量的75%时，就会触发扩容机制，有以下两个步骤
+- 对哈希表长度的扩展
+- 将旧哈希表中的数据放到新的哈希表中
+因为使用的是2次幂的扩展，所以元素的位置要么是在原位，要么是在原位置再移动2次幂的位置
+![](assets/Java基础/file-20260312163249378.png)
+因此在重新计算hash之后，因为n变为2倍，那么n-1的mask范围在高位多1bit，因此新的index就会发生一些变化
+![](assets/Java基础/file-20260312163756989.png)
+因此，我们在扩充HashMap的时候，不需要重新计算hash，只需要看看原来的hash值新增的那个bit是0还是1就好了，是0的话索引不变，是1的话索引变成"原索引+oldCap"
+```java
+if ((e.hash & oldCap) == 0) {  
+    // ...
+}  
+else {  
+    // ...
+}
+```
+上述代码是resize()时发生的，因为HashMap的长度都是2次幂，因此oldCap的高位是1，而对于hash，如果hash的高位是1，在进行`hash & oldCap`时，就会加上oldCap的值，如果hash的高位是0，在进行`hash & oldCap`时，就不变
+#### HashMap的大小为什么是2的n次方大小
+jdk1.7中，HashMap整个扩容过程就是分别取出数组元素，一般该元素是最后一个放入链表中的元素，然后遍历以该元素为头的单向链表元素，依据每个被遍历元素的hash值计算其在新数组中的下标，然后进行交换。这样的扩容方式会将原来哈希冲突的单向链表尾部变成扩容后的单向链表头部
+jdk1.8中，HashMap对扩容操作做了优化。由于扩容数字的长度是2倍关系，所以对于假设初始tableSize=4要扩容到8来说，就是从0100变成了1000（左移一位），在扩容中就只用判断原来的hash值和左移动的一位按位与操作是0或1就行，0的话索引不变，1的话变成原索引加上扩容前数组长度
+之所以能通过这种与运算来重新分配索引，是因为hash值本来就是随机的，而hash按位与上newTable得到的0和1就是随机的，所以扩容的过程就能把之前哈希冲突的元素再随机分不到不同的索引中
+#### HashMap和Hashtable的区别
+- HashMap线程不安全，效率更高，可以存储null的key和value，null的key只能有一个，null的value可以有多个。默认初始容量为16，每次扩充变为原来的两倍。创建时如果给定了初始容量，则扩充为2的幂次方大小。底层使用数组+链表，插入元素后如果链表长度大于阈值，先判断数组长度是小于64，如果小于则扩充数字，反之将链表转化为红黑树，减少搜索时间
+- Hashtable线程安全，效率更低，其内部方法基本都经过synchronized修饰，不可以有null的key和value。默认初始容量为11，每次扩容都变为原来的2n+1。创建时给定了初始容量，就会直接使用给定的大小。底层数据结构为数组+链表。现在已经基本被淘汰了
 ### ConcurrentHashMap
 ConcurrentHashMap就是在HashMap的基础上，保证线程安全
 jdk8之前，采用分段锁实现线程安全，将HashMap分为多个段，修改某个段中的数据时，就对该段加锁，读数据时则不需要加锁

@@ -100,56 +100,14 @@ final Node<K,V> getNode(Object key) {
 - 若第一个节点是树节点，则通过红黑树的查找算法进行查找，若第一个节点不是树节点，通过do...while循环遍历链表来查找
 - 没有找到对应的节点，则返回null
 #### put过程
-```java
-public V put(K key, V value) {  
-    return putVal(hash(key), key, value, false, true);  
-}
-```
-上述是Java中put方法的代码
-```java
-final V putVal(int hash, K key, V value, boolean onlyIfAbsent,  
-               boolean evict) {  
-    Node<K,V>[] tab; Node<K,V> p; int n, i;  
-    if ((tab = table) == null || (n = tab.length) == 0)  
-        n = (tab = resize()).length;  
-    if ((p = tab[i = (n - 1) & hash]) == null)  
-        tab[i] = newNode(hash, key, value, null);  
-    else {  
-        Node<K,V> e; K k;  
-        if (p.hash == hash &&  
-            ((k = p.key) == key || (key != null && key.equals(k))))  
-            e = p;  
-        else if (p instanceof TreeNode)  
-            e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);  
-        else {  
-            for (int binCount = 0; ; ++binCount) {  
-                if ((e = p.next) == null) {  
-                    p.next = newNode(hash, key, value, null);  
-                    if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st  
-                        treeifyBin(tab, hash);  
-                    break;  
-                }  
-                if (e.hash == hash &&  
-                    ((k = e.key) == key || (key != null && key.equals(k))))  
-                    break;  
-                p = e;  
-            }  
-        }  
-        if (e != null) { // existing mapping for key  
-            V oldValue = e.value;  
-            if (!onlyIfAbsent || oldValue == null)  
-                e.value = value;  
-            afterNodeAccess(e);  
-            return oldValue;  
-        }  
-    }  
-    ++modCount;  
-    if (++size > threshold)  
-        resize();  
-    afterNodeInsertion(evict);  
-    return null;  
-}
-```
+- 先根据要添加的键的哈希码计算在数组中的位置
+- 检查该位置是否为空，如果为空，则直接在该位置创建一个新的Entry对象来存储键值对。将要添加的键值对作为该Entry的键和值，并保存在数组的对应位置。将HashMap的修改次数(modCount)加1
+- 如果该位置已经存在其他键值对，检查该位置的第一个键值对的哈希码和键是否与要添加的键值对相同。如果相同，则表示找到了相同的键，直接将新值替换旧值，完成更新操作
+- 如果第一个键值对的哈希码和键不相同，则需要遍历链表或红黑树来查找是否有相同的键
+	如果键值对集合是链表结构，从链表的头部开始逐个比较键的哈希码和equals()方法，直到找到相同的键或到达链表尾部。如果找到了相同的键，则用新值替代旧值。如果没找到相同的键，则将新的键值对添加到链表头部
+	如果键值对集合是红黑树结构，在红黑树中使用哈希码和equals()方法进行查找。根据键的哈希码，定位到红黑树的某个节点，然后逐个比较，直到找到相同的键或到达红黑树末尾。如果找到了相同的键，则用新值替代旧值。如果没找到相同的键，则将新的键值对添加到红黑树中
+- 检查负载因子是否超过阈值(0.75)，如果键值对的数量与数组长度的比值大于阈值，则需要进行扩容操作
+- 扩容操作。先创建一个两倍大小的数组，将旧数组中的键值对重新计算哈希码并分配到新数组中的对应位置。更新HashMap的数组引用和阈值参数
 
 ### ConcurrentHashMap
 ConcurrentHashMap就是在HashMap的基础上，保证线程安全

@@ -1218,9 +1218,9 @@ if __name__ == "__main__":
     asyncio.run(stream_weather_query(messages3))
 ```
 **tips**：因为 **`@before_model` 中间件在执行时是按注册顺序串行执行的**，前一个中间件可能会 **修改 state 或直接终止流程**，从而影响后面的中间件能看到什么数据、甚至是否还能执行
-## 高级智能体
+### 高级智能体
 LangChain智能体开发中，系统提示可以在智能体运行过程中，根据上下文状态、用户输入、工具执行结果等动态信息，实时生成或修改的系统提示词。能够让智能体的运行更灵活、更贴合当前任务场景
-### 动态系统提示
+#### 动态系统提示
 智能体可以通过提示来塑造智能体处理任务的方式。system_prompt参数用来提供系统提示
 当未提供system_prompt时，智能体会直接从消息中推断其任务。这种提示称为静态系统提示，是在智能体启动时静态定义，全程不变
 **动态系统提示**
@@ -1266,6 +1266,35 @@ print(other_res["messages"][-1].content)
 回复较多，直接略过...
 ```
 基于LangChain框架的动态系统提示，能够在无需手动编写固定提示词的前提下，以轻量化配置满足多任务场景需求，同时显著提升智能体的任务适配能力，有效规避静态提示词在复杂场景下的响应僵化问题
+#### 多模态消息
+LangChain智能体开发中，多模态消息是指包含文本、图像、音频、视频、文件等多种数据类型的消息载体，区别于传统的纯文本消息。它能够让智能体处理更丰富的输入输出场景，是实现多模态智能体的核心基础
+**图像输入**
+图像输入内容快表示为类型化字典列表，列表中的每个项都必须符合以下块类型之一
+- 从URL获取图像数据
+```python
+message = {
+    "role": "user",
+    "content": [
+        {"type": "text", "text": "请描述图像的内容"},
+        {"type": "image", "url": "https://example.com/path/to/image.jpg"},
+    ]
+}
+```
+- Base64编码的图像数据
+```python
+message = {
+    "role": "user",
+    "content": [
+        {"type": "text", "text": "请描述图像的内容"},
+        {
+	        "type": "image",
+            "base64": "AAAAIGZ0eXBtcDQyAAAAAGlzb21tcDQyAAACAGlzb2...",
+            "mime_type": "image/jpeg" # image/jpeg，image/png
+        },
+    ]
+}
+```
+
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

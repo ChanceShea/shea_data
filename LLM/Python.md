@@ -1294,7 +1294,88 @@ message = {
     ]
 }
 ```
+以下是多模态模型根据图片识别水稻病虫害的示例
+```python
+import os  
+  
+from dotenv import load_dotenv  
+from langchain.agents import create_agent  
+from langchain_openai import ChatOpenAI  
+  
+load_dotenv()  
+  
+api_key = os.getenv("OPENAI_API_KEY")  
+  
+llm = ChatOpenAI(  
+    base_url="https://api.siliconflow.cn",  
+    api_key=api_key,  
+    model="Qwen/Qwen3-Omni-30B-A3B-Thinking",  
+    temperature=0  
+)  
+  
+system_prompt = "你是农业病虫害诊断助手，请提供作物病虫害相关的帮助"  
+  
+agent = create_agent(  
+    model=llm,  
+    system_prompt=system_prompt,  
+)  
+  
+if __name__ == "__main__":  
+    message = {  
+        "role":"user",  
+        "content":[  
+            {"type":"text","text":"请根据图片特征，给出病虫害诊断结果"},  
+            {"type":"image","url":"https://pics3.baidu.com/feed/d058ccbf6c81800af7874fe429e201ea808b47e6.jpeg"}  
+        ]  
+    }  
+    res = agent.invoke({"messages":message})  
+    print(res["messages"][-1].content)
+```
+```text
+从图片中水稻叶片及稻穗的特征来看，**稻飞虱**（褐飞虱、白背飞虱等）是较可能的病虫害类型。以下是具体分析：  
 
+### 症状表现  
+- 叶片上分布大量**黑色小斑点**（多为稻飞虱吸食汁液后排出的蜜露，或虫体聚集痕迹）；  
+- 部分叶片出现**黄化、枯萎**（虫害导致植株营养输送受阻，影响光合作用）；  
+- 稻穗发育可能受抑制（若虫害严重，灌浆期易出现空粒、瘪粒）。  
+
+
+### 诊断依据  
+稻飞虱是水稻关键害虫，成虫/若虫群集在稻株中下部**吸食汁液**，吸食后叶片易出现黑褐色斑点（蜜露附着+虫体残留），严重时叶片“烟熏状”枯黄，且易诱发煤污病（蜜露滋生霉菌）。图片中叶片的黑斑、黄化及稻穗异常，符合稻飞虱典型危害特征。  
+
+
+### 防治建议  
+1. **农业防治**：  
+   - 合理调控氮肥用量（避免过量施肥导致植株徒长，吸引害虫）；  
+   - 适时排水晒田，破坏稻飞虱栖息环境。  
+
+2. **生物防治**：  
+   - 保护天敌（如蜘蛛、寄生蜂），减少化学农药对生态的破坏。  
+
+3. **化学防治**（需谨慎选择）：  
+   - 早期虫害：选用**吡虫啉、噻虫嗪**等高效低毒药剂，重点喷施稻株中下部（虫害集中区）；  
+   - 严重虫害：可配合**氯虫苯甲酰胺**等广谱药剂，但需注意轮换用药，避免抗药性。  
+
+> 提示：若需更精准诊断，建议结合田间虫情监测（如检查叶背是否有虫体）、结合当地气候与种植模式综合判断。若症状持续加重，建议联系当地农技站现场核查！
+```
+**其他输入模式**
+语音、视频、文件输入模式与图像输入模式一样，内容块表示为类型化字典列表
+下面是一些关键参数
+- 图像：type:image，可以传入url或Base64编码类型
+- 语音：type:audio，可以传入url或Base64编码类型
+- 视频：type:video，可以传入url或Base64编码类型
+- 通用文件（PDF等）：type:file，可以传入url或Base64编码类型
+- 文档文本（.txt/.md）：type:text-plain，传入文本内容
+#### 动态模型
+智能体的推理引擎是模型。它可以通过多种方式指定，支持静态和动态模型选择
+- 静态模型：在智能体创建时配置一次，并在整个执行过程中保持不变
+```python
+agent = create_agent(model= llm,system_prompt=SYSTEM_PROMPT)
+```
+- 动态模型：动态模型在运行时根据当前状态和上下文选择。支持复杂的路由逻辑和成本优化。要使用动态模型，需要用`@wrap_model_call`装饰器创建中间件，该中间件会修改请求中的模型
+```python
+
+```
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

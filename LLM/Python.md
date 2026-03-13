@@ -1640,7 +1640,93 @@ LangChain会根据模型能力和配置方式自动选择最优策略
 	智能体执行完成后，结构化结果会存入智能体最终状态的`structured_response`键中，StructuredResponseT是目标数据类型的泛型，支持两种定义方式
 	- Pydantic模型：强类型校验，适合复杂数据结构
 	- JSON Schema：轻量级格式定义，适合简单场景
-
+```python
+from langchain.agents import create_agent  
+  
+from ai_demo3.test3 import llm  
+  
+system_prompt = """  
+你是农业病虫害诊断助手，必须严格遵守以下要求输出：  
+1.结果包含以下内容：  
+    - crop：作物名称（如小麦、水稻、苹果）  
+    - disease：病虫害名称（如小麦条锈病，水稻稻飞虱）  
+    - risk_level：风险等级（仅可选：低、中、高）  
+    - suggestion：简易防治建议（不超过50字）  
+2.仅输出JSON内容，不需要添加任何额外文字、解释或说明  
+3.确保JSON格式合法，可直接解析  
+"""  
+agent = create_agent(  
+    model=llm,  
+    system_prompt=system_prompt,  
+)  
+  
+messages = ["分析当前麦田出现的黄叶、锈斑症状，给出病虫害诊断结果"]  
+res = agent.invoke({"messages": messages})  
+print(res["messages"][-1].content)
+```
+```text
+{
+  "crop": "小麦",
+  "disease": "小麦条锈病",
+  "risk_level": "高",
+  "suggestion": "及时使用三唑酮等药剂喷洒，控制病情扩散。"
+}
+```
+上述结果还可以通过中间件将JSON转换为字典，并写入智能体最终状态的`structured_response`键中
+```python
+import json  
+  
+@after_model  
+def after_model_call(state:AgentState,runtime:Runtime)->AgentState:  
+    messages = state.get("messages",[])  
+    if not messages:  
+        raise Exception("无消息内容")  
+    response = messages[-1].content  
+    try:  
+        res_dict = json.loads(response)  
+        state["structured_response"] = res_dict  
+        return state  
+    except Exception as e:  
+        raise f"JSON解析失败：{str(e)}"  
+  
+messages = ["分析当前麦田出现的黄叶、锈斑症状，给出病虫害诊断结果"]  
+agent = create_agent(  
+    model=llm,  
+    system_prompt=system_prompt,  
+    middleware=[after_model_call]  
+)  
+  
+res = agent.invoke({"messages": messages})  
+agriDiseaseDiagnosis=res["structured_response"]  
+print(agriDiseaseDiagnosis)
+```
+```text
+{'crop': '小麦', 'disease': '小麦条锈病', 'risk_level': '高', 'suggestion': '及时喷洒三唑酮或烯唑醇，控制病害扩散。'}
+```
+**Pydantic结构化输出**
+```python
+from langchain.agents import create_agent  
+from pydantic import BaseModel, Field  
+from ai_demo3.test3 import llm  
+  
+class AgriDiseaseDiagnosis(BaseModel):  
+    """农业病虫害诊断结构化输出模型"""  
+    crop:str = Field(description="作物名称，如小麦、水稻、苹果")  
+    disease:str = Field(description="病虫害名称，如小麦条锈病，水稻稻飞虱")  
+    risk_level:str = Field(description="风险等级，只能填低、中、高",pattern="^(低|中|高)$")  
+    suggestion:str = Field(description="简易防治建议，不超过50字",max_length=50)  
+  
+system_prompt = "你是农业病虫害诊断助手，请提供有关农业病虫害方面的帮助"  
+agent = create_agent(  
+    model=llm,  
+    system_prompt=system_prompt,  
+    response_format=AgriDiseaseDiagnosis  
+)  
+  
+messages = ["分析当前麦田出现的黄叶、锈斑症状，给出病虫害诊断结果"]  
+res = agent.invoke({"messages": messages})  
+print(res["structured_response"])
+```
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

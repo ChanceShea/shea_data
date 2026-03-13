@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/Java基础.md",
+                "file": "LLM/Python.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Java基础"
+              "title": "Python"
             }
           }
         ]
@@ -80,13 +80,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/Java基础.md",
+                "file": "LLM/Python.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Java基础 的大纲"
+              "title": "Python 的大纲"
             }
           }
         ],
@@ -199,6 +199,7 @@
   },
   "active": "6b8c77b074c40160",
   "lastOpenFiles": [
+    "java/Java基础.md",
     "java/assets/Java基础/file-20260312163756989.png",
     "java/assets/Java基础/file-20260312163249378.png",
     "LLM/Python.md",
@@ -209,14 +210,12 @@
     "LLM/assets/Python/file-20260309201556392.png",
     "LLM/assets/Python/file-20260309200108899.png",
     "LLM/assets/Python",
-    "java/Java基础.md",
     "java/Java并发编程.md",
     "java/Spring.md",
     "计算机网络.md",
     "assets/计算机网络/file-20260305210622102.png",
     "assets/计算机网络/file-20260305102929250.png",
     "assets/计算机网络/file-20260305102444284.png",
-    "assets/计算机网络/file-20260303154436104.png",
     "assets/计算机网络",
     "assets",
     "java/Redis.md",

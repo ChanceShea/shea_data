@@ -1620,6 +1620,26 @@ age
   Input should be greater than 0 [type=greater_than, input_value=0, input_type=int]
     For further information visit https://errors.pydantic.dev/2.12/v/greater_than
 ```
+LangChain的create_agent自动处理结构化输出。用户设置所需的结构化输出模式，当模型生成结构化数据时，它会被捕获、验证并以代理状态的`structured_response`键返回
+```python
+create_agent(
+    response_format: Union[
+        ToolStrategy[StructuredResponseT],
+        ProviderStrategy[StructuredResponseT],
+        type[StructuredResponseT],
+    ]
+)
+```
+- ToolStrategy\[StructuredResponseT]：使用工具调用进行结构化输出
+- ProviderStrategy\[StructuredResponseT]：使用提供商原生结构化输出
+LangChain会根据模型能力和配置方式自动选择最优策略
+- 显示指定策略：若手动设置strategy=ProviderStrategy，仅在模型支持原生结构化时生效，否则报错。若手动设置strategy=ToolStrategy，无论模型是否支持原生能力，均通过工具调用实现结构化输出
+- 自动选择策略：当直接传入架构类型时，LangChain内部判断逻辑
+	- 模型支持原生结构化输出时，使用ProviderStrategy
+	- 模型不支持原生结构化输出时，自动降级为ToolStrategy
+	智能体执行完成后，结构化结果会存入智能体最终状态的`structured_response`键中，StructuredResponseT是目标数据类型的泛型，支持两种定义方式
+	- Pydantic模型：强类型校验，适合复杂数据结构
+	- JSON Schema：轻量级格式定义，适合简单场景
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

@@ -28,6 +28,74 @@ ArrayList和LinkedList有以下区别
 - 空间占用：ArrayList在创建时需要分配一段连续的内存空间，因此会占用较大的空间，LinkedList每个节点只需要存储元素和指针，因此相对较小
 - 使用场景：ArrayList适用于频繁随机访问和尾部插入删除操作，而LinkedList适用于频繁的中间插入删除操作和不需要随机访问的场景
 - 线程安全：这两个线程都不是线程安全的，Vector是线程安全的
+### 为什么ArrayList线程不安全
+在高并发添加数据下，ArrayList会暴露三个问题
+- 部分值为null，即使我们没有add null
+- 索引越界异常
+- size与我们add的数量不符
+Java中的add方法大致分为以下步骤
+- 判断如果将当前的新元素添加到列表后面，列表的elementData数组的大小是否满足，如果size+1的这个需求长度大于了elementData这个数组的长度，那么就要对这个数组进行扩容
+- 判断数组需不需要扩容，如果需要，调用grow方法进行扩容
+- 将数组的size位置设置值
+- 将当前集合的大小加一
+对于上述三种线程不安全的问题，由以下产生
+- 部分值为null：当线程1走到扩容那里时发现当前size是9，而数组容量是10，所以不用扩容，这时候cpu让出执行权，线程2也进来了，发现size是9，而数组容量是10，所以不用扩容，这时候线程1继续执行，将数组下标索引为9的位置占用了，还没有来得及执行size++，这时候线程2也来执行了，又把索引为9的位置set了一遍，这时候两个线程先后进行size++，导致下标索引10的地方为null
+- 索引越界异常：线程1走到扩容那里发现当前size是9，数组容量是10，不用扩容，cpu让出执行权，线程2也发现不用扩容，这时候数组容量就是10，而线程1set完之后size++，这时候线程2再进来size就是10，而数组大小只有10，而要设置下标索引为10的时候，就会导致越界
+- size与add的数量不符：size++本身就不是原子操作，可以分为三步，获取size的值，将size的值加1，将新的size值覆盖掉原来的，线程1和线程2拿到一样的size值加完了同时覆盖，就会导致有一次没有加上，所以会导致size和add的数量不符
+### ArrayList的扩容机制
+ArrayList在添加元素时，如果当前元素个数已经达到了内部数组的容量上限，就会触发扩容操作。扩容操作主要包含以下几个内容：
+- 计算新的容量：一般情况下，新的容量会扩大为原容量的1.5倍，然后检查是否超过了最大容量限制
+- 创建新的数组：根据计算得到的新容量，创建一个新的更大的数组
+- 将元素复制：将原来数组中的元素逐个复制到新数组中
+- 更新引用：将ArrayList内部指向原数组的引用指向新数组
+- 完成扩容：扩容完成后，可以继续添加新元素
+ArrayList的扩容操作涉及到数组的复制和内存的重新分配，所以在频繁添加大量元素时，可能会影响性能。为了减少扩容带来的性能损耗，可以在初始化ArrayList时预分配足够大的容量，避免频繁触发扩容操作
+之所以扩容1.5倍，是因为1.5可以通过移位操作，减少浮点数或者运算时间和运算次数
+```java
+int newCapacity = oldCapacity + (oldCapacity >> 1);
+```
+### CopyonWriteArrayList
+CopyonWriteArrayList底层是通过一个数组保存数据，使用volatile关键字修饰数组，保证当前线程对数组对象重新赋值后，其他线程可以及时感知到
+```java
+private transient volatile Object[] array;
+```
+对于add操作，CopyonWriteArrayList加了一把互斥锁以保证线程安全
+```java
+public boolean add(E e) {
+	final ReentrantLock lock = this.lock;
+	lock.lock();
+	try {
+		Object elements = getArray();
+		int len = elements.length;
+		Object newElements = Arrays.copyOf(elements,len+1);
+		newElements[len] = e;
+		setArray(newElements);
+		return true;
+	} finally {
+		lock.unlock();
+	}
+}
+```
+从源码中可以知道，写入新元素时，会先讲原数组拷贝一份并且让原数组的长度+1后就得到了新数组，新数组里的元素和旧数组的元素一样并且长度比旧数组多1，然后将新加入的元素放置在新数组的最后一个位置后，再用新数组的地址替换旧数组的地址
+在执行替换地址操作时，读取到的是老数组的数据，数据是有效数据；执行替换地址操作之后，读取的数据是新数组的数据，同样也是有效数据，而且使用该方式能比读写都加锁要有更好的性能
+在之后的版本，由于jdk对synchronized锁进行了许多优化，因此就改用了synchronized锁而不是ReentrantLock
+```java
+public boolean add(E e) {  
+    synchronized (lock) {  
+        Object[] es = getArray();  
+        int len = es.length;  
+        es = Arrays.copyOf(es, len + 1);  
+        es[len] = e;  
+        setArray(es);  
+        return true;  
+    }  
+}
+```
+### List泛型里面填基本数据类型为什么会报错
+Java的泛型机制在设计的时候就只支持引用类型，不支持基本数据类型
+原因如下
+- 泛型的类型擦除机制：Java泛型在编译后会被擦除为Object类型，而Object只能几首引用类型，不能接受基本数据类型
+- Java最初设计时，基本数据类型和引用类型是严格区分的，泛型时后续才引入的特性，为了兼容已有的类型系统，选择只支持引用类型
 
 ## Map
 **常见的Map集合**

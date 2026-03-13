@@ -1475,7 +1475,99 @@ OpenAI提供下面这一些核心生成类
 - audio：音频处理，用于语音转文字、文字转语音
 - videos：视频生成/处理，用于生成或编辑视频内容
 - embeddings：嵌入向量，生成将文本转化为数值化向量，用于语义检索、相似度计算、文本聚类等
-
+```python
+import os  
+import time  
+  
+from dotenv import load_dotenv  
+from langchain.agents import create_agent  
+from langchain_openai import ChatOpenAI  
+from openai import OpenAI  
+from langchain.tools import tool  
+  
+load_dotenv()  
+api_key = os.getenv("OPENAI_API_KEY")  
+  
+@tool  
+def generate_image(prompt:str,size="1024x1024",n=1)-> list[str | None]:  
+    """  
+    生成图片  
+    :param prompt: 图片生成的文本描述  
+    :param size: 图片分辨率  
+    :param n: 生成图片数量  
+    :return: 图片保存路径  
+    """    client = OpenAI(  
+        base_url="https://api.siliconflow.cn/v1",  
+        api_key=api_key,  
+    )  
+    response = client.images.generate(  
+        model="Kwai-Kolors/Kolors",  
+        prompt=prompt,  
+        size=size,  
+        n=n  
+    )  
+    return [item.url for item in response.data]  
+  
+@tool  
+def save_image(images:list)->list:  
+    """  
+    将图片保存到本地  
+    :param images:图片路径列表  
+    :return: 图片保存路径  
+    """    timestamp = time.time()  
+    paths = []  
+    try:  
+        for i,url in enumerate(images):  
+            filename = f"{timestamp}_{i}.png"  
+            with open('./%s'%filename,'wb+') as f:  
+                import requests  
+                f.write(requests.get(url).content)  
+                paths.append(filename)  
+        return paths  
+    except Exception as e:  
+        return f"图片保存失败，{str(e)}"  
+  
+system_prompt = """  
+你是农业领域的图像生成专家，根据用户提示，你调用工具生成对应的高清图片:  
+图片生成工具：generate_image  
+参数：  
+    图片生成的文本描述:{prompt}  
+    图片分辨率:{size}  
+    图片数量{n}  
+返回值：生成图片url  
+    以列表的形式返回:[url1,url2,...]  
+图片保存工具：save_image  
+参数：  
+    生成的图片url列表:images  
+返回值：本地路径path  
+    以列表的形式返回:[path1,path2,...]，不需要增加额外内容  
+第一步：调用工具generate_image生成图片  
+第二步：调用工具save_image将图处保存到本地  
+"""  
+  
+def build_agent():  
+    llm = ChatOpenAI(  
+        model="deepseek-ai/DeepSeek-V3",  
+        api_key=api_key,  
+        base_url="https://api.siliconflow.cn/v1",  
+        temperature=0  
+    )  
+  
+    tools = [generate_image, save_image]  
+  
+    agent = create_agent(  
+        tools=tools,  
+        model=llm,  
+        system_prompt=system_prompt,  
+    )  
+    return agent  
+  
+agent = build_agent()  
+messages = ["生成一张现代农业温室草莓种植的高清图片"]  
+res = agent.invoke({"messages":messages})  
+  
+print(res["messages"][-1].content)
+```
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

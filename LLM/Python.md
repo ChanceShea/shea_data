@@ -1849,7 +1849,202 @@ LangChain的Agent本身并不支持LCEL表达式，可以用RunnableLambda将普
 第一步定义基础链：提示词模板|LLM|输出解析器
 第二部定义工具链：基础链|工具链1|工具链2
 ```python
-
+import os  
+import time  
+  
+from dotenv import load_dotenv  
+from langchain_core.output_parsers import PydanticOutputParser  
+from langchain_core.prompts import ChatPromptTemplate  
+from langchain_core.runnables import RunnableLambda  
+from openai import OpenAI  
+from pydantic import Field, field_validator,BaseModel  
+import requests  
+  
+load_dotenv()  
+api_key = os.getenv("OPENAI_API_KEY")  
+# 定义Pydantic模型  
+class Images(BaseModel):  
+    prompt:str = Field(description="图片生成提示词，农业领域相关",default=None)  
+    size:str = Field(description="图片分辨率",default="1024x1024")  
+    n:int = Field(description="图片数量",default=1,ge=1,lt=4)  
+    urls:list[str] = Field(description="图片远程URL列表或本地保存路径列表",default=None)  
+    timestamp:float = Field(description="图片生成时间戳",default=time.time())  
+  
+    @field_validator("size")  
+    def validate_size(cls,value):  
+        kolors = ["1024x1024", "960x1280", "768x1024", "720x1440", "720x1280"]  
+        if value not in kolors:  
+            raise Exception(f"分辨率无效，必须是：{kolors}")  
+        return value  
+  
+  
+def generate_image(params:Images) -> Images:  
+    """  
+    封装生成图片的逻辑为纯函数，适配管道输入输出  
+    :param params: Images模型对象  
+    :return: 符合Images模型的对象  
+    """    # 调用API生成图片  
+    client = OpenAI(  
+        api_key=api_key,  
+        base_url="https://api.siliconflow.cn/v1"  
+    )  
+    response = client.images.generate(  
+        model="Kwai-Kolors/Kolors",  
+        prompt=params.prompt,  
+        size=params.size,  
+        n=params.n,  
+    )  
+    return Images(  
+        urls=[item["url"] for item in response.images],  
+        timestamp=response.created  
+    )  
+def save_image(images:Images) -> Images:  
+    """  
+    封装保存图片的逻辑为纯函数  
+    :param images: Images模型对象  
+    :return: Images模型对象  
+    """    path = []  
+    try:  
+        for i,url in enumerate(images.urls):  
+            file_name = f"{images.timestamp}_{i}.png"  
+            file_path = f"./{file_name}"  
+            img_resp = requests.get(url)  
+            img_resp.raise_for_status()  
+            with open(file_path, "wb+") as f:  
+                f.write(img_resp.content)  
+            path.append(file_path)  
+        return Images(  
+            urls=path,  
+            timestamp=images.timestamp,  
+        )  
+    except Exception as e:  
+        raise RuntimeError(f"图片保存失败：{str(e)}")  
+  
+from ai_demo3.test3 import llm  
+  
+prompt_template = """  
+请根据{user_input}要求生成高清图片，严格遵守以下要求，不要添加任何额外的文字、解释或说明：  
+方法generate_image输入参数{params}  
+输出格式要求：  
+{format_instructions}  
+"""  
+prompt = ChatPromptTemplate.from_template(prompt_template)  
+parser = PydanticOutputParser(pydantic_object=Images)  
+prompt = prompt.partial(format_instructions=parser.get_format_instructions())  
+  
+parse_input_chain = prompt | llm | parser  
+generate_image_runnable = RunnableLambda(generate_image)  
+save_image_runnable = RunnableLambda(save_image)  
+  
+full_chain = parse_input_chain | generate_image_runnable | save_image_runnable  
+user_input = "水稻稻叶上出现黄色小斑点，逐渐扩大并融合成斑块，黄化区域伴有霉层和小黑点等病菌特征。"  
+params = Images(  
+    prompt=user_input,  
+    size="720x1280",  
+    n=2  
+)  
+try:  
+    res = full_chain.invoke({"user_input": user_input, "params": params})  
+    print(res.urls)  
+except Exception as e:  
+    print(f"调用失败：{str(e)}")
+```
+上述代码将用户输入传给大模型，通过大模型解析出图片所需参数，然后通过PydanticOutputParser解析器生成Images对象，然后将Images对象传入图片生成器，生成的图片传入保存图片的函数，保存到本地
+**并行链调用**
+在生成图片的同时，添加病虫防治方案，两个操作同时进行，就可以使用`RunnableParallel`
+```python
+diagnosis_parse = StrOutputParser()  
+diagnosis_chain = diagnosis_prompt | llm | diagnosis_parse  
+parallel_chain = RunnableParallel(urls=full_chain,diagnosis=diagnosis_chain)  
+res = parallel_chain.invoke({"user_input": user_input, "params": params})  
+print(res)
+```
+**分支链调用**
+分支调用，由角色来判断是绘图还是给出防治方案，就可以使用`RunnableBranch`
+```python
+branch_chain = RunnableBranch(
+    (lambda x : "防治" in x["role"],diagnosis_chain),
+    (lambda x : "绘图" in x["role"],full_chain),
+	full_chain
+)
+ try:
+    # 执行管道调用（一行代码完成所有流程）
+    result = branch_chain.invoke({"user_input": user_input,"params":params,"role":"绘图"})
+    print(result.urls)
+    for chunk in branch_chain.invoke({"user_input": user_input,"params":params,"role":"防治"}):
+        print(chunk,end="",flush=True)
+except Exception as e:
+    print(f"调用失败：{str(e)}")
+```
+**带记忆的智能体调用链**
+由于BaseCheckpointSaver未实现Runnable接口，这时需要使用`RunnableWithMessageHistory`类将基础对话链和记忆功能整合，自动管理上下文的读取和写入
+RunnableWithMessageHistory有以下参数
+- runnable：要绑定记忆的基础执行链（可以是prompt+llm或自定义chain），任意实现Runnable接口的对象
+- get_session_history：记忆获取函数，输入session_id，返回对应的聊天记忆实例
+	函数必须满足：入参session_id，返回BaseChatMessageHistory子类实例（如RedisChatMessageHistory/ChatMessageHistory）
+- input_messages_key：prompt中的用户占位符
+```python
+from langchain_community.chat_message_histories import RedisChatMessageHistory  
+import os  
+from langchain_core.chat_history import BaseChatMessageHistory  
+from langchain_core.prompts import ChatPromptTemplate  
+from langchain_core.runnables import RunnableWithMessageHistory  
+from langchain_openai import ChatOpenAI  
+from langchain_core.output_parsers import StrOutputParser  
+# 1. 定义基础链  
+prompt = ChatPromptTemplate.from_messages([  
+    ("system", "你是农业技术助手，请回答我的问题"),  
+    ("human","{question}")  
+])  
+llm = ChatOpenAI(……)  
+parser = StrOutputParser()  
+chain = prompt | llm | parser  
+# 2. 整合调用链  
+# 2.1 定义记忆获取函数（链式调用核心）  
+def get_redis_history(session_id:str) -> BaseChatMessageHistory:  
+    # 初始化记忆组件  
+    try:  
+        chat_history = RedisChatMessageHistory(  
+            session_id=session_id,  
+            url="redis://192.168.100.101:6379",  
+            # 关键：可自定义超时、连接池等  
+        )  
+        return chat_history  
+    except Exception:  
+        raise  
+# 2.2 整合链  
+chat = RunnableWithMessageHistory(  
+    runnable=chain, # 基础链  
+    #get_session_history=lambda : chat_history,  
+    get_session_history=get_redis_history,# 记忆获取函数  
+    input_messages_key="question" # 匹配prompt中的{question}  
+)  
+# 3. 多轮链式调用（自动管理记忆，无需手动add_message）  
+# 记忆配置  
+config = {"configurable": {"session_id": "test"}}  # 记忆配置  
+# 第一轮调用：推荐青菜种子  
+result = chat.invoke(  
+    input={"question": "请帮我推荐适合冬天在南方种的青菜种子"},  
+    config=config  
+)  
+print("===== 第一轮回复 =====")  
+print(result)  
+print("-" * 50)  
+# 第二轮调用：推荐播种时间（自动携带第一轮上下文）  
+result = chat.invoke(  
+    input={"question": "这些青菜中哪种食用价值更高"},  
+    config=config  
+)  
+print("===== 第二轮回复 =====")  
+print(result)
+print("-" * 50)
+# 第三轮调用：回忆（自动携带前两轮上下文）
+result = chat.invoke(
+    input={"question": "请告诉我，食用价值高的青菜具体播种时间"},
+    config=config
+)
+print("===== 第三轮回复 =====")
+print(result)
 ```
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

@@ -1568,6 +1568,59 @@ res = agent.invoke({"messages":messages})
   
 print(res["messages"][-1].content)
 ```
+#### 结构化输出
+LLM的原生输出多为非结构化的自然语言，这些非结构化文本用于程序逻辑处理时需要额外解析，易出错且效率低。LangChain提供了一套完整的结构化输出解决方案，允许智能体以特定的，可预测的格式返回数据。不再需要解析自然语言响应，而是获得JSON对象，Pydantic模型或数据类形式的结构化数据
+**Pydantic模型**
+Pydantic模型本质上是Python中一种强类型的数据验证与结构化工具，也是LangChain实现精准结构化输出的核心基础。它能帮你定义数据“长什么样”，并自动校验输入数据是否符合这个规则，完美适配LLM输出结构化数据的需求
+pydantic包提供了几类，字段，字段验证对象
+```python
+ from pydantic import BaseModel,Field,filed_validator
+```
+```python
+from pydantic import BaseModel, Field, field_validator  
+  
+class User(BaseModel):  
+    # 字段名:类型 = Field(描述/默认值/约束)  
+    name:str = Field(description="用户姓名，不能为空")  
+    age:int = Field(description="用户年龄，必须是整数",gt=0,lt=150)  
+    city:str = Field(description="用户所在城市，默认未知",default="未知")  
+    hobbies:list[str] = Field(description="爱好列表，字符串类型")  
+  
+    @field_validator("name")  
+    def name_not_empty(cls,value):  
+        if not value.strip():  
+            raise ValueError("姓名不能为空")  
+        return value  
+  
+user1 = User(  
+    name="张三",  
+    age=20,  
+    city="南昌",  
+    hobbies=["Java","Python"]  
+)  
+print(user1.name)  
+print(user1.age)  
+# 转成字典  
+print(user1.model_dump())  
+  
+try:  
+    user2 = User(name="",age=0,hobbies=["c++"])  
+except Exception as e:  
+    print(e)
+```
+```text
+张三
+20
+{'name': '张三', 'age': 20, 'city': '南昌', 'hobbies': ['Java', 'Python']}
+2 validation errors for User
+name
+  Value error, 姓名不能为空 [type=value_error, input_value='', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+age
+  Input should be greater than 0 [type=greater_than, input_value=0, input_type=int]
+    For further information visit https://errors.pydantic.dev/2.12/v/greater_than
+```
+
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

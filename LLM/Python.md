@@ -2285,6 +2285,90 @@ print(graph.invoke({"question":"你好"}))
 ```
 **私有状态**
 在某些情况下，可能希望节点交换对中间逻辑至关重要，但不需要成为图主模式一部分的信息。此私有数据与图的整体输入输出不相关，仅在某些节点之间共享
+```python
+from typing import TypedDict  
+  
+from langgraph.constants import START, END  
+from langgraph.graph import StateGraph  
+  
+  
+class OverallState(TypedDict):  
+    crop_disease_res:str # 最终的作物病虫害诊断结果  
+  
+# 节点1（症状提取）的输出包含私有数据，该数据不属于全局共享状态  
+class SymptomExtractOutput(TypedDict):  
+    private_symptom_details:str #私有数据，提取的精细化症状描述  
+    private_crop_type:str # 私有数据，识别具体的作物类型  
+  
+def symptom_extract_node(state:OverallState)->SymptomExtractOutput:  
+    user_input = state["crop_disease_res"]  
+    if "小麦" in user_input and "发黄" in user_input:  
+        private_symptom_details = "小麦叶片出现黄色锈斑，从下部叶片开始蔓延，湿度大时有橘黄色孢子堆"  
+        private_crop_type = "冬小麦"  
+    elif "水稻" in user_input and "稻飞虱" in user_input:  
+        private_symptom_details = "水稻基部有大量稻飞虱聚集，叶片发黄枯萎，有倒伏风险"  
+        private_crop_type = "杂交水稻"  
+    else:  
+        private_symptom_details = "未识别到具体症状"  
+        private_crop_type = "未知作物"  
+    output = {  
+        "private_symptom_details":private_symptom_details,  
+        "private_crop_type":private_crop_type  
+    }  
+    print(f"进入节点「症状提取节点」:\n\t输入（全局状态）：{state}\n\t返回（私有数据）:{output}")  
+    return output  
+  
+class DiseaseDiagnoseInput(TypedDict):  
+    private_symptom_details:str  
+    private_crop_type:str  
+  
+# 病虫害诊断节点，利用节点1的私有数据，生成最终诊断结果  
+def disease_diagnose_node(state:DiseaseDiagnoseInput)->OverallState:  
+    crop = state["private_crop_type"]  
+    symptom = state["private_symptom_details"]  
+  
+    if crop == "冬小麦" and "黄色锈斑" in symptom:  
+        crop_disease_res = f"{crop}诊断结果：叶锈病\n处理方案：喷施三唑类杀菌剂，7天1次，连续两次"  
+    elif crop == "杂交水稻" and "稻飞虱" in symptom:  
+        crop_disease_res = f"{crop}诊断结果：褐飞虱虫害\n处理方案：使用吡虫啉乳油2000倍液喷雾，重点喷洒基部"  
+    else:  
+        crop_disease_res = "无法诊断：未识别到有效症状或作物类型"  
+    output = {"crop_disease_res":crop_disease_res}  
+    print(f"进入节点「病虫害诊断节点」：\n\t输入（私有数据）：{state}\n\t输出（全局状态）：{output}")  
+    return output  
+  
+# 结果优化节点，对全局状态中的诊断结果进行格式优化  
+def res_optimize_node(state:OverallState)->OverallState:  
+    original_res = state["crop_disease_res"]  
+    crop_disease_res = f"【农业技术推广站建议】\n{original_res}\n温馨提示：请结合当地气候调整用药方案"  
+    output = {"crop_disease_res":crop_disease_res}  
+    return output  
+  
+# 按顺序连接节点  
+builder = StateGraph(OverallState).add_sequence([  
+    symptom_extract_node,  
+    disease_diagnose_node,  
+    res_optimize_node  
+])  
+builder.add_edge(START,"symptom_extract_node")  
+builder.add_edge("res_optimize_node",END)  
+graph = builder.compile()  
+response = graph.invoke(  
+    {  
+        "crop_disease_res":"小麦叶子发黄有斑点，该怎么处理？"  
+    }  
+)  
+print(response)
+```
+```text
+进入节点「症状提取节点」:
+	输入（全局状态）：{'crop_disease_res': '小麦叶子发黄有斑点，该怎么处理？'}
+	返回（私有数据）:{'private_symptom_details': '小麦叶片出现黄色锈斑，从下部叶片开始蔓延，湿度大时有橘黄色孢子堆', 'private_crop_type': '冬小麦'}
+进入节点「病虫害诊断节点」：
+	输入（私有数据）：{'private_symptom_details': '小麦叶片出现黄色锈斑，从下部叶片开始蔓延，湿度大时有橘黄色孢子堆', 'private_crop_type': '冬小麦'}
+	输出（全局状态）：{'crop_disease_res': '冬小麦诊断结果：叶锈病\n处理方案：喷施三唑类杀菌剂，7天1次，连续两次'}
+{'crop_disease_res': '【农业技术推广站建议】\n冬小麦诊断结果：叶锈病\n处理方案：喷施三唑类杀菌剂，7天1次，连续两次\n温馨提示：请结合当地气候调整用药方案'}
+```
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

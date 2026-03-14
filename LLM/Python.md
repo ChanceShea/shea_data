@@ -2911,7 +2911,90 @@ Tool Calls:
 今天香港的天气晴朗，气温白天22摄氏度，夜间16摄氏度，微风，风速为12km/h。空气湿度为64%，气压999hPa。
 ```
 **入口点**
-入口点shi
+入口点是图启动时运行的第一个节点，可以使用add_edge方法从虚拟START节点到要执行的第一个节点，指定图的入口
+```python
+from langgraph.graph import START
+builder.add_edge(START,"node_a")
+```
+一般第一个入口都是大模型决策点
+**条件入口点**
+条件入口点是根据自定义逻辑从不同的节点开始，下一个节点为路由函数
+```python
+builder.add_conditional_edges("node_a",routing_function)
+builder.add_conditional_edges("node_a",routing_function,{True:"node_b",False:"node_c"})
+```
+**命令**
+你可能希望在同一个节点中既执行状态更新又决定下一步要到哪个节点，即将控制流和状态更新结合起来。例如，能否在获取城市的节点中，更新状态city的值，然后决定下一步到获取天气信息的节点中执行查询天气，从而减少边
+LangGraph提供了一种通过从节点函数返回Command对象来实现此目的的方法
+```python
+class Command(Generic[N], ToolOutputMixin):  
+    graph: str | None = None  
+    update: Any | None = None  
+    resume: dict[str, Any] | Any | None = None  
+    goto: Send | Sequence[Send | N] | N = ()
+```
+参数说明
+- graph：要发送命令的图
+- update：要应用于图状态的更新
+- resume：用于恢复执行的值。与`interrupt()`一起使用
+- goto：接下来要导航到的节点的名称和Send对象
+```python
+def get_current_city_call_node2(state:AgentState)->Command[Literal["get_city_weather_call_node"]]:  
+    """get_current_city工具执行节点，并跳转到get_city_weather获取天气"""  
+    res = get_current_city.invoke({})  
+    return Command(  
+        update={"city",res},  
+        goto="get_city_weather_call_node"  
+    )
+```
+使用Command，还可以实现动态控制流行为（与条件边相同）
+```python
+def my_node(state:State)->Command[Literal["my_other_node"]]:
+	if state["foo"] == "bar":
+		return Command(update={"foo":"baz"},goto="my_other_node") 
+```
+当需要同时更新图状态并路由到不同的节点时，使用Command。例如，在实现多智能体移交时，路由到不同的智能体并将一些信息传递给该智能体非常重要
+**发送**
+默认情况下，Nodes和Edges是预先定义的，并对相同的共享状态进行操作，也就是说，边的数量是由State决定的。但是在某些情况下，确切的变可能无法预先知道，或者说希望同时存在不同版本的State。一个常见的例子是map-reduce设计模式。在此设计模式中，第一个节点可能生成一个对象列表，第二个节点应接收所有这些对象。对象的数量可能无法预先知道（意味着边的数量可能无法知道），并且下游Node的输入State是不同的。换句话说，就是上游Node生成了多个State，而下游Node都要对这些State进行处理
+为了支持这种设计模式，LangChain支持从条件边返回Send对象
+```python
+class Send:  
+    node: str  
+    arg: Any
+```
+Send接受两个参数，一个是节点的名称，第二个是要传递给节点的状态
+```python
+import operator  
+from typing import Annotated  
+  
+from langgraph.constants import START, END  
+from langgraph.graph import StateGraph  
+from langgraph.types import Send  
+from typing_extensions import TypedDict  
+  
+  
+class OverallState(TypedDict):  
+    subjects: list[str]  
+    jokes: Annotated[list[str],operator.add]  
+  
+def generate_joke(state:OverallState)->OverallState:  
+    return {"jokes":[f"讲一个关于{state['subject']}的笑话"]}  
+  
+def continue_to_jokes(state:OverallState):  
+    return [Send("generate_joke",{"subject":s}) for s in state["subjects"]]  
+  
+builder = StateGraph(OverallState)  
+builder.add_node("generate_joke",generate_joke)  
+builder.add_conditional_edges(START,continue_to_jokes)  
+builder.add_edge("generate_joke",END)  
+agent = builder.compile()  
+print(agent.invoke({"subjects":["cats","dogs"]}))
+```
+```text
+{'subjects': ['cats', 'dogs'], 'jokes': ['讲一个关于cats的笑话', '讲一个关于dogs的笑话']}
+```
+### 子图
+
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

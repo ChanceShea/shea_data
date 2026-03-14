@@ -2681,6 +2681,48 @@ builder.add_node(
 )
 ```
 ### 边
+边定义了逻辑如何路由以及图如何决定停止。这时智能体如何工作以及不同节点如何相互通信的重要组成部分，分为以下几种边
+- 普通边：直接从一个节点到下一个节点
+- 条件边：调用一个函数来决定接下来到哪个节点
+- 入口点：当用户输入到达时，首先调用哪个节点
+- 条件入口点：当用户输入到达时，调用一个函数来决定首先调用哪个（哪些）节点
+一个节点可以有多个出边。如果一个节点有多个出边，所有这些目标节点都将在下一个超级步骤中并行执行
+**普通边**
+```python
+builder.add_edge("node_a","node_b")
+```
+**条件边**
+```python
+builder.add_conditional_edges("node_a",routing_function)
+```
+与节点类似，routing_function接受图的当前state并返回一个值。默认情况下，routing_function的返回值用作下一个要发送状态的节点的名称。所有这些节点都将在下一个超级步骤并行运行。可以选择提供一个字典，将routing_functino的输出映射到下一个节点的名称
+```python
+def routing_function(state: State) -> Literal["node_b", END]:
+	# 直接返回要前往的节点名称
+    if condition:
+        return "node_b"
+    else:
+        return END
+```
+路由函数返回布尔值/字符串，映射到目标
+```python
+def routing_function(state: State) -> bool | str:
+    # 返回一个"键"，而不是直接的目标节点
+    if condition:
+        return "needs_tool"
+    else:
+        return "direct_answer"
+graph.add_conditional_edges(
+    "node_a",
+    routing_function,
+    {
+        "needs_tool": "node_b",
+	    "direct_answer": END
+    }
+)
+```
+方式一更直接，适合简单场景，路由逻辑和图结构紧耦合
+方式二更灵活，适合复杂场景，路由逻辑和图结构解耦
 
 
 # LLM API

@@ -2369,6 +2369,49 @@ print(response)
 	输出（全局状态）：{'crop_disease_res': '冬小麦诊断结果：叶锈病\n处理方案：喷施三唑类杀菌剂，7天1次，连续两次'}
 {'crop_disease_res': '【农业技术推广站建议】\n冬小麦诊断结果：叶锈病\n处理方案：喷施三唑类杀菌剂，7天1次，连续两次\n温馨提示：请结合当地气候调整用药方案'}
 ```
+**归约器Reducer**
+Reducer是理解节点更新如何应用于State的关键。State中的每个键都有自己独立的reducer函数。如果没有明确指定reducer函数，则假定对该键的所有更新都应覆盖它
+```python
+# 默认reducer
+class State(TypedDict):
+	no:int
+	crop:list[str]
+```
+上述案例中，没有为任何键指定reducer函数。假设图的输入是`{"no":1,"crop":["小麦"]}`。然后假设第一个Node返回`{"no":2}`，这被视为对状态的更新。Node不需要返回整个State schema，只需返回一个更新。应用此更新后，State将是`{"no":2,"crop":["小麦"]}`。如果第二个节点返回`{"crop":["水稻"]}`，应用更新后，State是`{"no":2,"crop":["水稻"]}`
+```python
+class State(TypedDict):
+	no:int
+	crop:Annotated[list[str],add]
+```
+上面案例中，使用了Annotated类型为第二个键指定了一个reducer函数(operator.add)，带有operator.add的Annotated类型确保新消息被附加到现有列表，而不是替换它。假设图的输入是`{"no":1,"crop":["小麦"]}`，第一个节点返回`{"no":2}`，State将变为`{"no":2,"crop":["小麦"]}`，假设第二个节点返回`{"crop":["水稻"]}`，State将变为`{"no":2,"crop":["小麦","水稻"]}`，这里的crop更新是通过两个列表相加来更新的，而不是覆盖
+大多数LLM提供商都有一个聊天模型接口，它接受消息列表作为输入。LangChain的ChatModel特别接受Message对象列表作为输入。这些消息有多种格式，例如HumanMessage或AIMessage
+许多情况下，将之前的对话历史作为消息列表存储在图状态中会很有帮助。为此，我们可以在图状态中添加一个键，该键存储Message对象列表，并使用reducer函数对其进行注释。reducer函数对于告诉图如何使用每个状态更新状态中的Message对象列表至关重要
+- 如果不指定reducer，则每次状态更新都会用最近提供的值覆盖消息列表
+- 如果只想将消息简单地附加到现有列表，则可以使用`operator.add`作为reducer
+但是，可能还希望手动更新图状态中的消息。如果使用operator.add，发送到图的手动状态更新将被附加到现有消息列表，而不是更新现有消息。为避免这种情况，就需要一个能够跟踪消息ID并覆盖现有消息的reducer，因此可以使用与构建的add_messages函数
+```python
+add_messages(
+    left: Messages,
+    right: Messages,
+    *,
+    format: [Literal]["langchain-openai"] | None = None,
+) -> Messages
+```
+该函数返回一个新的消息列表，将来自right的消息合并到left中。如果right中的消息与left中的消息具有相同的ID，则来自right的消息将替换来自left的消息
+为了跟踪消息ID，add_messages函数还会在messages通道上收到状态更新时尝试将消息反序列化为LangChain Message对象
+**MessagesState**
+由于在状态中包含消息列表非常常见，因此存在一个预构建的状态MessagesState
+```python
+class MessagesState(TypedDict):  
+    messages: Annotated[list[AnyMessage], add_messages]
+```
+MessagesState使用单个messages键定义，该键是AnyMessage对象的列表，并使用add_messages reducer 
+如果需要跟踪的状态可以直接使用它，但主要是子类化次状态并添加更多状态
+### 节点
+LangGraph中，节点是接受以下参数的Python函数（同步或异步）
+- state：图的状态
+- config：RunnableConfig对象，包含配置信息，如thread_id，以及跟踪信息，如tags
+- runtime：Runtime对象，包含运行时context和其他信息，如store和stream_writer
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

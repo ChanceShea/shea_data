@@ -2724,7 +2724,191 @@ graph.add_conditional_edges(
 方式一更直接，适合简单场景，路由逻辑和图结构紧耦合
 方式二更灵活，适合复杂场景，路由逻辑和图结构解耦
 ```python
+import operator  
+import uuid  
+import json  
+from typing import Any, TypedDict, Annotated  
+from langchain_core.messages import ToolMessage, AIMessage, HumanMessage  
+from langgraph.cache.memory import InMemoryCache  
+from langgraph.constants import END, START  
+from langgraph.graph import StateGraph  
+from ai_demo3.test3 import llm  
+from langchain.tools import tool  
+import requests  
+  
+app_id="55472461"  
+appsecret="WVSss9FJ"  
+  
+@tool  
+def get_current_city()-> str | dict[str, str | Any]:  
+    """  
+    获取用户所在城市  
+    :return:城市  
+    """    try:  
+        url = "https://api.ip.sb/geoip"  
+        headers = {"User-Agent":"Mozilla/5.0"}  
+        response = requests.get(url, headers=headers)  
+        response.raise_for_status()  
+        res_json = response.json()  
+        city = res_json.get("city","").strip()  
+        city = '香港' if city == 'Hong Kong' else city  
+        return {"city":city if city else "未查询到你当前的城市"}  
+    except Exception as e:  
+        return f"获取你的位置信息失败：{str(e)}"  
+  
+@tool  
+def get_city_weather(city:str)->str:  
+    """  
+    获取城市天气信息  
+    :param city: 城市（中文）  
+    :return: 天气信息  
+    """    try:  
+        url = f"http://v1.yiketianqi.com/free/day?appid={app_id}&appsecret={appsecret}&unescape=1&city={city}"  
+        headers = {"User-Agent":"Mozilla/5.0"}  
+        response = requests.get(url, headers=headers)  
+        response.raise_for_status()  
+        res = response.text.strip()  
+        return res if res else f"未查询到{city}天气信息"  
+    except Exception as e:  
+        return f"获取{city}天气信息失败：{str(e)}"  
+  
+tools = [get_current_city, get_city_weather]  
+llm_with_tools = llm.bind_tools(tools)  
+tools_by_name = [tool.name for tool in tools]  
+  
+class AgentState(TypedDict):  
+    city: str  
+    messages:Annotated[list,operator.add]  
+  
+def llm_call_node(state:AgentState)->AgentState:  
+    """决策节点，判断是否需要调用工具"""  
+    from langchain_core.messages import SystemMessage  
+    system_prompt = SystemMessage("""  
+    你是专业的天气预报助手，仅处理天气相关问题，严格遵循以下规则：  
+    1. 用户询问天气未指定城市 → 调用get_current_city获取当前城市；  
+    2. 用户指定城市询问天气 → 直接调用get_city_weather工具，禁止编造任何天气数据；  
+    3. 仅在获取工具返回结果后，整理成简洁友好的自然语言回答，不提前生成最终答案；  
+    4. 工具调用失败时，直接将错误信息告知用户，无需额外处理。  
+    """)  
+    messages = state.get("messages",[])  
+    resp = llm_with_tools.invoke([system_prompt]+messages)  
+    return {"messages":[resp]}  
+  
+def get_current_city_call_node(state:AgentState)->AgentState:  
+    """get_current_city工具执行节点返回ToolMessage"""  
+    res = get_current_city.invoke({})  
+    tool_msg = ToolMessage(  
+        content=res if isinstance(res, str) else json.dumps(res, ensure_ascii=False),  
+        tool_call_id=uuid.uuid4()  
+    )  
+    return {"messages":[tool_msg],"city":res}  
+  
+def get_city_weather_call_node(state: AgentState) -> AgentState:  
+    """get_city_weather通用工具执行节点，执行对应工具，返回ToolMessage"""  
+    msg = state["messages"][-1]  
+    city = ""  
+    tool_call_id = ""  
+    if isinstance(msg, AIMessage) and msg.tool_calls:  
+        tool_call = msg.tool_calls[0]  
+        city = tool_call.get("args", {}).get("city", "")  
+        tool_call_id = tool_call.get("id", "")  
+    elif isinstance(msg,ToolMessage):  
+        json_str = json.loads(msg.content)  
+        city = json_str.get("city", "")  
+        tool_call_id = msg.tool_call_id  
+    result = get_city_weather.invoke({"city":city})  
+    tool_msg = ToolMessage(  
+        content=str(result),  
+        tool_call_id=tool_call_id  
+    )  
+    return {"messages": [tool_msg],"city":city}  
+  
+  
+def should_continue(state:AgentState)->str:  
+    """路由选择器，根据AI消息判断是否包含工具调用"""  
+    messages = state["messages"]  
+    if not messages:  
+        return END  
+    last_msg = messages[-1]  
+    if not isinstance(last_msg, AIMessage):  
+        return END  
+    if not hasattr(last_msg,"tool_calls") or not last_msg.tool_calls:  
+        return END  
+    for tool_call in last_msg.tool_calls:  
+        tool_name = None  
+        if hasattr(tool_call,"name"):  
+            tool_name = tool_call.name  
+        elif isinstance(tool_call,dict):  
+            tool_name = tool_call.get("name","")  
+        if tool_name == "get_current_city":  
+            return "get_current_city"  
+        elif tool_name == "get_city_weather":  
+            return "get_city_weather"  
+    return END  
+  
+builder = StateGraph(AgentState)  
+builder.add_node("llm_call_node",llm_call_node)  
+builder.add_node("get_current_city_call_node",get_current_city_call_node)  
+builder.add_node("get_city_weather_call_node",get_city_weather_call_node)  
+builder.add_edge(START,"llm_call_node")  
+builder.add_conditional_edges(  
+    "llm_call_node",  
+    should_continue,  
+    {  
+        "get_city_weather":"get_city_weather_call_node",  
+        "get_current_city":"get_current_city_call_node",  
+        END:END  
+    }  
+)  
+builder.add_edge("get_current_city_call_node","get_city_weather_call_node")  
+builder.add_edge("get_city_weather_call_node","llm_call_node")  
+  
+graph = builder.compile(cache=InMemoryCache())  
+  
+print("=====第一次调用=====")  
+res1 = graph.invoke({"messages":[HumanMessage("上饶今天天气如何")]})  
+for m in res1["messages"]:  
+    m.pretty_print()  
+print("=====第二次调用=====")  
+res2 = graph.invoke({"messages":[HumanMessage("今天天气如何")]})  
+for m in res2["messages"]:  
+    m.pretty_print()
+```
+```text
+=====第一次调用=====
+================================ Human Message =================================
 
+上饶今天天气如何
+================================== Ai Message ==================================
+Tool Calls:
+  get_city_weather (019cebc288894ef279198685f36cdb43)
+ Call ID: 019cebc288894ef279198685f36cdb43
+  Args:
+    city: 上饶
+================================= Tool Message =================================
+
+{"nums":33,"cityid":"101240301","city":"上饶","date":"2026-03-14","week":"星期六","update_time":"17:46","wea":"晴","wea_img":"qing","tem":"25.1","tem_day":"25","tem_night":"9","win":"东南风","win_speed":"1级","win_meter":"1km\/h","air":"45","pressure":"1006","humidity":"17%"}
+================================== Ai Message ==================================
+
+上饶今天（2026年3月14日，星期六）的天气晴朗，气温白天25°C，夜晚9°C。东南风，风速1级，风力1km/h。空气质量指数为45，气压1006hPa，湿度17%。
+=====第二次调用=====
+================================ Human Message =================================
+
+今天天气如何
+================================== Ai Message ==================================
+Tool Calls:
+  get_current_city (019cebc29f522d18137e85b9103a7018)
+ Call ID: 019cebc29f522d18137e85b9103a7018
+  Args:
+================================= Tool Message =================================
+
+{"city": "香港"}
+================================= Tool Message =================================
+
+{"nums":34,"cityid":"101320101","city":"香港","date":"2026-03-14","week":"星期六","update_time":"17:43","wea":"晴","wea_img":"qing","tem":"19.6","tem_day":"22","tem_night":"16","win":"微风","win_speed":"3级","win_meter":"12km\/h","air":"40","pressure":"999","humidity":"64%"}
+================================== Ai Message ==================================
+
+今天香港的天气晴朗，气温白天22摄氏度，夜间16摄氏度，微风，风速为12km/h。空气湿度为64%，气压999hPa。
 ```
 
 # LLM API

@@ -2723,7 +2723,9 @@ graph.add_conditional_edges(
 ```
 方式一更直接，适合简单场景，路由逻辑和图结构紧耦合
 方式二更灵活，适合复杂场景，路由逻辑和图结构解耦
+```python
 
+```
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

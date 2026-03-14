@@ -3112,7 +3112,9 @@ print(res)
 ```
 ![](assets/Python/file-20260314222247426.png)
 **独立状态模式**
+```python
 
+```
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

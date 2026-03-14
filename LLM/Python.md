@@ -2222,6 +2222,37 @@ Tool Calls:
 无法获取病虫害知识，请提供具体作物+病虫害症状
 ```
 ### 图
+LangGraph的核心是将智能体工作流建模为图。使用三个关键组件来定义智能体的行为
+- 状态State：一个共享数据结构，表示应用程序的当前快找。可以是任何数据类型，但通常使用共享状态schema来定义
+- 节点Nodes：编码智能体逻辑的函数。它们接受当前状态作为输入，执行一些计算或副作用，并返回更新后的状态
+- 边Edges：根据当前状态确定接下来执行哪个Node的函数。它们可以是条件分支或固定转换
+通过组合Nodes和Edges，可以创建复杂的、循环的工作流，这些工作流会随着时间的推移演变状态。Nodes和Edges仅仅是函数，它们可以包含LLM或是工具代码。即节点执行工作，边告诉下一步做什么
+LangGraph的地层图算法使用消息传递来定义一个通用程序。当一个节点完成其操作时，它会通过一条或多条边向其他节点发送消息。这些接收节点随后执行其函数，将结果消息传递给下一组节点，并继续这个过程。
+**StateGraph**
+要构建图，首先需要定义状态，然后添加节点和边，最后编译这个图
+```python
+from langgraph.graph import StateGraph  
+builder = StateGraph(StateT) #通过用户定义的State对象进行实例化
+```
+必须在使用图之前编译它。图的编译是对图的结构做一些基本检查（例如没有孤立节点）。还可以在其中指定运行时参数，例如检查点和断点
+```python
+builder = graph_builder.compile()
+```
+LangGraph的compile(debug=False)方法中debug参数，作用是启用图的调试模式，开启后会为图的运行过程注入详细的调试能力，帮助开发者追踪节点执行，数据流转，状态变化等关键过程，快速定位图执行中的问题
+当debug=True时，LangGraph会自动启用两大核心调试能力，覆盖图运行的全流程追踪
+- 详细的日志输出：打印图执行的关键步骤，替代默认的极简日志
+- 检查点自动启用：记录图执行过程中的每一个状态快照，支持回溯执行过程、复现问题，无需手动配置检查点相关参数
+### 状态
+定义图时首先要做的就是定义图的State。State包含图的schema以及reducer归约函数，这些函数指定如何将更新应用到状态。State的schema将是图中所有Nodes和Edges的输入schema，可以是TypedDict或Pydantic模型。所有Nodes将发出对State的更新，然后使用指定的reducer函数应用这些更新
+**结构规范schema**
+指定图schema的主要文档方式是使用TypedDict。如果想在状态中提供默认值，就要使用dataclass。如果需要递归数据验证，支持使用 Pydantic BaseModel作为图的状态（Pydantic的性能低于TypedDict或dataclass）
+默认情况下，图将具有相同的输入和输出schema
+- 内部节点可以传递图中不需要的输入/输出信息
+- 希望为图使用不同的输入/输出schema
+默认情况下，StateGraph使用单个模式运行，并且所有节点都应使用该模式进行通信。但是也可以为图定义不同的输入和输出模式。当指定不同的模式时，仍然会使用内部模式进行节点之间通信。输入模式确保提供的输入与预期结构匹配，而输出模式过滤内部数据以根据定会的输出模式仅返回相关信息
+```python
+builder = StateGraph(StateT,input_shcema=StateT,output_schema=StateT)
+```
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

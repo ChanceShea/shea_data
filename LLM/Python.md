@@ -2497,8 +2497,192 @@ def tool_node_cache_key(state:State):
 ```
 State中的变量key可以是场景中的关键字
 ```python
-
+import operator  
+from typing import Annotated, Literal, TypedDict  
+  
+from langchain_core.messages import ToolMessage, AIMessage, HumanMessage  
+from langchain_core.runnables import RunnableConfig  
+from langgraph.cache.memory import InMemoryCache  
+from langgraph.constants import END, START  
+from langgraph.graph import StateGraph  
+from langgraph.types import CachePolicy  
+from ai_demo3.test3 import llm  
+from langchain.tools import tool  
+import requests  
+  
+app_id="55472461"  
+appsecret="WVSss9FJ"  
+  
+@tool  
+def get_city_weather(city:str)->str:  
+    """  
+    获取指定城市的实时天气  
+    :param city: 城市名称（中文）  
+    :return: 城市天气情况  
+    """    try:  
+        url = f"http://v1.yiketianqi.com/free/day?appid={app_id}&appsecret={appsecret}&unescape=1&city={city}"  
+        headers = {"User-Agent":"Mozilla/5.0"}  
+        print(f"【真实API调用】正在请求{city}天气数据")  
+        response = requests.get(url, headers=headers)  
+        response.raise_for_status()  
+        weather_info = response.text.strip()  
+        return weather_info if weather_info else f"未查询到{city}的天气信息"  
+    except Exception as e:  
+        return f"获取{city}天气信息失败：{str(e)}"  
+tools = [get_city_weather]  
+llm_with_tools = llm.bind_tools(tools)  
+tools_by_name = {tool.name: tool for tool in tools}  
+  
+class AgentState(TypedDict):  
+    city:str  
+    messages:Annotated[list[str],operator.add]  
+  
+def llm_call_node(state:AgentState)->AgentState:  
+    """决策节点，判断是否需要调用工具"""  
+    messages = state.get("messages",[])  
+    from langchain_core.messages import SystemMessage  
+    system_prompt = SystemMessage(content="""  
+    1. 用户询问天气未指定城市 → 提示用户提供具体城市名称；  
+    2. 用户询问天气指定城市 → 直接调用get_city_weather工具获取实时数据，禁止编造；  
+    3. 工具调用失败时，直接将错误信息告知用户，无需额外处理。  
+    4. 得到天气结果后，必须严格按照以下模板输出，不要增加或删减字段，不要改成自然段：  
+    城市：{city}  
+    日期：{date}  
+    更新时间：{update_time}  
+    天气：{wea}  
+    当前温度：{tem}  
+    白天温度：{tem_day}  
+    夜间温度：{tem_night}  
+    风向：{win}  
+    风力：{win_speed}  
+    空气质量：{air}  
+    气压：{pressure}  
+    湿度：{humidity}  
+    """)  
+    response = llm_with_tools.invoke([system_prompt]+messages)  
+    return {"messages":[response]}  
+  
+def tool_execution_node(state:AgentState)->AgentState:  
+    """通用工具执行节点，返回标准ToolMessage"""  
+    messages = state["messages"]  
+    last_ai_msg = messages[-1]  
+    tool_res = []  
+    for tool_call in last_ai_msg.tool_calls:  
+        tool_name = tool_call["name"]  
+        tool_args = tool_call["args"]  
+        tool_func = tools_by_name[tool_name]  
+        res = tool_func.invoke(tool_args)  
+        tool_msg = ToolMessage(  
+            content=str(res),  
+            tool_call_id=tool_call["id"],  
+            name=tool_name,  
+        )  
+        tool_res.append(tool_msg)  
+    return {"messages":tool_res}  
+  
+def should_continue(state:AgentState)->Literal["tool_execution_node",END]:  
+    """路由选择，判断是否执行工具"""  
+    last_msg = state["messages"][-1]  
+    if isinstance(last_msg, AIMessage) and last_msg.tool_calls:  
+        return "tool_execution_node"  
+    return END  
+  
+def tool_node_cache_key(state:AgentState):  
+    """自定义缓存键，只基于city值，忽略消息历史"""  
+    key = state.get("city","")  
+    return f"tool_cache_{key}"  
+  
+builder = StateGraph(AgentState)  
+builder.add_node("llm_call_node",llm_call_node)  
+builder.add_node(  
+    "tool_execution_node",  
+    tool_execution_node,  
+    cache_policy=CachePolicy(ttl=300,key_func=tool_node_cache_key)  
+)  
+builder.add_edge(START,"llm_call_node")  
+builder.add_conditional_edges("llm_call_node",should_continue)  
+builder.add_edge("tool_execution_node","llm_call_node")  
+  
+agent = builder.compile(cache=InMemoryCache())  
+  
+config = RunnableConfig(configurable={"thread_id":"weather_query_001"})  
+print("=====第一次调用=====")  
+res1 = agent.invoke(  
+    input={"messages":[HumanMessage("上饶今天天气如何")],"city":"上饶"},  
+    config=config  
+)  
+print(res1["messages"][-1].content)  
+print("=====第二次调用=====")  
+res2 = agent.invoke(  
+    input={"messages":[HumanMessage("上饶今天天气如何")],"city":"上饶"},  
+    config=config  
+)  
+print(res2["messages"][-1].content)  
+print("=====第三次=====")  
+res3 = agent.invoke(  
+    input={"messages":[HumanMessage("南昌今天天气如何")],"city":"南昌"},  
+    config=config  
+)  
+print(res3["messages"][-1].content)
 ```
+```text
+=====第一次调用=====
+【真实API调用】正在请求上饶天气数据
+城市：上饶  
+日期：2026-03-14  
+更新时间：15:38  
+天气：晴  
+当前温度：26.2  
+白天温度：25  
+夜间温度：9  
+风向：西风  
+风力：2级  
+空气质量：45  
+气压：1006  
+湿度：16%
+=====第二次调用=====
+城市：上饶  
+日期：2026-03-14  
+更新时间：15:38  
+天气：晴  
+当前温度：26.2  
+白天温度：25  
+夜间温度：9  
+风向：西风  
+风力：2级  
+空气质量：45  
+气压：1006  
+湿度：16%
+=====第三次=====
+【真实API调用】正在请求南昌天气数据
+城市：南昌  
+日期：2026-03-14  
+更新时间：15:36  
+天气：晴  
+当前温度：24.4  
+白天温度：24  
+夜间温度：12  
+风向：西北风  
+风力：1级  
+空气质量：50  
+气压：1015  
+湿度：27%
+```
+**节点重试**
+节点重试是解决节点执行失败的核心机制，可针对单个或多个节点配置失败自动重试规则，避免API调用超时、图片URL解析失败、网络波动等偶尔的错误，保证整个图流程的稳定性
+RetryPolicy有以下参数组成
+- max_attempts：最大重试次数（含首次执行，推荐3次）
+- delay：固定重试间隔
+- backoff_factorfloat：指数退避系数（间隔随重试次数倍增），如backoff_factor=2，delay=1时，重试间隔为1s->2s->4s，适合应对服务限流
+```python
+from langgraph.types import RetryPolicy
+builder.add_node(
+	retry_policy=RetryPolicy(max_attempts=3)
+)
+```
+### 边
+
+
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

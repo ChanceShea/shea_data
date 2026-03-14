@@ -2473,7 +2473,32 @@ builder.set_finish_point("node_b")
 来制定图的终止节点，图执行到此节点即终止
 **节点缓存**
 节点缓存是指将图中某个节点的输入和输出结果临时存储在内存，当后续再次以相同输入调用该节点是，直接返回缓存的结果，无需重新执行节点内的逻辑。缓存会直接返回之前的调用结果，无需重新执行工具调用，减少接口调用耗时和计算资源消耗。若节点内包含大模型调用，重复调用会产生额外的token费用，缓存可大幅降低成本
+LangGraph支持根据节点的输入缓存任务/节点
+编译图时指定缓存
+```python
+from langgraph.cache.memory import InMemoryCache
+agent = builder.compile(cache=InMemoryCahce())
+```
+为节点指定缓存策略
+```python
+builder.add_node(
+	cache_policy=CachePolicy(ttl=300,key_func=tool_node_cache_key)
+)
+```
+CachePolicy有两个必填参数
+- key_func：用于根据节点的输入生成缓存键，默认使用pickle对输入进行hash
+- ttl：缓存的存活时间。如果未指定，则缓存永不失效
+在LangGraph中缓存命中的条件非常严格，需要完全相同的输入状态才会命中缓存，但模型调用时每次都会更新输出，由于模型决策和工具调用过程是一个输入输出的循环，导致每次调用的输入都不相同，所以在某个工具调用时，如果需要缓存节点，必须自定义函数生成缓存键
+```python
+def tool_node_cache_key(state:State):
+	"""自定义缓存键：只基于city值，忽略消息历史"""
+	key = state.get("key","")
+	return f"tool_cache_{key}"
+```
+State中的变量key可以是场景中的关键字
+```python
 
+```
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

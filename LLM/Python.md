@@ -3113,8 +3113,154 @@ print(res)
 ![](assets/Python/file-20260314222247426.png)
 **独立状态模式**
 ```python
-
+import os  
+from typing import Literal, TypedDict  
+  
+from dotenv import load_dotenv  
+from langchain_core.messages import SystemMessage  
+from langchain_openai import ChatOpenAI  
+from openai import OpenAI  
+from langgraph.constants import END, START  
+from langgraph.graph import StateGraph  
+from langchain_core.messages import HumanMessage  
+from langgraph.graph.state import CompiledStateGraph  
+  
+load_dotenv()  
+  
+# 子图私有状态Schema  
+class SubgraphDiagnosisState(TypedDict):  
+    sub_crop:str # 农作物类型  
+    sub_symptom:str # 症状  
+    sub_other:str # 补充症状  
+    sub_raw_data:str # 原始采集数据  
+    sub_url:str # 图片url  
+# 父图私有状态Schema  
+class ParentGraphState(TypedDict):  
+    parent_crop:str # 农作物类型  
+    parent_symptom:str # 症状  
+    parent_other:str  # 补充症状  
+    parent_url:str # 图片url  
+    parent_treatment:str # 防治建议  
+  
+def par2sub_adapter(parent_state:ParentGraphState)->SubgraphDiagnosisState:  
+    """父图状态转换为子图状态，作为子图输入"""  
+    return {  
+        "sub_crop":parent_state["parent_crop"],  
+        "sub_symptom":parent_state["parent_symptom"],  
+        "sub_other":parent_state["parent_other"],  
+        "sub_url":parent_state["parent_url"],  
+    }  
+  
+def sub2par_adapter(sub_state:SubgraphDiagnosisState)->ParentGraphState:  
+    """子图状态转换为父图状态，回写父图"""  
+    return {  
+        "parent_url":sub_state["sub_url"],  
+    }  
+  
+def generate_image(prompt:str)->str:  
+    """沈城图片"""  
+    client = OpenAI(  
+        api_key=os.getenv("OPENAI_API_KEY"),  
+        base_url="https://api.siliconflow.cn/v1"  
+    )  
+    resp = client.images.generate(  
+        model="Kwai-Kolors/Kolors",  
+        prompt=prompt,  
+        size="1024x1024",  
+        n=1  
+    )  
+    return resp.images[0]["url"]  
+  
+def sub_collect_data(state:SubgraphDiagnosisState)->SubgraphDiagnosisState:  
+    """子图-采集原始数据"""  
+    raw_data = f"作物名称：{state['sub_crop']}，症状：{state['sub_crop']}+{state['sub_other']}"  
+    return {"sub_raw_data":raw_data}  
+  
+def sub_generate_photo(state:SubgraphDiagnosisState)->SubgraphDiagnosisState:  
+    """子图-生成田间图片"""  
+    raw_data = state['sub_raw_data']  
+    if not raw_data:  
+        url = ""  
+    else:  
+        url = generate_image(raw_data)  
+    return {"sub_url",url}  
+  
+def should_continue(state:SubgraphDiagnosisState)->Literal["sub_generate_photo",END]:  
+    if not state["sub_url"]:  
+        return "sub_generate_photo"  
+    else:  
+        return END  
+  
+def build_independent_subgraph()->CompiledStateGraph:  
+    """构建独立状态子图"""  
+    subgraph = StateGraph(SubgraphDiagnosisState)  
+    subgraph.add_node("sub_collect_data",sub_collect_data)  
+    subgraph.add_node("sub_generate_photo",sub_generate_photo)  
+    subgraph.add_edge(START,"sub_collect_data")  
+    subgraph.add_conditional_edges("sub_collect_data",should_continue)  
+    return subgraph.compile()  
+  
+def parent_init_params(state:ParentGraphState)->ParentGraphState:  
+    """父图-初始化参数（模拟用户输入）"""  
+    print(f"父图-初始化参数")  
+    return state  
+def parent_generate_treatment(state:ParentGraphState)->ParentGraphState:  
+    parent_url = state["parent_url"]  
+    if not parent_url:  
+        advice = "【建议】未检测到明确病害，建议补充田间监测数据"  
+    else:  
+        system_prompt = SystemMessage(  
+            "你是农业领域的专家，请分析图片诊断出病虫害，并给出3条防治建议"  
+        )  
+        user_prompt = HumanMessage(  
+            content = [  
+                {"type":"image","url":parent_url,}  
+            ]  
+        )  
+        llm = ChatOpenAI(  
+            base_url="https://api.siliconflow.cn/v1",  
+            api_key=os.getenv("OPENAI_API_KEY"),  
+            model="Qwen/Qwen3-Omni-30B-A3B-Thinking",  
+            temperature=0  
+        )  
+        resp = llm.invoke([system_prompt,user_prompt])  
+        advice = resp.content  
+        print("父图-生成针对性防治建议")  
+        return {"parent_treatment":advice}  
+  
+def par_call_sub(state:ParentGraphState)->ParentGraphState:  
+    """父图包装节点：转换父图状态->调用子图->转换子图结果回写父图"""  
+    sub_input = par2sub_adapter(state)  
+    subgraph = build_independent_subgraph()  
+    sub_output = subgraph.invoke(sub_input)  
+    parent_update = sub2par_adapter(sub_output)  
+    return parent_update  
+  
+def build_independent_parent_graph()->CompiledStateGraph:  
+    """构建独立状态父图，通过包装节点调用子图"""  
+    parent_graph = StateGraph(ParentGraphState)  
+    parent_graph.add_node("parent_init_params",parent_init_params)  
+    parent_graph.add_node("par_call_sub",par_call_sub)  
+    parent_graph.add_node("parent_treatment",parent_generate_treatment)  
+    parent_graph.add_edge("parent_init_params","par_call_sub")  
+    parent_graph.add_edge("par_call_sub","parent_treatment")  
+    parent_graph.set_entry_point("parent_init_params")  
+    parent_graph.set_finish_point("parent_treatment")  
+    return parent_graph.compile()  
+  
+graph = build_independent_parent_graph()  
+init_state = {  
+    "parent_crop": "水稻。",  
+    "parent_symptom": "稻穗发黑枯萎。",  
+    "parent_other": "发病部位为稻穗颈部,穗颈处出现水渍状褐色小点，迅速扩展为褐色 / 黑褐色条斑，环绕穗颈。",  
+    "parent_url": ""  
+}  
+res = graph.invoke(init_state)  
+print(res)
 ```
+### 智能体检查点
+LangGraph中的智能体检查点是实现智能体工作流状态持久化、断点续跑、时间旅行、多路径分支的核心机制，本质是智能体执行过程中关键节点的状态快照，会完整记录当前会话的执行进度、状态数据、节点调用记录等信息，让智能体可以从任意检查点恢复执行，而非从头运行
+
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

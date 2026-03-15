@@ -3260,6 +3260,164 @@ print(res)
 ```
 ### 智能体检查点
 LangGraph中的智能体检查点是实现智能体工作流状态持久化、断点续跑、时间旅行、多路径分支的核心机制，本质是智能体执行过程中关键节点的状态快照，会完整记录当前会话的执行进度、状态数据、节点调用记录等信息，让智能体可以从任意检查点恢复执行，而非从头运行
+**智能检查点的作用**
+- 断点续跑：服务重启、网络中断、模型调用失败时，从最近检查点恢复执行，避免长流程从头重试
+- 时间旅行基础：为回退历史状态、复现执行流程、调试问题提供数据支撑
+- 多路径分支：基于历史检查点创建独立分支，测试不同决策/参数的执行结果
+- 人机协同衔接：在人工审批、人工确认等节点生成检查点，暂停智能体执行，人工介入修改状态后，从该检查点继续运行
+- 状态追溯调试：通过检查点查看智能体每一步的状态变化，快速定位执行错误
+**检查点的核心存储内容**
+一个完整的智能体检查点，会持久化与当前会话强相关的全量关键数据，确保恢复执行时状态无丢失，其核心包含
+- 会话标识thread_id：唯一标识一个智能体会话，如一个用户的一次咨询
+- 检查点表示checkpoint_id：唯一标识当前快照，用于精准定位历史状态
+- 智能体状态数据：与自定义State结构完全一致的键值对，如症状描述、推理结果、工具调用参数、消息历史等
+- 执行元信息：已执行的节点列表、下一个待执行节点、执行时间戳、分支溯源
+- 配置信息：当前会话的执行配置，如模型参数、工具权限、分支标识等
+**检查点的核心工作流程**
+智能检查点的生命周期分为创建->存储->检索->恢复/修改 4步，流程标准化且与LangGraph执行逻辑深度融合
+- 创建：LangGraph会在智能体每一个节点执行完成后自动生成检查点，无需手动配置，也可以通过自定义规则指定关键节点，如工具调用前、模型推理后强制创建
+- 存储：由Checkpointer将检查点快照持久化到指定存储介质
+- 检索：通过thread_id或checkpoint_id，从存储中获取历史检查点列表或指定快照
+- 恢复/修改：基于检索到的检查点，要么直接恢复执行，要么修改状态后创建新分支，原检查点保留，不影响历史执行线
+#### 人机协同
+LangGraph构建的智能体工作流中，人工协同是对”大脑“的关键赋能与兜底机制，是让人类在工作流的关键节点介入，形成”LLM自主决策+人类精准协同“的混合智能模式，让智能体的工作流更贴生产实际、更安全可控
+##### 中断
+中断允许在特定点暂停图执行，并等待外部输入后继续。这使得需要外部输入才能继续的人工介入模式成为可能。当中断触发时，LangGraph使用其持久化层保存图状态，并无限期等待，直到用户恢复执行
+中断通过在图节点中的任意位置调用`interrupt()`函数来实现。该函数接受任何可JSON序列化的值，并将其返回给调用者。当准备好继续时，通过使用Command重新调用图来恢复执行，该Command随后成为节点内部interrupt()调用的返回值。与静态断点不同，中断是动态的，它可以放置在代码中的任何位置，并且可以根据你的应用程序逻辑来进行条件设置
+**interrupt()暂停**
+interrupt()函数暂停图执行并向调用者返回值。当你在节点内需要调用interrupt时，LangGraph保存当前图状态并等待你以输入恢复执行。使用interrupt，需要一下参数
+- 一个检查点来持久化图状态
+- 配置中的线程ID，以便运行时直到从哪个状态恢复
+- 在你想要暂停的地方调用interrupt()
+当调用interrupt时，会发生以下情况
+- 图执行被暂停在调用interrupt的确切位置
+- 状态通过检查点保存，以便以后可以恢复执行。在生产环境中，这应该是一个持久化检查点
+- 值在`__interrupt__`下返回给调用者；它可以是任何可JSON序列化的值
+- 图无限期等待，直到你以响应恢复执行
+- 当你恢复时，响应会传回节点，成为interrupt()调用的返回值
+**恢复中断**
+中断暂停执行后，可以通过再次使用包含恢复值的Command调用图来恢复它。恢复值传回给interrupt()调用，允许节点继续执行外部输入
+- 恢复时必须使用中断发生时使用的相同线程ID
+- 传递给`Command(resume=...)`的值成为interrupt的返回值
+- 当恢复时，节点会从调用interrupt的节点开头重新启动，因此interrupt之前的任何代码都会再次运行
+- 你可以传递任何可JSON序列化的值作为恢复值
+```python
+from typing import TypedDict, Literal  
+  
+from langgraph.checkpoint.memory import MemorySaver  
+from langgraph.constants import START, END  
+from langgraph.graph import StateGraph  
+from langgraph.types import Command, interrupt  
+  
+  
+class ApprovalState(TypedDict):  
+    action_details:str  
+    status:Literal["pending", "approved", "rejected"]  
+  
+def approval_node(state:ApprovalState)->Command[Literal["proceed","cancel"]]:  
+    # 使用interrupt()函数中断工作流，暴露审批详情给外部系统，等待人工决策  
+    is_approved = interrupt({  
+        "question":"是否批准此操作",  
+        "details":state["action_details"],  
+    })  
+    if is_approved:  
+        return Command(goto="proceed")  
+    else:  
+        return Command(goto="cancel")  
+  
+def proceed_node(state:ApprovalState)->ApprovalState:  
+    return {"status":"approved"}  
+  
+def cancel_node(state:ApprovalState)->ApprovalState:  
+    return {"status":"rejected"}  
+  
+builder = StateGraph(ApprovalState)  
+builder.add_node("approval",approval_node)  
+builder.add_node("proceed",proceed_node)  
+builder.add_node("cancel",cancel_node)  
+  
+builder.add_edge(START,"approval")  
+builder.add_edge("proceed",END)  
+builder.add_edge("cancel",END)  
+  
+checkpointer = MemorySaver()  
+graph = builder.compile(checkpointer=checkpointer)  
+config = {"configurable":{"thread_id":"approval-123"}}  
+initial = graph.invoke(  
+    {  
+        "action_details":"小麦灌浆期，每亩喷施300g磷酸二氢钾叶面肥，预计覆盖100亩",  
+        "status":"pending",  
+    },  
+    config=config  
+)  
+print("=====中断信息=====")  
+print(initial["__interrupt__"])  
+print("\n=====审批通过=====")  
+resumed_approved = graph.invoke(Command(resume=True),config=config)  
+print(f"最终状态：{resumed_approved["status"]}")
+```
+```text
+=====中断信息=====
+[Interrupt(value={'question': '是否批准此操作', 'details': '小麦灌浆期，每亩喷施300g磷酸二氢钾叶面肥，预计覆盖100亩'}, id='bd66bebd78bab05ae10012c9a22fb07e')]
+
+=====审批通过=====
+最终状态：approved
+```
+**常见模式**
+中断解锁的关键能力是暂停执行并等待外部输入。这对各种用例都有用，例如
+- 审批工作流：在执行关键操作（API调用、数据库更改、金融交易）之前暂停
+- 审批和编辑：让用户在继续之前审查和修改LLM输出或工具调用
+- 中断工具调用：在执行工具调用之前暂停，以在执行前审查和编辑工具调用
+- 验证人工输入：在进入下一步之前暂停以验证人工输入
+**批准或拒绝**
+中断最常见的用途之一是在关键操作之前暂停并请求批准。例如，希望让用户批准API调用、数据库更改或任何其他重要决策
+恢复图时，传入true表示批准，false表示拒绝
+```python
+graph.invoke(Command(resume=Ture),config=config)
+```
+**审批和编辑状态**
+有时希望用户在继续审查之前和编辑图状态的一部分。这对于纠正LLM、添加缺失信息或进行调整很有用
+恢复时，提供编辑后内容
+```python
+graph.invoke(Command(resume="优化后文本"),config=config)
+```
+```python
+from typing import TypedDict  
+  
+from langgraph.checkpoint.memory import MemorySaver  
+from langgraph.constants import START, END  
+from langgraph.graph import StateGraph  
+from langgraph.types import interrupt, Command  
+  
+  
+class ReviewState(TypedDict):  
+    generated_text:str  
+  
+def review_node(state:ReviewState):  
+    update_content = interrupt({  
+        "instruction":"审查和编辑以下文本",  
+        "content":state["generated_text"],  
+    })  
+    return {"generated_text":update_content}  
+  
+builder = StateGraph(ReviewState)  
+builder.add_node("review",review_node)  
+builder.add_edge(START,"review")  
+builder.add_edge("review",END)  
+checkpointer = MemorySaver()  
+graph = builder.compile(checkpointer=checkpointer)  
+  
+config = {"configurable":{"thread_id":"review-123"}}  
+initial = graph.invoke({"generated_text":"病虫害诊断报告"},config=config)  
+print(initial["__interrupt__"])  
+final_state = graph.invoke(Command(resume="水稻稻飞虱病虫害诊断报告"), config=config)  
+print(final_state["generated_text"])
+```
+```text
+[Interrupt(value={'instruction': '审查和编辑以下文本', 'content': '病虫害诊断报告'}, id='0406ce1b5c1a690cc3c74eed702c0f98')]
+水稻稻飞虱病虫害诊断报告
+```
+**工具中的中断**
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

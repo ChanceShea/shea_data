@@ -3756,6 +3756,92 @@ LangGraph中使用时间旅行
 - 在现有线程中识别检查点：使用`get_state_history`方法检索特定thread_id的执行历史，并找到所需的checkpoint_id。或者，在你希望执行暂停的节点之前设置一个中断。然后，你可以找到在该中断之前记录的最新检查点
 - 更新图状态：使用`update_state`方法修改检查点出的图状态，并从替代状态恢复执行
 - 从检查点恢复执行：使用invoke()或stream()方法，输入为None，配置包含相应的thread_id和checkpoint_id
+```python
+import uuid  
+from typing import TypedDict  
+  
+from langgraph.checkpoint.memory import InMemorySaver  
+from langgraph.constants import START, END  
+from langgraph.graph import StateGraph  
+  
+  
+class DiagnoseState(TypedDict):  
+    symptoms:str  
+    disease:str  
+    treatment:str  
+    messages:str  
+  
+def input_symptoms(state:DiagnoseState):  
+    symptoms = state.get("symptoms","")  
+    return {"symptoms":symptoms}  
+  
+def detect_disease(state:DiagnoseState):  
+    disease = "稻瘟病" if "黄色斑点" in state["symptoms"] else "未知病害"  
+    return {  
+        "disease":disease,  
+        "messages":[{"role":"system","content":f"诊断为{disease}"}]  
+    }  
+  
+def suggest_treatment(state:DiagnoseState):  
+    treatment = "使用三环唑喷雾，间隔7天喷施2次" if state["disease"] == "稻瘟病" else "请补充症状"  
+    return {  
+        "treatment":treatment,  
+        "messages":[{"role":"system","content":f"防治方案：{treatment}"}]  
+    }  
+  
+builder = StateGraph(DiagnoseState)  
+builder.add_node("input_symptoms",input_symptoms)  
+builder.add_node("detect_disease",detect_disease)  
+builder.add_node("suggest_treatment",suggest_treatment)  
+  
+builder.add_edge(START,"input_symptoms")  
+builder.add_edge("input_symptoms","detect_disease")  
+builder.add_edge("detect_disease","suggest_treatment")  
+builder.add_edge("suggest_treatment",END)  
+  
+checkpointer = InMemorySaver()  
+graph = builder.compile(checkpointer)  
+thread_id = uuid.uuid4()  
+config = {"configurable":{"thread_id":thread_id}}  
+initial_state = graph.invoke({"symptoms":"叶片边缘枯萎"},config)  
+print("初始诊断结果：",initial_state["disease"],initial_state["treatment"])  
+# 检索历史检查点
+history = list(graph.get_state_history(config))  
+for s in history:  
+    print(f"检查点：{s.next}-检查点ID：{s.config["configurable"]["checkpoint_id"]}")  
+  
+selected = history[1]  
+print(selected.next)  
+print(selected.values)
+```
+```text
+初始诊断结果： 未知病害 请补充症状
+# 状态是按执行时间倒序返回
+检查点：()-检查点ID：1f120609-830c-6a00-8003-4ae9b4d3293a
+检查点：('suggest_treatment',)-检查点ID：1f120609-830b-6ef5-8002-a84ab2500d64
+检查点：('detect_disease',)-检查点ID：1f120609-830a-677a-8001-2cd64d1adab8
+检查点：('input_symptoms',)-检查点ID：1f120609-8308-6072-8000-b8d657c79aad
+检查点：('__start__',)-检查点ID：1f120609-82fe-6898-bfff-bb9a7d939126
+('suggest_treatment',)
+{'symptoms': '叶片边缘枯萎', 'disease': '未知病害', 'messages': [{'role': 'system', 'content': '诊断为未知病害'}]}
+```
+分支并修改状态
+使用`update_state`方法将创建一个新的检查点。新检查点将与相同的线程关联，但具有新的检查点ID
+方法的参数as_node用于指定状态更新的逻辑来源节点，如果未提供as_node参数，且不存在歧义的情况下，改参数会被自动设置为上一次更新状态的节点
+```python
+new_config = graph.update_state(  
+    selected.config,  
+    {"symptoms":"叶片出现黄色斑点，边缘枯萎，伴有褐色霉层"},  
+    as_node="input_symptoms", # 模拟从input_symptoms节点更新  
+)  
+# 从新检查点恢复执行  
+forked_state = graph.invoke(None,new_config)  
+print("分支后诊断结果：",forked_state["disease"],forked_state["treatment"])
+```
+```text
+分支后诊断结果： 稻瘟病 使用三环唑喷雾，间隔7天喷施2次
+```
+# RAG
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

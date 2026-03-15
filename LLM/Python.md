@@ -3548,8 +3548,203 @@ while True:
 - 父图恢复：父图从自身内部调用子图的那个节点开始恢复执行，接收子图的执行结果后，继续全局只会
 - 状态互不干扰：父图和子图拥有独立的状态管理、检查点存储，中断/恢复仅影响自身流程，避免状态混乱
 ```python
-
+import json  
+import uuid  
+from typing import Literal, TypedDict  
+from langgraph.checkpoint.memory import MemorySaver  
+from langgraph.constants import END, START  
+from langgraph.graph import StateGraph  
+from langgraph.types import interrupt, Command  
+  
+  
+# 定义两个文件工具，用于保存和读取数据  
+# 保存到JSON文件  
+def save_state_to_json(state,filename="state.json"):  
+    with open(filename,"w",encoding="utf-8") as f:  
+        json.dump(state,f,ensure_ascii=False,indent=2)  
+  
+def load_state_from_json(filename="state.json"):  
+    with open(filename,"r",encoding="utf-8") as f:  
+        state=json.load(f)  
+    return state  
+  
+# 定义父/子图独立状态  
+#子图状态：农资采购专项任务  
+class PurchaseState(TypedDict):  
+    supplier:str  
+    pesticide:str  
+    quantity:int  
+    price:float  
+    total_amount:float  
+    purchase_res:str  
+    workflow_progress:str  
+# 父图状态：农业智能体全局状态  
+class AgentGlobalState(TypedDict):  
+    action:Literal["approve","reject"]  
+    quantity:int  
+    purchase_res:str  
+    workflow_progress:str  
+# 子图状态转换父图状态的适配器  
+def sub2parent_adapter(parent_state:AgentGlobalState,sub_output:PurchaseState)->AgentGlobalState:  
+    """子图执行结果转换为父图状态，回写父图"""  
+    return {  
+        "purchase_res":sub_output["purchase_res"],  
+        "workflow_progress":sub_output["workflow_progress"]  
+    }  
+# 子图节点：审批采购  
+def purchase_approval_node(state:PurchaseState):  
+    print("子图审批采购流程开始")  
+    total_amount = state["quantity"]*state["price"]  
+    approval_resp = interrupt({  
+        "supplier":state["supplier"],  
+        "pesticide":state["pesticide"],  
+        "quantity":state["quantity"],  
+        "price":state["price"],  
+        "total_amount":total_amount,  
+        "message":"【水稻病虫害防治】是否批准本次农资采购？可修改采购数量"  
+    })  
+    print("子图恢复执行...")  
+    print(approval_resp)  
+    if approval_resp["action"] == "approve":  
+        final_quantity = approval_resp.get("quantity",state["quantity"])  
+        state["total_amount"] = final_quantity * state["price"]  
+        purchase_info = f"向{state['supplier']}采购{state['pesticide']}{final_quantity}箱，总金额{state['total_amount']}元"  
+        return {  
+            "workflow_progress":"流程结束，已归档",  
+            "purchase_res":f"采购成功：{purchase_info}，药剂将配送至田间"  
+        }  
+    else:  
+        return {  
+            "workflow_progress": "流程结束，已归档",  
+            "purchase_res": "采购失败，本次病虫害防治药剂采购被驳回"  
+        }  
+    return state  
+  
+# 构建农资采购子图  
+def build_purchase_subgraph():  
+    builder = StateGraph(PurchaseState)  
+    builder.add_node("purchase_approval",purchase_approval_node)  
+    builder.set_entry_point("purchase_approval")  
+    builder.set_finish_point("purchase_approval")  
+    subgraph_checkpointer = MemorySaver()  
+    return builder.compile(checkpointer=subgraph_checkpointer)  
+# 定义父图中调用子图的包装节点  
+def parent_call_subgraph_node(state:AgentGlobalState)->AgentGlobalState:  
+    """父图包装节点：转换父图状态->调用子图->转换子图结果回写父图"""  
+    config = {"configurable":{"thread_id":uuid.uuid4()}}  
+    # 从json文件中获取流程数据  
+    sub_input = load_state_from_json("state.json")  
+    subgraph = build_purchase_subgraph()  
+    res = subgraph.invoke(sub_input,config=config)  
+    print(f"子图中断信息：{res['__interrupt__']}")  
+    action = state.get("action","reject")  
+    quantity = state.get("quantity",sub_input["quantity"])  
+    sub_output = subgraph.invoke(Command(resume={"action":action,"quantity":quantity}),config=config)  
+    parent_updated = sub2parent_adapter(state,sub_output)  
+    return parent_updated  
+# 父图处理中断  
+def improved_brain_decision_node(state:AgentGlobalState)->Command[Literal["purchase_branch",END]]:  
+    print("大脑决策中枢启动...")  
+    is_approve = interrupt({  
+        "message":"你有一个审批流程，是否去审批？"  
+    })  
+    if is_approve:  
+        return Command(goto="purchase_branch")  
+    else:  
+        update = {  
+            "purchase_res":"流程等待处理",  
+            "workflow_progress":"审批"  
+        }  
+        return Command(update=update,goto=END)  
+# 构建农业智能体父图  
+def build_agent_parent_graph():  
+    builder = StateGraph(AgentGlobalState)  
+    builder.add_node("brain_decision",improved_brain_decision_node)  
+    builder.add_node("purchase_branch",parent_call_subgraph_node)  
+    builder.add_edge(START,"brain_decision")  
+    return builder  
+agent = build_agent_parent_graph()  
+global_checkpointer = MemorySaver()  
+graph = agent.compile(checkpointer=global_checkpointer)  
+state = {  
+    "supplier": "丰农农业科技",  
+    "pesticide": "稻瘟灵",  
+    "quantity": 50,  
+    "price": 50.0,  
+}  
+save_state_to_json(state,"state.json")  
+config = {"configurable":{"thread_id":uuid.uuid4()}}  
+print("=====第一次调用：不触发子图中断=====")  
+res = graph.invoke({},config=config)  
+print(f"父图中断信息：{res['__interrupt__'][0].value['message']}")  
+print("=====恢复执行：模拟父图人工拒绝=====")  
+resumed = graph.invoke(Command(resume=False),config=config)  
+print("恢复执行结果：")  
+for key,val in resumed.items():  
+    if key != '__interrupt__':  
+        print(f"{key}: {val}")  
+print("=====第二次调用：触发子图中断并驳回子图流程=====")  
+check = {"action":"reject"}  
+res = graph.invoke(check,config=config)  
+print(f"父图中断信息：{res['__interrupt__'][0].value['message']}")  
+print("=====恢复执行：模拟附图人工同意，字体流程被驳回=====")  
+resumed = graph.invoke(Command(resume=True),config=config)  
+print("恢复执行结果：")  
+for key,val in resumed.items():  
+    if key != '__interrupt__':  
+        print(f"{key}: {val}")  
+print("=====第三次调用：触发子图中断并同意子图流程，且修改购买数量=====")  
+check = {"action":"approve","quantity":100}  
+res = graph.invoke(check,config=config)  
+print(f"父图中断信息：{res['__interrupt__'][0].value['message']}")  
+print("=====恢复执行：模拟父图人工同意，同意子图流程=====")  
+resumed = graph.invoke(Command(resume=True),config=config)  
+print("恢复执行结果")  
+for key,val in resumed.items():  
+    if key != '__interrupt__':  
+        print(f"{key}: {val}")
 ```
+```text
+=====第一次调用：不触发子图中断=====
+大脑决策中枢启动...
+父图中断信息：你有一个审批流程，是否去审批？
+=====恢复执行：模拟父图人工拒绝=====
+大脑决策中枢启动...
+恢复执行结果：
+purchase_res: 流程等待处理
+workflow_progress: 审批
+=====第二次调用：触发子图中断并驳回子图流程=====
+大脑决策中枢启动...
+父图中断信息：你有一个审批流程，是否去审批？
+=====恢复执行：模拟附图人工同意，字体流程被驳回=====
+大脑决策中枢启动...
+子图审批采购流程开始
+子图中断信息：[Interrupt(value={'supplier': '丰农农业科技', 'pesticide': '稻瘟灵', 'quantity': 50, 'price': 50.0, 'total_amount': 2500.0, 'message': '【水稻病虫害防治】是否批准本次农资采购？可修改采购数量'}, id='ce4e0795864cf111e0a0cad79cb3f4ed')]
+子图审批采购流程开始
+子图恢复执行...
+{'action': 'reject', 'quantity': 50}
+恢复执行结果：
+action: reject
+purchase_res: 采购失败，本次病虫害防治药剂采购被驳回
+workflow_progress: 流程结束，已归档
+=====第三次调用：触发子图中断并同意子图流程，且修改购买数量=====
+大脑决策中枢启动...
+父图中断信息：你有一个审批流程，是否去审批？
+=====恢复执行：模拟父图人工同意，同意子图流程=====
+大脑决策中枢启动...
+子图审批采购流程开始
+子图中断信息：[Interrupt(value={'supplier': '丰农农业科技', 'pesticide': '稻瘟灵', 'quantity': 50, 'price': 50.0, 'total_amount': 2500.0, 'message': '【水稻病虫害防治】是否批准本次农资采购？可修改采购数量'}, id='d6b70db0cc7704882e5c7b5f129eada6')]
+子图审批采购流程开始
+子图恢复执行...
+{'action': 'approve', 'quantity': 100}
+恢复执行结果
+action: approve
+quantity: 100
+purchase_res: 采购成功：向丰农农业科技采购稻瘟灵100箱，总金额5000.0元，药剂将配送至田间
+workflow_progress: 流程结束，已归档
+```
+### 时间旅行
+
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

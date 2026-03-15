@@ -3420,7 +3420,100 @@ print(final_state["generated_text"])
 **工具中的中断**
 还可以直接在工具函数中放置中断。这使得工具本身在本调用时暂停以进行批准，并允许在执行工具调用之前进行人工审查和编辑
 当希望审批逻辑与工具本身一起存在，使其在图的不同部分可重用时，此方法很有用。LLM可以自然地调用工具，并且中断会在工具被调用时暂停执行，允许你批准、编辑或取消操作
-
+```python
+from langchain.tools import tool  
+from langchain_core.messages import AIMessage, ToolMessage  
+from langgraph.checkpoint.memory import MemorySaver  
+from langgraph.constants import START, END  
+from langgraph.graph import StateGraph  
+from langgraph.types import interrupt, Command  
+from ai_demo3.test3 import llm  
+from langgraph.graph.message import MessagesState  
+  
+@tool  
+def purchase_pesticide(supplier:str,pesticide:str,quantity:int,total_amount:float):  
+    """  
+    向农资供应商采购病虫害防治药剂，为农业生产提供物资保障  
+    :param supplier: 农资供应商名称（如XX农业科技有限公司）  
+    :param pesticide: 药剂名称（如稻瘟灵、吡虫啉，适配水稻稻瘟病/稻飞虱等病虫害）  
+    :param quantity: 采购数量（单位：箱/瓶）  
+    :param total_amount: 采购总金额（单位：元）  
+    """    response = interrupt({  
+        "action":"purchase_pesticide",# 操作类型：药剂采购  
+        "supplier":supplier, # 农资供应商  
+        "pesticide":pesticide, # 防治药剂名称  
+        "quantity":quantity, # 采购数量  
+        "total_amount":total_amount, # 采购总金额  
+        "message":"是否批准本次农业药剂采购？" # 人工审批提示语  
+    })  
+  
+    if response.get("action") == "approve":  
+        print("审批结果：同意")  
+        final_supplier = response.get("supplier",supplier)  
+        final_pesticide = response.get("pesticide",pesticide)  
+        final_quantity = response.get("quantity",quantity)  
+        final_amount = response.get("total_amount",total_amount)  
+        return f"已成功向{final_supplier}采购{final_pesticide}，数量{final_quantity}箱，总金额{final_amount}元，药剂将尽快配送至田间"  
+    return "本次农业病虫害防治药剂采购已被用户驳回，终止采购流程"  
+tools = [purchase_pesticide]  
+tool_with_llm = llm.bind_tools(tools)  
+tool_by_name = {tool.name:tool for tool in tools}  
+  
+def agent_node(state:MessagesState):  
+    # 大模型根据消息列表中的用户指令/田间数据，自主自考并决定是否调用采购工具  
+    # 若判定需要采购药剂，会自动触发工具调用，进而触发人工审批终端  
+    res = tool_with_llm.invoke(state['messages'])  
+    return {"messages":[res]}  
+  
+def purchase_pesticide_node(state:MessagesState):  
+    messages = state["messages"]  
+    last_ai_msg:AIMessage = messages[-1]  
+    tool_res = []  
+    for tool_call in last_ai_msg.tool_calls:  
+        tool_name = tool_call["name"]  
+        tool_args = tool_call["args"]  
+        tool = tool_by_name[tool_name]  
+        resp = tool.invoke(tool_args)  
+        tool_msg = ToolMessage(  
+            content=str(resp),  
+            tool_call_id=tool_call["id"],  
+        )  
+        tool_res.append(tool_msg)  
+    return {"messages":tool_res}  
+  
+builder = StateGraph(MessagesState)  
+builder.add_node("agent",agent_node)  
+builder.add_node("purchase_pesticide",purchase_pesticide_node)  
+builder.add_edge(START,"agent")  
+builder.add_edge("agent","purchase_pesticide")  
+builder.add_edge("purchase_pesticide",END)  
+checkpointer = MemorySaver()  
+graph = builder.compile(checkpointer=checkpointer)  
+config = {"configurable":{"thread_id":"rice_pesticide_purchase_2026"}}  
+initial = graph.invoke(  
+    {  
+        "messages":[  
+            {"role":"user","content":"田间检测到水稻稻瘟病爆发，需向丰农农业科技采购50箱稻瘟灵，总金额25000元"}  
+        ]  
+    },  
+    config=config  
+)  
+  
+print(initial["__interrupt__"])  
+  
+resumed = graph.invoke(  
+    Command(resume={"action":"approve","quantity":60,"total_amount":30000}),  
+    config=config  
+)  
+  
+print(resumed["messages"][-1].content)
+```
+```text
+[Interrupt(value={'action': 'purchase_pesticide', 'supplier': '丰农农业科技', 'pesticide': '稻瘟灵', 'quantity': 50, 'total_amount': 25000.0, 'message': '是否批准本次农业药剂采购？'}, id='221c05d29ce0e55cfc2e1f0ff842d7c8')]
+审批结果：同意
+已成功向丰农农业科技采购稻瘟灵，数量60箱，总金额30000元，药剂将尽快配送至田间
+```
+ 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

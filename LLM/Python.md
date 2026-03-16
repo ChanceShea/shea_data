@@ -4024,8 +4024,169 @@ retriever = vectorstore.as_retriever()
 	- fetch_k：先检索后选文档数量，MMR从该候选初中重排序选k个返回，仅mmr类型有效，默认4个
 	- score_threshold：最低相似度阈值，仅分数高于该值的文档会被返回，similarity_score_threshold类型有效
 ```python
-
+from langchain_core.prompts import ChatPromptTemplate  
+  
+from ai_demo4.test1 import llm  
+from ai_demo4.test2 import vectorstore  
+  
+retriever = vectorstore.as_retriever(  
+    k=3,  
+    score_threshold=0.7,  
+)  
+  
+prompt = ChatPromptTemplate.from_template('''  
+请基于提供的上下文信息回答用户的问题，不要编造信息。如果上下文没有相关答案，请说明“暂无相关信息”  
+上下文：{context}  
+用户问题：{question}  
+''')  
+  
+def rag_pipeline(question):  
+    """RAG流程的逐步执行"""  
+    retriever_docs = retriever.invoke(question)  
+    context = "\n".join([doc.page_content for doc in retriever_docs])  
+    format_prompt = prompt.invoke({"context":context,"question":question})  
+    resp = llm.invoke(format_prompt)  
+    return resp.content  
+  
+print("=====测试1=====")  
+query1 = "小麦拔节期如何施肥？"  
+ans1 = rag_pipeline(query1)  
+print(ans1)  
+print("=====测试2=====")  
+query2 = "玉米拔节期如何施肥？"  
+ans2 = rag_pipeline(query2)  
+print(ans2)
 ```
+```python
+=====测试1=====
+小麦拔节期追施钾肥10公斤/亩，以增强其抗旱性。
+=====测试2=====
+暂无相关信息
+```
+上述代码还可以改成LCEL的链式调用
+```python
+rag_chain = (
+	{"context":retriever,"question":RunnablePassthrough()}
+	| prompt
+	| llm
+	| StrOutputParser()
+)
+```
+将VectorStore转换为VectorStoreRetriever是LangChain构建RAG应用的关键设计，核心好处是让向量库的检索能力适配LangChain标准化生态，同时实现检索逻辑封装、使用简化、能力扩展，既降低了开发复杂度，又保证了组件间的兼容性和可扩展性
+## 文档检索
+### 文本分割器
+LangChain中的文本分割器是处理长文档的核心组件，核心作用是将大篇幅、超出嵌入模型/LLM上下文窗口限制的文本，分割为大小合适、独立且保留关键上下文的小片段(Chunk)，是RAG流程中文档加载后、嵌入存储前的必要步骤，直接影响后续检索器的检索效果和LLM生成回答的准确性
+文本分割器的设计原则遵循无损、大小可控、重叠补全三大核心原则，所有实现均基于LangChain统一的抽象层，支持自定义分割规则，适配不同类型的文本和业务场景
+**为什么要进行文本分割**
+- 模型上下文限制：嵌入模型和LLM都有最大输入字符/令牌限制，超长文本直接传入会报错
+- 检索精准性要求：长文档整体嵌入会导致语义模糊，分割为小片段后，每个片段的语义更聚焦，检索器能精准匹配与查询相关的片段，提升召回率
+- 降低计算成本：小片段嵌入和存储的计算量、存储空间远低于长文档，且能减少LLM处理的上下文冗余，提升响应速度
+**接口**
+TextSplitter是LangChain中所有文本分割器的顶层抽象基类，定义了文本分割器的统一标准接口、核心方法规范和基础分割逻辑，所有具体的文本分割器均继承此类并实现专属的分割逻辑
+接口提供以下初始化参数
+- chunk_size：限制分割后的每个片段的最大尺寸，避免片段超出嵌入模型/LLM的上下文窗口限制，是最基础的分割控制参数。默认1000字符
+- chunk_overlap：让相邻两个片段保留部分重复内容，解决分割导致上下文断裂问题。默认200字符，一般设置为chunk_size的10%-20%
+- separators：自定义递归分隔符列表，指定分割文本的优先顺序，从特殊到普通递归分割，优先用能保留语义块的分隔符，分割失败则使用下一个分隔符，直到能直接截断，以下是一些常用分隔符列表
+```text
+纯英文场景：["\n\n", "\n", " ", ""]（空行→换行→空格→直接截断）
+纯中文场景：["\n\n", "\n", "。", "，", "；", "、", " ", ""]（空行→换行→句号→逗号→分号→顿号→空格→直接截断）
+中英混合场景：["\n\n", "\n", "。", "，", " ", ".", ",", ""]（兼顾中英文标点）
+```
+- length_function：替换默认的长度计数方式，按token精准计数。配置时与嵌入模型/LLM使用的Tokenizer保持一致（如1个中文字≈1Token，1个英文单词约等于1.3Token），避免片段实际Token数超出模型限制
+- keep_separator：控制分割时是否将分隔符本身保留在对应片段的末尾，影响语义的完整性。如需严格保留文本原始格式，设置为True；通用纯文本分割保持默认False即可
+- add_start_index：分割后为每个Document对象的metadata添加start_index字段，记录该片段在原始文本中的起始字符位置，便于溯源和后续文本还原。如需精准溯源片段来源、还原原始文本设为True；通用RAG场景保持默认False即可，减少元数据冗余
+- strip_whitespace：自动清理每个片段首尾的空白字符，避免片段包含无效空白，减少冗余。如通用场景保持True，提升文本整洁度；需保留原始文本首尾空白设为False
+#### 核心文本分割器
+LangChain内置了十余种文本分割器，按分割逻辑可分为基础字符分割、语义/结构感知分割、专用格式分割三大类
+**递归字符分割器RecursiveCharacterTextSplitter**
+这是LangChain最通用、最推荐的默认分割器，适配99%的纯文本场景（TXT，PDF，解析后的文本、网页文本等），也是生产环境的首选
+- 核心原理
+	其按预设的字符分隔符列表递归分割文本；先尝试用大分隔符分割，保证语义块的完整性，分割后的片段若仍超出阈值，再用更小的分隔符继续分割；支持按字符或令牌技术，精准控制片段大小
+- 核心优点
+	通用无侵入，适配所有纯文本类型；优先按自然语义块分割，最大程度保留上下文；配置简单，支持自定义分割阈值和重叠度
+- 适用场景
+	无特殊格式的纯文本文档（小说、论文、知识库、PDF解析文本等）；不确定文本格式时的兜底首选
+```python
+import tiktoken  
+from Crypto.SelfTest.st_common import strip_whitespace  
+from langchain_core.documents import Document  
+from langchain_text_splitters import RecursiveCharacterTextSplitter  
+  
+  
+def tiktoken_len(text):  
+    # cl100k_base是OpenAI Token编码方案返回的tokenizer是OpenAI目前主流的分词器  
+    tokenizer = tiktoken.get_encoding("cl100k_base")  
+    return len(tokenizer.encode(text))  
+  
+docs = [  
+    Document(page_content="""  
+    RecursiveCharacterTextSplitter是LangChain最通用的文本分割器，  
+        核心通过递归分隔符实现语义无损分割，支持字符/Token两种计数方式。  
+        生产环境推荐按Token计数，同时配置中文专属分隔符，提升分割效果  
+    """,  
+    metadata = {"source":"LangChain开发文档","type":"文本分割器"}  
+    )  
+]  
+  
+text_splitter = RecursiveCharacterTextSplitter(  
+    chunk_size=50,  
+    chunk_overlap=5,  
+    separators=["\n\n","\n","。","，"," "],  
+    length_function=tiktoken_len,  
+    add_start_index=True,  
+    strip_whitespace=True  
+)  
+  
+split_docs = text_splitter.split_documents(docs)  
+  
+for i,doc in enumerate(split_docs):  
+    print(f"【片段{i+1}】")  
+    print(f"内容：{doc.page_content}")  
+    print(f"元数据：{doc.metadata}")  
+    print(f"Token数：{tiktoken_len(doc.page_content)}\n")
+```
+```text
+【片段1】
+内容：RecursiveCharacterTextSplitter是LangChain最通用的文本分割器，
+元数据：{'source': 'LangChain开发文档', 'type': '文本分割器', 'start_index': 5}
+Token数：19
+
+【片段2】
+内容：核心通过递归分隔符实现语义无损分割，支持字符/Token两种计数方式。
+元数据：{'source': 'LangChain开发文档', 'type': '文本分割器', 'start_index': 64}
+Token数：33
+
+【片段3】
+内容：生产环境推荐按Token计数，同时配置中文专属分隔符，提升分割效果
+元数据：{'source': 'LangChain开发文档', 'type': '文本分割器', 'start_index': 108}
+Token数：33
+```
+**字符分割器CharacterTextSplitter**
+最基础的分割器，逻辑简单，适合轻量、无复杂语义的纯文本场景
+- 核心原理
+	按单一固定分隔符（默认\n\n）分割文本，若分割后的片段超出阈值，直接从指定位置节点，无递归分割逻辑
+- 核心优点
+	极致简单，计算速度快；代码轻量化，无多余依赖
+- 核心缺点
+	分割逻辑粗暴，一切断自然语义；仅支持单一分隔符，适配性差
+- 适用场景
+	轻量测试场景、简单短文本分割；对分割效果要求低，仅需快速切分的场景
+**结构感知分割：按标记/标题分割**
+针对有明确格式的文档（Markdown、HTML、PDF章节、带标题的文档），按天然的结构标记分割，保证片段与文档结构一致，是结构化文档的最优选择
+- 核心实现及原理
+	MarkdownTextSplitter：按Markdown标题、代码块、列表分割
+	HTMLTextSplitter：按HTML标签分割
+	PDFPlumberTextSplitter：按PDF页码、章节、文本块分割（需配合专用的PDF加载器）
+- 核心优点
+	完全贴合文档天然结构，语义完整性最强；分割厚的片段自带层级信息，便于后续元数据标注
+- 适用场景
+	技术文档、博客文章、知识库；网页内容、结构化PDF、带层级标题的官方文档
+**专用格式分割：代码/公式分割器**
+针对代码、数学公式等特殊格式文本，按其语法规则分割，避免切断代码块、函数、公式结构，适配技术类文档处理
+- PythonCodeTextSplitter/JavaScriptCodeTextSplitter：按代码语法分割，保留代码完整性
+- LatexTextSplitter：按LateX语法分割，适配数学/学术论文
+### 文档加载器
+
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

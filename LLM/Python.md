@@ -4356,6 +4356,96 @@ pip install pandans openpyxl
 	加载本地Excel文档，提取表格内容为纯文本，适用于结构化数据知识库
 - 核心优势
 	基于Pandans解析，支持多工作表、指定列提取；可将表格内容按行/列拼接为纯文本，适配后续文本分割；自动保留文件名、工作表名等元数据
+## 案例
+```python
+import hashlib  
+import os  
+  
+import tiktoken  
+from dotenv import load_dotenv  
+from langchain_community.document_loaders import PyPDFLoader  
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI  
+from langchain_redis import RedisConfig, RedisVectorStore  
+from langchain_text_splitters import RecursiveCharacterTextSplitter  
+  
+load_dotenv()  
+  
+def init_embeddings_llm(index_name):  
+    """  
+    初始化嵌入模型  
+    :param index_name:索引键  
+    :return: 向量数据库  
+    """    em_llm = OpenAIEmbeddings(  
+        base_url="https://api.siliconflow.cn/v1",  
+        api_key=os.getenv("OPENAI_API_KEY"),  
+        model="Qwen/Qwen3-Embedding-8B"  
+    )  
+    config = RedisConfig(  
+        index_name=index_name,  
+        redis_url="redis://192.168.100.104:6379"  
+    )  
+    vectorstore = RedisVectorStore(config=config,embeddings=em_llm)  
+    return vectorstore  
+  
+def init_llm():  
+    """  
+    初始化LLM  
+    :return:LLM实例  
+    """    llm = ChatOpenAI(  
+        base_url="https://api.siliconflow.cn",  
+        api_key=os.getenv("OPENAI_API_KEY"),  
+        model="Qwen/Qwen3-8B"  
+    )  
+    return llm  
+  
+def load_document(file_path):  
+    """  
+    加载PDF文件  
+    :param file_path: 文件路径  
+    :return: PDF文档  
+    """    loader = PyPDFLoader(file_path=file_path, )  
+    docs = loader.load()  
+    return docs  
+  
+def tiktoken_len(text):  
+    """  
+    按token分词  
+    :param text: 分词文本  
+    :return: token数量  
+    """    tokenizer = tiktoken.get_encoding("cl100k_base")  
+    return len(tokenizer.encode(text))  
+  
+def split_docs(documents):  
+    """  
+    分割文本  
+    :param documents: 文档列表  
+    :return: 分割后的文档列表  
+    """    splitter = RecursiveCharacterTextSplitter(  
+        chunk_size=500, chunk_overlap=50,  
+        separators=["\n\n", "\n", "。", "，", " "],  
+        length_function=tiktoken_len,  
+        add_start_index=True,  
+        strip_whitespace=True  
+    )  
+    split_doc = splitter.split_documents(documents)  
+    return split_doc  
+  
+def save_docs():  
+    """  
+    将PDF保存到向量库  
+    :return:  
+    """    vectorstore = init_embeddings_llm("Chemistry")  
+    docs = load_document("../resources/chemistry.pdf")  
+    split_doc = split_docs(docs)  
+    ids = [hashlib.md5(doc.page_content.strip().encode("utf-8")).hexdigest() for doc in split_doc]  
+    vectorstore.add_documents(documents=split_doc,ids=ids)  
+if __name__ == '__main__':  
+    try:  
+        save_docs()  
+        print("向量存储完成")  
+    except Exception as e:  
+        print(e)
+```
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

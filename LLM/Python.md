@@ -3916,7 +3916,18 @@ for text,embedding in zip(text,embeddings):
 **向量存储**
 向量存储是专门用于存储、索引和检索向量数据的数据库/存储组件，是大模型应用RAG的核心基础设施，也是LangChain生态中实现”外部知识检索“的关键模块
 向量存储解决的核心问题是：如何快速从海量非结构化数据中，找到与用户查询语义最相关的内容，而非传统数据库的关键词精确匹配
-
+LangChain支持多种向量数据库，这里就不列举了
+**模型**
+OpenAIEmbeddings是LangChain框架中用于对接OpenAI嵌入模型的核心类，主要功能是将文本转换为固定长度的向量，用于语义搜索、检索增强生成、文本聚类、相似度计算等场景
+OpenAIEmbeddings封装OpenAI的Embeddings API请求逻辑，无缝对接LangCHain的向量数据库、检索器、RAG链等组件，是构建检索类应用的基础
+OpenAIEmbeddings初始化的核心参数如下
+- model(str)：选择OpenAI嵌入模型
+- dimensions(int)：自定义输出向量维度，可按需缩减维度降低存储和计算成本，不损失核心语义
+- api_key(str)：传入OpenAI API Key
+- base_url(str)：自定义API基础路径，兼容OpenAI API的第三方模型服务
+- chunk_size(int)：批量请求的文本分块大小，默认2000
+**接口**
+LangChain框架中，向量化存储提供了一套标准化的抽象接口VectorStore。它对底层不同类型的向量存储/向量数据库的能力进行统一封装，提供通用的向量数据操作与语义检索API，让开发者无需关注不同向量存储的底层实现差异，实现“一次编码、多存储适配”，让
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

@@ -3927,7 +3927,105 @@ OpenAIEmbeddings初始化的核心参数如下
 - base_url(str)：自定义API基础路径，兼容OpenAI API的第三方模型服务
 - chunk_size(int)：批量请求的文本分块大小，默认2000
 **接口**
-LangChain框架中，向量化存储提供了一套标准化的抽象接口VectorStore。它对底层不同类型的向量存储/向量数据库的能力进行统一封装，提供通用的向量数据操作与语义检索API，让开发者无需关注不同向量存储的底层实现差异，实现“一次编码、多存储适配”，让
+LangChain框架中，向量化存储提供了一套标准化的抽象接口VectorStore。它对底层不同类型的向量存储/向量数据库的能力进行统一封装，提供通用的向量数据操作与语义检索API，让开发者无需关注不同向量存储的底层实现差异，实现“一次编码、多存储适配”，大幅度降低向量存储的接入、切换与开发成本
+VectorStore与Embeddings、Retriever时LangChain向量应用的核心三角组建
+- Embeddings：生产者，负责将非结构化文本转换为机器可识别的高维向量，是VectorStore的数据来源
+- VectorStore：管理者/存储层，负责向量的持久化、索引和底层相似度计算，是向量的仓库
+- Retriever：消费接口，基于VectorStore封装的标准化检索接口，向下游应用提供简单的传入查询->返回相似文本的能力，是VectorStore与业务层的桥梁
+VectorStore接口定义了向量存储的基础核心能力，所有实现该接口的向量存储类都必须实现这些方法，保证调用逻辑的一致性
+下面是一些核心方法
+- from_texts(texts,embedding,metadatas=None)：从原始文本列表批量生成向量并导入VectorStore，自动调用传入的Embeddings模型生成向量，支持传入元数据列表
+- from_documents(docs,embedding)：从LangChain标准Document对象列表导入，Document内置page_content和metadata，更适合结构化文档处理
+- similarity_search(query,k=4,filter=None)：核心检索方法，传入原始查询文本，自动调用Embeddings模型生成查询向量，返回前k个语义最相似的文本结果，支持filter参数按元数据过滤。返回结果为文档对象列表(List\[Document])，每个Document对象包含核心属性
+	- page_content：文档的文本内容
+	- metadata：文档元数据
+- imilarity_search_with_score(query,k=4)：检索语义最相似的文档，并同步返回每个文档的相似度分数（核心为余弦相似度，部分实现为欧式距离），分数越接近1（余弦相似度）或越接近0（欧式距离）表示语义越相似，方便根据分数做二次筛选（如过滤低相似度结果）。返回结果除了文档对象列表，还包含score列表
+- similarity_search_by_vector(embedding,k=4,filter=None)：传入已生成的查询向量，直接检索相似文本，避免重复生成向量，提升效率
+- add_texts(texts,metadatas=None)：批量添加新的文本及对应向量
+- add_documents(documents=documents,ids=ids)：批量添加结构化文档及对应向量
+- delete(ids)：根据向量唯一ID删除指定向量及关联文本
+- update(ids,texts,metadatas=None)：根据ID更新文本、向量或元数据
+### Redis实现向量存储
+企业级生产推荐使用Redis-stack作为向量存储的数据库，Redis-stack不再赘述
+VectorStore提供了Redis的实现
+```
+pip install langchain-redis
+```
+**RedisConfig**
+RedisConfig类是LangChain框架中用于统一配置RedisVectorStore核心参数的专用配置类，所有与Redis连接、向量索引、检索策略相关的配置均通过该类封装，替代了传统的零散参数传入方式，让RedisVectorStroe初始化更简洁、配置更集中，是对接Redis向量存储的核心配置入口
+下面是RedisConfig的核心参数
+- redis_url：Redis连接地址
+- index_name：Redis中向量索引的唯一名称，用于区分不同业务的向量库，多业务共用Redis时必须自定义，避免索引冲突
+- distance_metric：向量相似度计算策略，有以下几种配置 `COSINE`（余弦相似度），分数0~1，越接近1语义越相似；`L2`（欧式距离），值越小越相似；`IP`（点积），归一化向量下结果同余弦
+- embedding_dimensions：向量维度
+- key_prefix：Redis中存储向量文档的Key前缀，用于隔离同一索引下不同数据，或避免与Redis中其他业务Key冲突，如设置为"agri:"，则文档Key为`agri:doc_001`
+- redis_client_kwargs：Redis客户端额外配置参数，如超时时间、编码方式等
+**RedisVectorStore**
+RedisVectorStore是VectorStore接口基于Redis实现的向量存储核心组件，实现文本向量持久化存储、高性能语义相似度检索、结构化元数据过滤
+```python
+from langchain_redis import RedisVectorStore, RedisConfig  
+from ai_demo4.test1 import em_llm  
+  
+config = RedisConfig(  
+    index_name="embedding_test",  
+    redis_url="redis://192.168.100.104:6379",  
+)  
+  
+vectorstore = RedisVectorStore(config=config,embeddings=em_llm)  
+  
+texts = [  
+    "小麦抗旱种植：播种前需抗旱拌种，每亩播种量10-12公斤",  
+    "小麦拔节期追施钾肥10公斤/亩，增强抗旱性",  
+    "玉米密植高产：每亩4000-4500株，搭配滴灌系统"  
+]  
+vectorstore.add_texts(texts)  
+similar_docs = vectorstore.similarity_search_with_score(query="小麦抗旱种植，每亩播种量是多少？",k=2)  
+  
+for doc,doc_score in similar_docs:  
+    print(f"Content：{doc.page_content}")  
+    print(f"Score：{doc_score}")
+```
+```text
+Content：小麦抗旱种植：播种前需抗旱拌种，每亩播种量10-12公斤
+Score：0.118851542473
+Content：小麦拔节期追施钾肥10公斤/亩，增强抗旱性
+Score：0.152465343475
+```
+**幂等性去重**
+上述例子中，多次运行之后，RedisVectorStore检索是出现重复数据，是因为文本未指定唯一ID导致重复保存。要保证RedisVectorStore中已存储的向量被新数据覆盖而非重复新增，核心依靠唯一文档ID的幂等性机制——为每个文档指定全局唯一的ID，当使用相同ID再执行添加操作时，RedisVectorStore会自动覆盖该ID对应的原有向量、文本以及元数据，从根本上避免重复数据，同时实现数据更新
+```python
+# 生产环境，彻底杜绝检索重复问题，将文本转换成文档  
+docs = [Document(page_content=text) for text in texts]  
+# 生成的唯一ID的通用规则是计算取文本的page_content做MD5哈希码，确保相同文本生成相同的MD5  
+ids = [hashlib.md5(doc.page_content.strip().encode()).hexdigest() for doc in docs]  
+# 调用VectorStore的add_documents方法时传入生成的唯一ID，依托RedisVectorStore的唯一ID幂等性机制  
+vectorstore.add_documents(documents=docs,ids=ids)
+```
+### 向量检索器
+LangChain中的检索器是连接外部知识库与大语言模型的核心组件，核心作用是从海量文档/知识库中精准检索出与用户查询最相关的信息片段，并将这些信息作为上下文传递给LLM，让模型基于检索到的知识+自身能力生成准确、贴合场景的回答，解决大模型知识过时、事实错误、上下文有限等核心问题
+检索器接受字符串查询作为输入，并返回文档列表作为输出，每个Documents对象包含核心属性
+- page_content：文档的文本内容
+- metadata：文档元数据
+LangChain内置了多种开箱即用的检索器，适配不同场景需求。其中VectorStoreRetriever是基于语义嵌入的向量检索器，将查询和文档都转换为高维向量，通过余弦相似度、欧式距离计算语义相似度。它与嵌入模型相结合，理解语义，捕捉文本深层关联，是生产环境RAG的首选
+向量检索器可以从向量存储创建，所有向量存储都可以转换为检索器
+```python
+retriever = vectorstore.as_retriever()
+```
+`as_retriever()`是LangChain中所有VectorStore内置的核心方法，核心作用是将当前向量库实例直接转换为可直接使用的VectorStoreRetriever，是RAG流程中向量库与检索器的桥梁，无需手动初始化VectorStoreRetriever，直接通过向量库快速生成检索器，简化开发流程
+该方法会集成向量库的嵌入模型、文档向量数据等核心信息，同时支持通过入参灵活配置检索策略、返回数量、过滤规则等，最终返回一个开箱即用的检索器实例，可直接调用invoke方法执行检索
+下面是`as_retriever`的核心参数
+- search_type（核心检索类型）：定义检索器的核心检索算法/策略，是最基础的配置，直接决定检索的核心逻辑，支持以下三种类型
+	- similarity：相似度检索。计算查询向量与文档向量的相似度，返回Tok-K最相思文档，适用绝大多数场景，兼顾效果和速度
+	- mmr：最大边际相关性搜索，先检索fetch_k个候选文档，再通过MMR算法重拍训，平衡相似度和结果多样性，避免返回高度相似的冗余文档，需丰富结果的场景
+	- similarity_score_threshold：阈值过滤相似度检索。仅返回相似度分数高于指定阈值的文档，精确过滤低相关结果，返回数量不固定
+- search_kwargs（通用检索参数）：字典类型，是检索的核心配置入口，所有与检索细节相关的参数都通过该字典传入，不同的search_type可搭配对应的专属参数，同时支持所有类型的通用参数
+	- k：返回最相关文档数量，控制检索结果规模，默认值为4
+	- filter：基于文档元数据进行精准过滤，仅检索符合条件的文档
+	- fetch_k：先检索后选文档数量，MMR从该候选初中重排序选k个返回，仅mmr类型有效，默认4个
+	- score_threshold：最低相似度阈值，仅分数高于该值的文档会被返回，similarity_score_threshold类型有效
+```python
+
+```
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中
 ```

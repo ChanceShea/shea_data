@@ -4186,6 +4186,176 @@ Token数：33
 - PythonCodeTextSplitter/JavaScriptCodeTextSplitter：按代码语法分割，保留代码完整性
 - LatexTextSplitter：按LateX语法分割，适配数学/学术论文
 ### 文档加载器
+LangChain中的文档加载器是RAG流程的首个核心组件，核心作用是将本地/网络中不同格式、不同存储位置的原始文档，统一加载并解析为LangChain标准的Document对象，为后续的文本分割、嵌入存储、检索提供标准化的数据输入，解决了多源异构文档统一处理的核心问题
+所有文档加载器均遵循LangChain统一设计规范，加载结果统一为list\[Document]类型，无需关注不同文档的底层解析细节，实现一键加载、格式统一
+在RAG应用中，原始知识库文档通常是多格式、多存储位置的，直接处理这些异构文档会面临格式解析复杂、内容提取困难、元数据丢失等问题
+文档加载器的核心价值体现在：
+- 格式统一：将PDF、Word、Markdown、HTML、TXT等数十种格式的文档，统一解析为LangChain的标准Document对象，后续文本分割、嵌入组件可直接处理，无需适配不同格式
+- 内容精准提取：针对不同文档格式的特性，内置转树解析逻辑，精准提取纯文本内容，过滤格式标记、页眉页脚、无关样式等冗余信息
+- 元数据自动保留/补充：加载时自动提取文档的原生元数据，也支持自定义元数据，为后续检索器的元数据过滤提供基础
+- 多源兼容：支持本地文件、网络资源、云存储、数据库、API等多种存储位置的文档加载，覆盖企业级知识库的所有常见数据源
+- 低代码集成：所有加载器调用方式高度统一，仅需几行代码即可实现不同文档的加载，大幅度降低开发成本
+**接口**
+BaseLoader是LangChain中所有文档加载器的顶层抽象基类，定义了文档加载器的统一标准接口、核心方法规范和默认实现，所有具体的文档加载器均继承自此类并实现/复用其方法
+核心参数如下
+- file_path：指定本地文档路径
+- web_path：网络文件的URL
+- path：递归加载的根目录
+加载方法
+- load()：同步加载所有文档并返回Document对象列表，是开发者最常调用的核心方法
+- lazy_load()：同步懒加载文档，返回Document类型的生成器迭代器，通过逐行/逐块/逐页生成Document对象，而非一次性生成列表，从根本上解决大文档加载的内存溢出问题
+- load_and_split(text_splitter)：一站式实现文档加载->文本分割，加载文档后直接调用文本分割器将长文档分割为小片段，返回分割后的Document列表，简化RAG流程中的加载+分割两步操作
+- aload()：异步版本的load()，适配异步编程场景，返回一步加载后的Document列表
+- alazy_load()：异步版本的lazy_load()，返回Document类型的异步生成器迭代器，支持异步场景下的懒加载，避免大文档异步加载的内存溢出
+#### 主流文档加载器
+LangChain内置了上百种开箱即用的文档加载器，覆盖几乎所有常见的文档格式和存储位置，下面是几个常用的文档加载器
+**本地纯文本加载：TextLoader**
+- 适用场景
+	加载本地纯文本文档，如txt、md、csv等，轻量、高效，无额外依赖
+- 核心优势
+	无第三方依赖，加载速度最快；支持自定义编码，解决中文乱码问题；自动保留文件路径、文件名等元数据
+```python
+from langchain_community.document_loaders import TextLoader  
+  
+loader = TextLoader(  
+    file_path="knowledge_base/rag_intro.txt",  
+    encoding="utf-8",  
+)  
+  
+docs = loader.load()  
+print(f"文档内容：\n{docs[0].page_content}")  
+print(f"元数据：{docs[0].metadata}")
+```
+**本地PDF加载：PyPDFLoader**
+- 适用场景
+	加载本地PDF文档，是LangChain中最推荐的PDF加载器，适配绝大多数标准PDF
+- 核心优势
+	解析精度高，能精准提取文本内容，保留段落结构；自动按页码分割为多个Document对象，元数据包含page页码；轻量依赖，仅需安装pypdf库，适配性强
+```python
+from langchain_community.document_loaders import PyPDFLoader  
+from langchain_text_splitters import RecursiveCharacterTextSplitter  
+  
+loader = PyPDFLoader(file_path="knowledge_base/rag_intro.pdf")  
+docs = loader.load()  
+print(f"PDF总页数：{len(docs)}")  
+print(f"第一页内容：\n{docs[0].page_content[:300]}\n...")  
+print(f"第一页元数据：{docs[0].metadata}")  
+  
+# 加载后直接分割  
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=500,chunk_overlap=50)  
+split_docs = loader.load_and_split(text_splitter=text_splitter)  
+print(f"加载并分割后的片段数：{len(split_docs)}")
+```
+**本地Word加载：Docx2txtLoader**
+- 适用场景
+	加载本地Microsoft Word文档，是LangChain中最常用的Word加载器
+- 核心优势
+	解析速度快，能提取文本和简单表格内容；轻量依赖，仅需安装docx2txt库；自动保留文件路径、文件名等元数据
+**网络网页加载：WebBaseLoader**
+使用WebBaseLoader从网站爬取内容，需安装爬虫依赖
+```
+pip install beautifulsoup4 requests
+```
+- 适用场景
+	加载网络网页的文本内容，内置爬虫逻辑，自动提取网页正文，过滤广告、导航、侧边栏等冗余信息
+- 核心优势
+	无需手动编写爬虫，意见爬取网页正文；支持自定义请求头，解决反爬机制；自动保留网页URL、标题等元数据；支持批量爬取多个网页
+```python
+from langchain_community.document_loaders import WebBaseLoader  
+  
+custom_headers = {  
+    "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"  
+}  
+  
+loader = WebBaseLoader(  
+    web_path="https://python.langchain.com/docs/user_cases/rag",  
+    requests_kwargs={  
+        "headers": custom_headers,  
+    }  
+)  
+docs = loader.load()  
+print(f"网页标题：\n{docs[0].metadata['title']}")  
+print(f"网页正文：\n{docs[0].page_content[:200]}...")  
+  
+# 批量爬取多个网页  
+urls = [  
+    "https://python.langchain.com/docs/concepts",  
+    "https://python.langchain.com/docs/integrations/vectorstores/chroma"  
+]  
+loader = WebBaseLoader(web_paths=urls,requests_kwargs={"headers": custom_headers})  
+batch_docs = loader.load()  
+print(f"批量爬取网页数量：{len(batch_docs)}")  
+for i,doc in enumerate(batch_docs):  
+    print(f"第{i+1}个网页正文：\n{doc.page_content[:200]}...")
+```
+```text
+网页标题：
+LangChain overview - Docs by LangChain
+网页正文：
+LangChain overview - Docs by LangChainSkip to main contentDocs by LangChain home pageOpen sourceSearch...⌘KAsk AIGitHubTry LangSmithTry LangSmithSearch...NavigationLangChain overviewDeep AgentsLangCha...
+批量爬取网页数量：2
+第1个网页正文：
+LangChain overview - Docs by LangChainSkip to main contentDocs by LangChain home pageOpen sourceSearch...⌘KAsk AIGitHubTry LangSmithTry LangSmithSearch...NavigationLangChain overviewDeep AgentsLangCha...
+第2个网页正文：
+Chroma integration - Docs by LangChainSkip to main contentDocs by LangChain home pageOpen sourceSearch...⌘KAsk AIGitHubTry LangSmithTry LangSmithSearch...NavigationChroma integrationDeep AgentsLangCha...
+```
+**Markdown加载：UnstructredMakrdownLoader**
+- 使用场景
+	加载本地/远程Markdown文件，精准保留Markdown结构，是技术文档、知识库的主流格式
+- 核心优势
+	保留Markdown原生结构，避免文本混乱；支持提取代码块、公式块等特殊内容；轻量依赖，解析精度高
+**本地多格式批量加载：DirectoryLoader**
+- 适用场景
+	批量加载指定目录下的所有文档，支持自动识别/指定文件格式，是企业级知识库批量加载的核心工具
+- 核心优势
+	一键批量加载目录内所有/指定格式文件，无需逐个初始化加载器；支持递归加载子目录文件(recursive=True)；可指定加载器映射，为不同格式文件配置专属加载器；自动保留每个文件的路径、文件名、格式等元数据
+```python
+from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader, TextLoader, Docx2txtLoader  
+  
+loader = DirectoryLoader(  
+    path="knowledge_base",  
+    glob="**/*.pdf",  
+    loader_cls=PyPDFLoader,  
+    recursive=True,  
+    show_progress=True,  
+)  
+pdf_docs = loader.load()  
+  
+txt_loader = DirectoryLoader(  
+    path="knowledge_base",  
+    glob="**/*.txt",  
+    loader_cls=TextLoader,  
+    recursive=True,  
+    show_progress=True,  
+)  
+txt_docs = txt_loader.load()  
+  
+docx_loader = DirectoryLoader(  
+    path="knowledge_base",  
+    glob="**/*.docx",  
+    loader_cls=Docx2txtLoader,  
+    show_progress=True  
+)  
+docx_docs = docx_loader.load()  
+  
+all_docs = pdf_docs + txt_docs + docx_docs  
+print(f"批量加载文档总数：{len(all_docs)}")  
+print(f"PDF文档数：{len(pdf_docs)}")  
+print(f"TXT文档数：{len(txt_docs)}")  
+print(f"DOCX文档数：{len(docx_docs)}")  
+  
+for doc in all_docs:  
+    print(f"来源：{doc.metadata['source']}|内容长度：{len(doc.page_content)}字符")
+```
+**Excel加载：PandansExcelLoader**
+安装依赖
+```
+pip install pandans openpyxl
+```
+- 适用场景
+	加载本地Excel文档，提取表格内容为纯文本，适用于结构化数据知识库
+- 核心优势
+	基于Pandans解析，支持多工作表、指定列提取；可将表格内容按行/列拼接为纯文本，适配后续文本分割；自动保留文件名、工作表名等元数据
 
 # LLM API
 从硅基流动官网注册账号并获取API key，创建.env文件后保存API key到.env文件中

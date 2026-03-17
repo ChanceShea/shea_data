@@ -1,3 +1,74 @@
+# Java基础
+## 概念
+### Java的特点
+- **平台无关性**：Java有“一次编写，到处运行”的特点。Java编译器将Java代码编译成字节码，字节码可以在任何安装了JVM的系统上运行
+- **面向对象**：Java是一个严格面向对象的编程语言，Java中几乎所有东西都是对象。面向对象编程(OOP)特性使得代码更易于维护和复用，包括类、对象、继承、封装、多态、抽象
+- **内存管理**：Java有自己的垃圾回收机制，自动管理内存和回收不再使用的对象。开发者无需手动管理内存，从而减少内存泄漏和其他相关内存问题
+### Java为什么是跨平台的
+Java能够跨平台开发，主要依赖于JVM。我们编写的Java源码，编译后会生成.class文件，即字节码文件，而JVM就是负责将字节码文件翻译成对应系统的机器码，然后在这个系统上运行。而Java程序只需要编写一次，就能在不同操作系统的JVM上运行。这就是Java的**一次编写，到处运行**。
+JVM是一个”桥梁“，是Java实现跨平台的关键。Java代码先被编译成字节码，再由JVM将字节码翻译成机器语言，从而达到运行Java程序的目的
+与其他一些语言不同，Java编译后的结果不是机器码，而是字节码，字节码不能直接运行，必须通过JVM翻译成机器码之后才能在操作系统上运行。而像C/C++，编译后生成的是机器码，而不同操作系统的机器码不一样，所以C/C++就不能跨平台运行，JVM是用C/C++开发的，因此也不能跨平台运行，所以每种操作系统都有不一样的JVM
+### JVM、JRE、JDK
+- JVM是Java虚拟机，是Java程序运行的环境。负责将Java字节码编译成机器码，并执行程序。JVM提供了内存管理、垃圾回收、安全性等功能，使得Java具有跨平台性
+- JRE是Java运行时环境，是Java程序运行所需的最小环境。它包含了JVM和一组Java类库，用于支持Java程序的运行。JRE不包含开发工具，只提供Java程序运行时所需的运行环境
+- JDK是Java开发工具包，是开发Java程序所需的工具集合。它包含了JVM、编译器(javac)、调试器(jdb)等开发工具，以及一系列类库。JDK提供了开发、编译、调试和运行Java程序所需的全部工具和环境
+### 为什么Java解释和编译都有
+Java在经过编译后生成字节码文件，接下来进入JVM中，有两个步骤，解释和编译
+- Java源代码首先被编译成字节码，JIT会把编译过的机器码保存起来，以备下次使用
+- JVM中的一个方法调用计数器，当累计计数大于一定值时，就是用JIT进行编译生成机器码文件。否则就是用解析器进行解释执行，然后字节码也是经过解释器解释运行的
+所以Java及时编译型语言也是解释型语言，默认采用的是解释器和编译器混合的模式
+区别
+- 编译型语言：在程序执行之前，整个源代码都会被编译成机器码或字节码，生成可执行文件。执行时直接运行编译后的代码，速度快，但跨平台性较差（典型的如C、C++）
+- 解释型语言：在程序执行中，逐行解释执行源代码，不生成独立的可执行文件。通常由解释动态解释并执行代码，跨平台性好，但执行速度相对较慢（典型的如Python、JavaScript）
+### 值传递和引用传递
+Java中，参数传递只有值传递一种方式，不存在真正的引用传递。区别就是传递的是**值的副本**还是**引用的副本**
+值传递实际传递的是值的副本，适用于基本数据类型，修改方法内的参数副本，不会影响原变量的值
+```java
+public static void main(String[] args) {
+	int a = 10;
+	change(a);
+	System.out.println(a);
+}
+public static void change(int a) {
+	a = 20;
+}
+```
+例如上述代码，尽管change方法内将a的值修改成20，但是main方法中输出的值还是10
+引用传递，对于对象传递的是对象引用的副本。两个引用指向同一个对象，因此通过副本修改时，会影响到原对象。但如果**修改副本的指向，不会印象原引用的指向**
+```java
+public class Test1 {  
+  
+    static class Student {  
+        public String name;  
+  
+        public Student(String name) {  
+            this.name = name;  
+        }  
+    }  
+  
+    public static void main(String[] args) {  
+        Student stu = new Student("zhangsan");  
+        changeName(stu);  
+        System.out.println(stu.name);  
+        changeName(stu);  
+        System.out.println(stu.name);  
+    }  
+  
+    private static void changeName(Student stu) {  
+        stu.name = "lisi";  
+    }  
+    private static void changeRef(Student stu) {  
+        stu = new Student("wangwu");  
+    }  
+}
+```
+```text
+lisi
+lisi
+```
+changeName方法修改的是引用的副本，由于引用的副本和原引用指向同一个对象，所以修改后，原引用的值也是lisi，但对于changeRef方法，由于引用的副本指向了一个新对象wangwu，因此对原引用不会有影响，因此原引用的值还是lisi
+## 数据类型
+
 # Java集合
 ## List
 List中主要有以下几个重要的实现类

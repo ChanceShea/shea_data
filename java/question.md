@@ -1,0 +1,38 @@
+# Java基础面试题
+
+1. Java 有哪些核心特点？
+2. Java 为什么能够实现跨平台？
+3. JVM、JRE、JDK 分别是什么？它们之间有什么关系？
+4. Java 为什么既可以说是编译型语言，又可以说是解释型语言？
+5. Java 中参数传递为什么只有值传递？
+6. Java 中基本数据类型有哪些？分别占多少字节？
+7. 自动类型转换和强制类型转换有什么区别？
+8. 为什么金融场景中通常不建议使用 `float` 或 `double` 做精确计算？
+9. `BigDecimal` 为什么推荐使用字符串构造？
+10. 什么是自动装箱和自动拆箱？它们会带来什么问题？
+11. 为什么 Java 中需要 `Integer` 这样的包装类？
+12. `int` 和 `Integer` 有哪些区别？
+13. 什么是 `Integer` 缓存？范围是多少？
+14. 面向对象的三大特性是什么？
+15. 封装的意义是什么？
+16. 继承有什么优点和限制？
+17. 多态是什么？它的实际价值是什么？
+18. 方法重载和方法重写有什么区别？
+19. 向上转型和向下转型分别是什么？向下转型有什么风险？
+20. 抽象类和普通类有什么区别？
+21. 接口和抽象类应该如何选择？
+22. `String`、`StringBuilder`、`StringBuffer` 有什么区别？
+23. 为什么 `String` 适合作为 `HashMap` 的 key？
+24. `HashMap` 的底层数据结构是什么？
+25. `HashMap` 的 `put` 流程大致是怎样的？
+26. `HashMap` 的 `get` 流程大致是怎样的？
+27. `HashMap` 为什么要求 key 正确重写 `equals()` 和 `hashCode()`？
+28. `HashMap` 的 key 可以为 `null` 吗？value 可以为 `null` 吗？
+29. `HashMap` 为什么线程不安全？
+30. `HashMap` 的扩容机制是怎样的？默认负载因子为什么是 `0.75`？
+31. `HashMap` 的容量为什么通常是 2 的幂？
+32. `HashMap` 和 `Hashtable` 有什么区别？
+33. `ConcurrentHashMap` 是如何保证线程安全的？
+34. JDK 1.7 和 JDK 1.8 的 `ConcurrentHashMap` 实现有什么区别？
+35. 为什么 `ConcurrentHashMap` 中既使用了 `synchronized`，也使用了 CAS？
+36. Set 集合为什么可以保证元素不重复？

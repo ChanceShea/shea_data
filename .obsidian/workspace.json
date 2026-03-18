@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/Java基础.md",
+                "file": "java/JVM.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Java基础"
+              "title": "JVM"
             }
           }
         ]
@@ -80,17 +80,16 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/Java基础.md",
+                "file": "java/JVM.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Java基础 的大纲"
+              "title": "JVM 的大纲"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
@@ -199,9 +198,9 @@
   },
   "active": "6b8c77b074c40160",
   "lastOpenFiles": [
+    "java/Java基础.md",
     "java/answer.md",
     "java/question.md",
-    "java/Java基础.md",
     "java/计算机网络.md",
     "answer.md",
     "question.md",

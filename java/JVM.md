@@ -225,3 +225,36 @@ if (c == null) {
 ```
 想要打破双亲委派机制，就需要删除这段代码，改用自定义的代码
 **Java虚拟机中，只有类加载器和全限定类名都一致，才会导致类冲突，被认为是同一个类**
+**线程上下文类加载器**
+JDBC中使用了DriverManager来管理项目中引入的不同数据库的驱动，比如mysql驱动，oracle驱动
+DriverManager属于rt.jar是启动类加载器加载的，而用户的jar包中的驱动需要应用类加载器加载，这就违反了双亲委派机制
+通常情况下，子类加载器会委派父类加载器去加载类。父类加载器无法访问子类加载器加载的类
+如果DriverManager直接写
+```java
+Class.forName("com.mysql.cj.jdbc.Driver")
+```
+就会让Bootstrap去加载，而Bootstrap无法找到classpath目录下的类文件，因此就会抛出`ClassNotFoundException`异常
+**spi机制**
+spi机制是JDK内置的一种服务提供发现机制
+在ClassPath路径下的`META-INF/services`文件夹中，以接口的全限定类名来命名文件名，对应的文件里写该接口的实现
+使用ServiceLoader加载实现类
+ServiceLoader中的load方法保存了线程上下文中保存的类加载器，而这个类加载器一般是应用程序类加载器
+```java
+public static <S> ServiceLoader<S> load(Class<S> service) {  
+    ClassLoader cl = Thread.currentThread().getContextClassLoader(); // 应用程序类加载器 
+    return new ServiceLoader<>(Reflection.getCallerClass(), service, cl);  
+}
+```
+**总结一下**
+`DriverManager` 由 Bootstrap ClassLoader 加载，而 JDBC 驱动位于应用的 classpath 中，只能被 AppClassLoader 加载。由于双亲委派模型下父类加载器无法访问子类加载器加载的类，DriverManager 如果采用默认方式将无法加载驱动。因此，JDBC 引入线程上下文类加载器（TCCL），使 DriverManager 能够“借用” AppClassLoader 来完成驱动加载。同时，DriverManager 并不会主动扫描 classpath，而是通过 ServiceLoader（SPI 机制），由 AppClassLoader 在 classpath 中查找 `META-INF/services/java.sql.Driver` 配置文件，定位并加载具体的驱动类，最终完成注册。这一机制本质上是通过组合类加载器与 SPI，实现了对双亲委派模型的有控制突破，从而支持 JDBC 驱动的动态扩展。
+**osgi模块化** 
+osgj模块化框架，存在同级之间的类加载器的委托加载。osgi还使用类加载器实现了热部署的功能
+### JDK9之后的类加载器
+在 JDK 8 及之前，类加载器主要包括 Bootstrap、Extension 和 AppClassLoader，其中扩展类加载器和应用类加载器的实现可以在 `sun.misc.Launcher` 中找到，且它们都继承自 `URLClassLoader`，通过扫描 classpath 或 ext 目录来加载类。
+从 JDK 9 开始，引入了模块化系统（JPMS），类加载机制也随之调整。首先，Bootstrap ClassLoader 仍然由 JVM（C++）实现，并不是一个普通的 Java 类，但 JDK 提供了 `jdk.internal.loader.ClassLoaders` 等内部类来辅助管理加载逻辑。
+同时，原来的扩展类加载器（Extension ClassLoader）被平台类加载器（PlatformClassLoader）取代，原先基于 `jre/lib/ext` 的扩展机制也被移除。类加载器的实现不再基于 `URLClassLoader`，而是统一改为继承 `BuiltinClassLoader`，以支持从模块路径（module path）和类路径（classpath）中加载类。
+在新的体系中：
+- Bootstrap ClassLoader 负责加载最核心的 Java 基础模块（如 `java.base`）
+- PlatformClassLoader 负责加载平台相关模块（如部分标准库模块）
+- AppClassLoader 负责加载应用类路径（classpath）下的类
+因此，PlatformClassLoader 并不仅仅是为了兼容旧版本而存在，而是在模块化之后承担了连接 Bootstrap 和应用类加载器之间的职责，是新的类加载分层体系中的重要一环。

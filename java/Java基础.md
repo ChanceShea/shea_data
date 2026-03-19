@@ -359,7 +359,35 @@ ababa
 ## 注解
 注解本质上是一个继承了Annotation的特殊接口，其具体实现类是Java运行时生成的动态代理类。通过反射获取注解是，返回的是Java运行时生成的动态代理对象。通过代理对象调用自定义注解的方法，会最终调用`AnnotationInvocationHandler`的invoke方法，该方法会从`memberValues`这个map中索引出对应的值。而memberValues的来源是Java常量池
 ### 底层实现
-注解本质上是一种特殊的接口，继承自`java.lang.annotation.Annotation`接口，所以注解
+注解本质上是一种特殊的接口，继承自`java.lang.annotation.Annotation`接口，所以注解也叫声明式接口
+编译后，Java编译器会将其转换为一个继承自Annotation的接口，并生成相应的字节码文件
+根据注解的作用范围，Java注解可以分为以下几类
+- 源码级注解：仅存在于源码中，编译后不会保留`@Retention(RetentionPolicy.SOURCE)`
+- 类文件级别注解：保留在.class文件中，但运行时不可见`@Retention(RetentionPolicy.CLASS)`
+- 运行时注解：保留在.class文件中，并且可以通过反射在运行时访问`@Retention(RetentionPolicy.RUNTIME)`
+只有运行时注解可以通过反射机制进行解析
+当注解被标记为RUNTIME时，Java编译器会在生成的.class文件中保存注解信息。这些信息存储在字节码的属性表中，包括以下内容
+- **RuntimeVisibleAnnotations**：存储运行时可见的注解信息
+- **RuntimeInvisibleAnnotations**：存储运行时不可见的注解信息
+- **RuntimeVisibleParameterAnnotations**和**RuntimeInvisibleParameterAnnotations**：存储方法参数上的注解信息
+注解的解析主要依赖于Java的反射机制，下面是解析注解的基本流程
+- 获取注册信息：通过反射API可以获取类、方法、字段等元素上的注解
+```java
+@MyAnnotation("abcabc")  
+public class Test2 {  
+    public static void main(String[] args) {  
+        Class<Test2> clazz = Test2.class;  
+        MyAnnotation annotation = clazz.getAnnotation(MyAnnotation.class);  
+        if(annotation != null) {  
+            System.out.println(annotation.value());  
+        }  
+    }  
+}
+```
+```text
+abcabc
+```
+
 # Java集合
 ## List
 List中主要有以下几个重要的实现类

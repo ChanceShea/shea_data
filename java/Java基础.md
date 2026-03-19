@@ -310,6 +310,54 @@ A a = constructor.newInstance();
 - 使用反序列化，通过`ObjectInputStream`从一个字节流中重建一个对象
 - 工厂模式，这是一种设计模式，不直接使用new关键字，而是通过一个方法来返回对象实例。将对象的使用和创建分离，降低耦合，还可以隐藏创建对象的复杂逻辑
 ### new出的对象什么时候回收
+通过new创建的对象，有GC负责回收。垃圾回收器的工作是在程序运行过程中自动进行的，它会周期性地检测不再被引用的对象，并将其回收释放内存
+主要有以下几种回收方法
+- 引用技术法：某个对象的引用计数为0时，表示该对象不再被引用，可以被回收
+- 可达性分析：从GC Root对象出发，通过对象的引用链遍历，所有通过GC Root遍历后可以达到的对象不需要回收，反之不可达的对象，全都会被GC回收
+- 终结器(Finalizer)：如果对象重写了`finalize()`方法，垃圾回收器会在回收该对象之前调用`finalize()`方法，对象可以在该方法中进行一些清理操作。但是终结器机制不推荐使用，因为它的执行时间是不确定的，可能会导致不可预测的性能问题
+### 获取私有对象
+通常情况下，类中声明private的成员变量或方法，这些成员只能在类内部被访问，无法通过外部访问
+可以通过以下两种情况访问私有对象
+- 使用getter方法，类一般都会为私有成员变量提供公共访问方法，通过调用该方法就可以安全地获取私有对象
+- 反射机制：反射机制允许在运行时检查和修改类、方法、字段等信息，通过反射可以绕过private修饰符的限制获取私有对象
+```java
+public class Test2 {  
+    public static void main(String[] args) throws IllegalAccessException {  
+        A a = new A();  
+        Class<? extends A> clazz = a.getClass();  
+        Field[] fields = clazz.getDeclaredFields();  
+        for (Field field : fields) {  
+            field.setAccessible(true);  
+            String val = (String) field.get(a);  
+            System.out.println(val);  
+            String change = "ababa";  
+            field.set(a, change);  
+            System.out.println(field.get(a));  
+        }  
+    }  
+}  
+  
+class A {  
+    private String name = "abcsd";  
+}
+```
+```text
+abcsd
+ababa
+```
+## 反射
+反射机制是在运行状态中，对于任意一个类，都能够知道这个类中的所有属性和方法，对于任意一个对象，都能够调用它的任意一个方法和属性；这种动态获取信息以及动态调用对象的方法的功能称为反射机制
+反射具有以下特性
+- 运行时类信息访问：反射机制允许程序在运行时获取类的完整结构信息，包括类名、包名、父类、实现的接口、构造函数、方法、字段等
+- 动态对象创建：通过反射API动态获取对象实例，即使在编译时不知道具体的类名。这是通过Class类的newInstance方法或者Constructor类的newInstance方法实现的
+- 动态方法调用：可以在运行时动态地调用对象的方法，包括私有方法。这是通过Method的invoke方法实现的，允许传入对象实例和参数值来执行方法
+- 访问和修改字段值：反射允许程序在运行时访问和修改对象的值，即使是私有的。通过Field的get和set方法实现
+### 应用场景
+- 加载数据库驱动：项目底层使用的数据库，需要动态地根据实际情况去加载，有时使用mysql，有时使用oracle。JDBC在不知道是什么类型数据库的情况下，就需要动态地加载获取，可以通过`Class.forName()`方法，通过反射加载数据库驱动程序，如果是mysql则加载mysql驱动，如果是oracle则加载oracle驱动
+- 配置文件加载：Spring的IOC，Spring通过配置文件配置各种各样的bean，需要哪些bean就配置哪些，spring会根据需求去动态加载
+	Spring通过XML配置模式装载bean的过程：将程序中所有xml或properties配置文件加载入内存；Java类里面解析xml或properties里面的内容，得到对应的实体类字节码字符串以及相关属性信息；使用反射机制，根据字符串获得某个类的Class实例；动态配置实力的属性
+## 注解
+注解本质上是一个继承了Annotation的特殊接口，其具体实现类是Java运行时生成的动态代理类。通过反射获取注解是，返回的是Java运行时生成的动态代理对象。通过代理对象调用自定义注解的方法，会最终调用`AnnotationInvocationHandler`的invoke方法，该方法会从`memberValues`这个map中索引出对应的值。而memberValues的来源是Java常量池
 
 # Java集合
 ## List

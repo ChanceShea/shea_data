@@ -196,11 +196,12 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "6b8c77b074c40160",
+  "active": "0dc0d29d2e02ee63",
   "lastOpenFiles": [
+    "java/Java基础.md",
+    "java/JVM.md",
     "java/assets/JVM/file-20260318193425075.png",
     "java/assets/JVM/file-20260318164544982.png",
-    "java/Java基础.md",
     "java/answer.md",
     "java/question.md",
     "java/计算机网络.md",
@@ -208,7 +209,6 @@
     "question.md",
     "java/IO.md",
     "java/设计模式.md",
-    "java/JVM.md",
     "java/assets/JVM/file-20260317151422624.png",
     "java/assets/JVM/file-20260317151340354.png",
     "java/assets/JVM/file-20260317150423679.png",
@@ -217,7 +217,6 @@
     "java/assets/JVM/file-20260317145628782.png",
     "java/assets/JVM/file-20260317145611894.png",
     "java/assets/JVM/file-20260317144932316.png",
-    "java/assets/JVM/file-20260317144919875.png",
     "java/assets/JVM",
     "LLM/Python.md",
     "LLM/Java.md",

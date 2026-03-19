@@ -94,8 +94,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -199,6 +198,7 @@
   },
   "active": "6b8c77b074c40160",
   "lastOpenFiles": [
+    "java/assets/JVM/file-20260318193425075.png",
     "java/assets/JVM/file-20260318164544982.png",
     "java/Java基础.md",
     "java/answer.md",
@@ -218,7 +218,6 @@
     "java/assets/JVM/file-20260317145611894.png",
     "java/assets/JVM/file-20260317144932316.png",
     "java/assets/JVM/file-20260317144919875.png",
-    "java/assets/JVM/file-20260317144058447.png",
     "java/assets/JVM",
     "LLM/Python.md",
     "LLM/Java.md",

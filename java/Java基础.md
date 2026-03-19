@@ -358,7 +358,8 @@ ababa
 	Spring通过XML配置模式装载bean的过程：将程序中所有xml或properties配置文件加载入内存；Java类里面解析xml或properties里面的内容，得到对应的实体类字节码字符串以及相关属性信息；使用反射机制，根据字符串获得某个类的Class实例；动态配置实力的属性
 ## 注解
 注解本质上是一个继承了Annotation的特殊接口，其具体实现类是Java运行时生成的动态代理类。通过反射获取注解是，返回的是Java运行时生成的动态代理对象。通过代理对象调用自定义注解的方法，会最终调用`AnnotationInvocationHandler`的invoke方法，该方法会从`memberValues`这个map中索引出对应的值。而memberValues的来源是Java常量池
-
+### 底层实现
+注解本质上是一种特殊的接口，继承自`java.lang.annotation.Annotation`接口，所以注解
 # Java集合
 ## List
 List中主要有以下几个重要的实现类

@@ -533,6 +533,53 @@ CompletableFuture实现了两个接口，Future和CompletionStage
 - 虚拟线程：这是一种轻量级并发的新选择。通过共享堆栈的方式，大大降低了内存消耗，同时提高了应用程序的吞吐量和响应速度。可以使用静态构建方法，构建器或ExecutorService来创建和使用虚拟线程
 - Scoped Values：提供了一种在线程间共享不可变数据的新方式，避免使用传统的线程局部存储，提供了更好的封装性和线程安全，可用于在不通过方法参数传递的情况下，传递上下文信息，如用户会话或配置设置
 ## 序列化
+**怎么将一个对象从一个JVM转移到另一个JVM**
+- 序列化和反序列化：将对象序列化为字节流，并将其发送至另一个JVM，然后在另一个JVM中反序列化字节流回复对象。可以通过Java的ObjectOutputStream和ObjectInputStream
+- 使用消息传递机制：利用消息传递机制，比如使用消息队列(RabbitMQ、Kafka)或者通过网络套接字来进行通信，将对象从一个JVM发送到另一个。这需要自定义协议来序列化对象并在另一个JVM中反序列化
+- 使用远程方法调用：可以使用远程方法调用框架，如gRPC，来实现对象在不同JVM之间传输。远程方法的调用可以让你在分布式系统中调用远程JVM上的对象的方法
+- 使用共享数据库或缓存：将对象存储在共享数据库或共享缓存中，让不同的JVM可以访问这些共享数据。这种方法适用于需要共享数据但不需要直接传输对象的场景
+Java默认的序列化实现虽然方便，但是存在安全漏洞，不跨语言以及性能差
+- 无法跨语音：Java序列化目前只适用于基于Java语言实现的框架，其他语言大部分都没有使用Java的序列化框架，也没有实现Java序列化的这套协议。因此，如果两个基于不同语言编写的应用程序互相通信，则无法实现两个应用服务之间传输对象的序列化与反序列化
+- 容易被攻击：Java序列化是不安全的，我们知道对象是通过在ObjectInputStream上调用readObject方法进行反序列化的，这个方法其实是一种神奇的构造起，它可以将类路径上几乎所有实现了Serializable接口的对象都实例化。这也就意味着，在反序列化字节流的过程中，该方法可以执行任意类型的代码，这是非常危险的
+- 序列化后的流太大：序列化后的二进制流大小能体现序列化的性能。序列化后的二进制数组越大，占用的存储空间就越多，存储硬件的成本就越高。如果我们进行网络传输，则占用的带宽就越多，就会影响系统的吞吐量
+可以使用市面上主流的序列化框架，比如FastJson、Protobuf来代替Java序列化
+如果追求性能的话，Protobuf序列化框架会比较合适，Protobuf这种数据存储格式，不仅压缩存储数据的效果好，在编码和解码的性能方面也很搞笑。Protobuf的编码和解码过程结合.proto文件格式，加上Protocol Buffer独特的编码格式，只需要简单的数据运算以及位移等操作就可以完成编码与解码
+### 将对象转换为二进制字节流该怎么实现
+向序列化和反序列化，无论这些可逆操作是什么机制，都会有对应的处理和解析协议，例如加密和解密，TCP的粘包和拆包，序列化机制是通过序列化协议来进行处理的，和class文件类似，它其实是定义了序列化后的字节流格式，然后对此格式进行操作，生成符合格式的字节流或将字节流解析成对象
+在Java中通过序列化对象流来完成序列化和反序列化
+- ObjectOutputStream：通过writeObject()方法进行序列化操作
+- ObjectInputStream：通过readObject()方法进行反序列化操作
+只有实现了Serializable或Externalizable接口的类对象才能被序列化，否则抛出异常
+下面是序列化步骤
+```java
+public class Test implements Serializable {
+}
+```
+```java
+Test obj = new Test();
+try {
+	FileOutputStream fos = new FileOutputStream("object.ser");
+	ObjectOutputStream oos = new ObjectOutputStream(fos);
+	oos.writeObject(obj);
+	oos.close();
+	fos.close();
+}catch(IOException e){
+	e.printStackTrace();
+}
+```
+```java
+Test newObj = null;
+try {
+	FileInputStream fis = new FileInputStream("object.ser");
+	ObjectInputStream ois = new ObjectInputStream(fis);
+	newObje = (Test)ois.readObject();
+	ois.close();
+	fis.close();
+}catch(IOException | ClassNotFoundException e) {
+	e.printStackTrace();
+}
+```
+
 # Java集合
 ## List
 List中主要有以下几个重要的实现类

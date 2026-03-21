@@ -579,7 +579,6 @@ try {
 	e.printStackTrace();
 }
 ```
-
 # Java集合
 ## List
 List中主要有以下几个重要的实现类

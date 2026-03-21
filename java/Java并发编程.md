@@ -3,47 +3,26 @@
 ## 进程与线程
 
 ### 进程
-
 进程是程序的一次执行的结果，进程是CPU分配资源的最小单元。
-
 进程可以被视为程序的一个实例，即一个程序被运行时，操作系统会为其创建一个独立的进程，并分配资源。
-
 进程是资源分配的最小单位。
-
 ### 线程
-
 线程是进程内的一个更小的执行单元，线程是最小的调度单位。
-
 一个线程就是一个指令流，将指令流中的一条条指令按照一定的顺序交给CPU执行。
-
 一个进程可以被分为一到多个线程。
-
 ## 并行和并发
-
 ### 并发(concurrent)
-
 单核CPU下，线程实际是串行执行的。操作系统中的任务调度器会将CPU的时间片分给不同的线程使用，由于CPU在线程之间的切换非常快，因此感觉是同时运行的。
-
 微观串行，宏观并行
-
 ### 并行(parallel)
-
 多核CPU下，多个CPU核心可以同时执行多个进程，这些线程是同时运行的。被称作并行。
-
 ### tip
-
 实际上线程的数量通常都会大于CPU的核心数，因此运行时即有并发也有并行。
-
 ## 异步和同步
-
 ### 同步（sync）
-
 需要等待结果返回，才能继续运行
-
 ### 异步（async）
-
 不需要等待结果返回，就能继续运行
-
 ```java
 public static void main(String[] args){
         new Thread(() -> {
@@ -58,17 +37,11 @@ public static void main(String[] args){
         System.out.println("doing");
 }
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-08-26-17-43-14-image.png)
-
 根据程序执行结果可以知道，在一个线程内的两次输出是同步运行的，因为第二次输出必须要等待sleep 1秒之后才能继续执行。而输出doing和线程之间是异步运行的，因为第三处输出不需要等待线程执行完毕之后才会执行，而是直接输出了“doing”，因此第三处输出是异步的。
-
 ## Java线程
-
 ### 创建和运行线程
-
 #### 方法一，直接使用Thread
-
 ```java
 Thread t = new Thread(){
     @Override
@@ -79,9 +52,7 @@ Thread t = new Thread(){
 t.setName("t1")  // 设置线程的名字
 t.start();
 ```
-
 #### 方法二，使用Runnable配合Thread
-
 ```java
 Runnable r = new Runnable(){
     @Override
@@ -100,11 +71,8 @@ Runnable r = () -> {
 Thread t = new Thread(r);
 t.start();
 ```
-
 #### 方法三，FutureTask配合Thread
-
 FutureTask需要实现一个Callable接口，通过Callable接口来接收返回值并将结果传递给其他线程。
-
 ```java
 FutureTask<Integer> task = new FutureTask<>(() -> {
     System.out.println("doing");
@@ -127,47 +95,28 @@ new Thread(task,"t").start();
 Integer res = task.get();
 System.out.println(res);  
 ```
-
 ### 查看进程的方法
-
 ```
 ps -ef  查看所有线程
 ps -fT -p PID 查看某个进程（PID）的所有线程
 kill 杀死线程
 ```
-
 ### 线程运行原理
-
 #### 栈与栈帧
-
 JVM中的栈内存就是给线程使用的，每个线程启动后，虚拟机就会为其分配一块栈内存。
-
 每个栈由多个栈帧（Frame）组成，对应着每次方法调用时所占用的内存。
-
 每个线程只能有一个活动栈帧，对应着当前正在执行的方法
-
 #### 线程上下文切换（Thread Context Switch）
-
 因为以下原因导致cpu不再执行当前的线程，转而执行另一个线程的代码
-
 - 线程cpu时间片用完
-
 - 垃圾回收
-
 - 有更高优先级的线程需要运行
-
 - 线程自己调用了sleep、yield、wait、join、park、synchronized、lock等方法
-
 当Context Switch发生时，需要由操作系统保存当前线程的状态，并恢复另一个线程的状态，Java中对应的就是程序计数器，作用是记住下一条jvm指令的执行地址，每个线程私有。
-
 Context Switch频繁切换会影响程序的性能
-
 ### 线程常见方法
-
 #### start 与 run
-
 只有调用start方法才是运行了一个新的线程，才是异步执行，直接调用run方法则是同步执行
-
 ```java
 Thread t = new Thread(() -> {
     System.out.println("running");
@@ -180,9 +129,7 @@ Thread t = new Thread(() -> {
 t.run();
 System.out.println("other");
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-08-26-20-19-25-image.png)
-
 ```java
 Thread t = new Thread(() -> {
     System.out.println("running");
@@ -195,39 +142,22 @@ Thread t = new Thread(() -> {
 t.start();
 System.out.println("other");
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-08-26-20-20-38-image.png)
-
 由上面两张图可知，当调用run方法时，其实是主线程调用的run方法，只有当run方法执行完之后才会执行接下来的代码，当调用start方法时，则是使用其他的线程来执行run方法中的内容，无需等待run方法执行完毕就可以执行其他内容。
-
 **tips:** 只有当Thread类的start()方法中，会执行start0()这个native方法来通过操作系统创建线程，而如果只是使用run()方法，就不会创建一个新的线程去执行方法
-
 #### sleep 与 yield
-
 ##### sleep
-
 - 调用sleep会让当前线程从Running状态转到Timed Waiting状态（阻塞状态）
-
 - 其它线程可以使用interrupt方法打断正在睡眠的线程，这是sleep方法会跑出InterruptedException异常
-
 - 睡眠结束后的线程未必会立刻执行
-
 - 建议用TimeUnit的sleep代替Thread的sleep来获得更好的可读性 
-
 ##### yield
-
 - 调用yield会让当前线程从Running进入Runnable就绪状态，然后调度执行其他同优先级的线程。如果这时没有同优先级的线程，那么不能保证让当前线程暂停的效果
-
 - 具体的实现依赖于操作系统的任务调度器
-
 #### 线程优先级
-
 线程优先级会提示调度器优先调度该线程，但是仅仅是一个提示，调度器可以忽略它
-
 如果cpu比较忙，那么优先级高的线程会获得更多的时间片，但是cpu闲的时候，优先级几乎没什么作用
-
 #### join
-
 ```java
 static int i = 0;
 public static void main(String[] args) throws Exception {
@@ -245,13 +175,9 @@ public static void main(String[] args) throws Exception {
     log.info("{}",i);
 }
 ```
-
 分析上述代码可知，输出的i的值为0
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-08-26-22-36-11-image.png)
-
 如何让该代码输出的i的值为10
-
 ```java
 static int i = 0;
 public static void main(String[] args) throws Exception {
@@ -270,15 +196,10 @@ public static void main(String[] args) throws Exception {
     log.info("{}",i);
 }
 ```
-
 使用join方法，join方法即等待线程运行结束，在代码中加入t.join()语句之后，主线程的log.info()语句就会在线程t运行结束之后再执行接下来的操作，因此此时输出的变量i的值为10。
-
 join方法可以使得主线程等待Thread0执行结束之后再执行接下来的操作，使得两个线程同步。
-
 #### interrupt
-
 打断sleep的线程，会清空打断状态
-
 ```java
 Thread t = new Thread(() -> {
  log.debug("sleep");
@@ -294,13 +215,9 @@ TimeUnit.SECONDS.sleep(1);
 log.debug("interrupt");
 t.interrupt();
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-08-26-22-54-39-image.png)
-
 可以发现，interrupt函数成功打断了线程的阻塞，并且输出isInterrupted为false，已经清空了打断标记。
-
 打断正常运行的线程，不会清空打断状态
-
 ```java
 Thread t = new Thread(() -> {
     while(true){
@@ -315,13 +232,9 @@ TimeUnit.SECONDS.sleep(1);
 log.debug("interrupt");
 t.interrupt();
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-08-27-20-00-47-image.png)
-
 正常运行的线程，当被打断时，线程仍然正常运行，不会跳出while循环，interrupt只是提供一个打断标记，并不会让线程停止运行。
-
 打断park线程，不会清空打断状态，且当打断状态为真时，不会被再次打断
-
 ```java
 Thread t = new Thread(() -> {
     log.debug("park");
@@ -336,11 +249,8 @@ t.start();
 TimeUnit.SECONDS.sleep(1);
 t.interrupt();
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-08-27-22-02-41-image.png)
-
 若想要再次打断，则需要使用interrupted()方法，因为interrupted()方法会清除打断标记，因此可以再次打断。 
-
 ```java
 Thread t = new Thread(() -> {
     log.debug("park");
@@ -355,15 +265,10 @@ t.start();
 TimeUnit.SECONDS.sleep(1);
 t.interrupt();
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-08-27-22-04-29-image.png)
-
 ### 两阶段终止模式(Two Phase Termination)
-
 如何在线程T1中“优雅”终止线程T2（指给T2一个料理后事的机会）
-
 为什么需要两阶段终止模式：若使用stop()方法，会直接杀死线程，如果此时线程锁住了共享资源，那么该线程被杀死之后就再也没有机会释放锁，其他线程将永远无法获取锁。
-
 ```java
 @Slf4j
 public class Test {
@@ -404,33 +309,19 @@ class TwoPhaseTermination{
     }
 }
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-08-27-20-16-41-image.png)
-
 使用两阶段终止模式可以防止线程在被停止之前进行一系列操作。防止线程直接被杀死带来影响。
-
 #### 为什么捕获异常的时候需要重新设置打断标记？
-
 因为interrupt()方法在打断sleep中的线程时，会清除打断标记，如果捕获异常的时候不重新设置打断标记，下一次进入while循环的时候就会继续执行监控记录，而不会进行料理后事的操作，因此无法终止线程运行。
-
 ### 线程的状态
-
 - NEW：线程刚被创建，但是还没有调用start()方法
-
 - RUNNABLE：调用了start()方法之后，这个状态涵盖了操作系统层面的可运行状态、运行状态和阻塞状态（由于BIO导致的线程阻塞，仍然认为是可运行状态）
-
 - BLOCKED：处于这个状态的线程，在等待获取监视锁，等待其他监视器的锁定，当时当前监视器被其他线程占用，因此处于阻塞状态。通常发生在synchronized代码块中，但是锁被其他线程占用
-
 - WAITING：线程进入等待状态，等待其他线程唤醒（调用notify()方法），否则会一直处于等待状态。可以通过调用Object类的wait()方法，join()方法或者Lock类的条件等待方法使线程进入等待状态
-
 - TIMED_WAITING：计时等待状态，线程等待一定时间之后，会被唤醒。可以通过Thread.sleep方法，或者Lock类的计时等待方法进入这个状态
-
 - TERMINATED：线程代码运行结束
-
 ### 守护线程
-
 默认情况下，Java进程会等待所有线程都结束后才会结束，但是有一种守护线程，只要其它非守护线程运行结束了，即使守护线程的代码没有执行完，也会被强制结束运行。
-
 ```java
 Thread t = new Thread(() -> {
     while(true){
@@ -446,21 +337,13 @@ t.start();
 Thread.sleep(1000);
 log.info("main end");
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-08-27-22-14-13-image.png)
-
 可以看到，虽然t线程进入了死循环，但是只要主线程（非守护线程）执行结束，t线程也会被强制结束。
-
 #### 应用
-
 - 垃圾回收器线程就是一种守护线程
-
 - Tomcat中的Acceptor和Poller线程都是守护线程，因此Tomcat接收到Shutdown命令后，不会等待它们处理完当前请求
-
 ## 共享问题
-
 多个线程对共享资源读写操作时，发生了指令交错，就会出现问题。
-
 ```java
 static int sum = 0;
 public static void main(String[] args) throws Exception {
@@ -483,21 +366,13 @@ public static void main(String[] args) throws Exception {
     System.out.println(sum);
 }
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-08-29-21-35-22-image.png)
-
 正常情况下，上述代码输出的sum的结果应该是0，但是由于多线程运行时，如果线程在一个时间片内没有运行完，则会切换到其他线程运行，导致对共享资源的访问出现了问题，导致结果和预期的不同。
-
 ### 解决方案
-
 #### 阻塞式：synchronized
-
 synchronized可以对对象上锁，获取到锁的线程，在时间片内指令如果没有运行完，则不会释放锁，其他线程如果想要对synchronized临界区内的共享资源进行操作，则会被阻塞，不能对共享资源进行操作。知道获取到锁的线程释放锁之后，其他线程才能对共享资源进行操作。
-
 synchronized锁保证了临界区内代码的原子性。
-
 ##### 两种加在不同方法上的synchronized
-
 ```java
 public class Test {
     public synchronized void test(){
@@ -511,9 +386,7 @@ public class Test {
     }
 }
 ```
-
 加在成员方法上的锁，只锁对象不锁类，同一个对象在调用方法时会互斥，但是不同的对象在调用方法时不会有冲突。不同的对象拿到的锁是不同的。
-
 ```java
 public class Test {
     public synchronized static void test(){
@@ -527,21 +400,13 @@ public class Test {
     }
 }
 ```
-
 加在静态方法上的锁，锁的是类，无论这个类的哪个实例对象，只要是调用了这个方法，就会互斥，会有竞争。所有对象拿到的都是同一把锁。
-
 #### 局部变量的线程安全
-
 - 局部变量是线程安全的
-  
-  每个线程调用局部变量时，会在每个线程的栈帧创建多份，因此不存在共享。每个线程的局部变量都是独立的。
-
+  每个线程调用局部变量时，会在每个线程的栈帧创建多份，因此不存在共享。每个线程的局部变量都是独立的
 - 局部变量引用的对象不一定是线程安全的
-  
   - 如果该对象没有逃离方法的作用访问，则是线程安全的
-  
   - 如果该对象逃离了方法的作用范围，则需要考虑线程安全
-
 ```java
 public class Test {
     public static void main(String[] args) {
@@ -568,91 +433,48 @@ class Thread1{
     }
 }
 ```
-
 Q：为什么String类是被设置成final类型的
-
 A：防止String类中的某些方法被继承，导致出现一些不安全的方法，引发线程安全问题。
-
 ## Monitor
-
 ### Java对象头
-
 以32位虚拟机为例
-
 普通对象
-
 Object Header(64bits) = Mark Word(32bits) + Klass Word(32bits)
-
 数组对象
-
 Object Header(96bits) = Mark Word(32bits) + Klass Word(32bits) + array length(32bits)
-
 64位JVM架构下，Mark Word
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-09-02-15-34-03-image.png)
-
 ### Monitor(监视器/管程)
-
 每个Monitor中包含了WaitSet，EntryList，Owner
-
 每个Java对象都可以关联一个Monitor对象，如果使用synchronized给对象上锁，对象头中的Mark Word就会指向Monitor的地址。
-
 - 刚开始时Monitor中的Owner为null
-
 - 当一个线程t开始获取锁时，就会将Monitor的所有者Owner设置为t
-
 - 在t获取到锁之后，其他线程如果也想获取锁，就会进入EntryList中被阻塞
-
 - 当t执行完代码之后，就会唤醒EntryList中的线程来竞争锁（非公平竞争）
-
 WaitSet中的线程是之前已经获得过锁，但是条件不满足进入WAITING状态的线程。
-
 ### Synchronized原理
-
 #### 轻量级锁
-
 场景：如果一个对象虽然有多个线程访问，但是多线程的访问时间通常都是错开的，就可以使用轻量级锁来进行优化。
-
 ##### 原理
-
 - 线程中会创建一个锁记录（Lock Record）对象，每个线程的栈帧都会包含一个锁记录的结构，内部可以存储锁定对象的Mark Word
-
 - 让锁记录中Object Reference指向锁对象，并尝试使用cas替换Object（锁对象）中的Mark Word，将Mark Word中的值存入锁记录
-
 - cas替换成功，Mark Word中存储了锁记录地址（30bits）和状态00（表示轻量级锁），表示由该线程给对象加锁
-
 - cas失败，两种情况
-  
   1. 如果是其他线程持有Object的轻量级锁，表明此时有竞争，进入锁膨胀过程
-  
   2. 如果是自己执行了synchronized的锁重入过程，那么再添加一条Lock Record作为重入的计数
-
 - 当退出synchronized代码块时
-  
   1. 如果有取值为null的锁记录，表示有重入，这时重置锁记录，计数减一
-  
   2. 如果锁记录的取值不为null，这时使用cas将Mark Word的值恢复给对象锁头。成功，则解锁成功；失败，说明轻量级锁进行了锁膨胀或已经升级为重量级锁，进入重量级锁解锁流程
-
 ##### tips：为什么存储锁记录地址只需要30bits？
-
 因为锁对象地址有对齐约束（Java对象在JVM中是按照8字节对齐的，所以对象地址必须是8的倍数，低三位恒为0，可以省略），而且锁指针只需要覆盖有限的寻址范围，所以30位足够表达。
-
 #### 锁膨胀
-
 场景：如果在尝试加轻量级锁的过程中，cas操作失败，一种情况是其他线程已经持有该对象的轻量级锁，这时就需要进行锁膨胀，将轻量级锁升级为重量级锁。
-
 ##### 原理
-
 - 当t1线程进行轻量级锁加锁时，t0已经获得了轻量级锁
-
 - 加锁失败，进入锁膨胀过程
-  
   - 为Object对象申请Monitor锁，让Mark Word指向重量级锁地址
-  
   - 然后线程自己进入Monitor的EntryList中变为阻塞状态
-
 - 当t0退出同步块解锁时，使用cas将Mark Word的值恢复给对象头。失败，进入重量级锁的解锁过程，即按照Monitor地址找到Monitor对象，设置Owner为null，唤醒EntryList中的BLOCKED线程
-
 #### 自旋优化
 
 场景：轻量级锁竞争的时候，可以通过自旋来进行优化，如果当前线程自旋成功（即持有锁的线程退出了同步块，释放了锁），当前线程就可以避免阻塞

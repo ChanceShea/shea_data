@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/Java并发编程.md",
+                "file": "java/JVM.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Java并发编程"
+              "title": "JVM"
             }
           }
         ]
@@ -80,13 +80,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/Java并发编程.md",
+                "file": "java/JVM.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Java并发编程 的大纲"
+              "title": "JVM 的大纲"
             }
           }
         ],
@@ -199,6 +199,7 @@
   },
   "active": "38592ebce14ba43e",
   "lastOpenFiles": [
+    "java/Java并发编程.md",
     "java/Java基础.md",
     "java/JVM.md",
     "java/assets/JVM/file-20260318193425075.png",
@@ -222,7 +223,6 @@
     "LLM/Python.md",
     "LLM/Java.md",
     "LLM/assets/Python",
-    "java/Java并发编程.md",
     "java/Spring.md",
     "计算机网络.md",
     "assets/计算机网络",

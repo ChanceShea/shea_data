@@ -89,11 +89,13 @@
               "title": "Java并发编程 的大纲"
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -195,7 +197,7 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "a8a796e8940f7894",
+  "active": "38592ebce14ba43e",
   "lastOpenFiles": [
     "java/JVM.md",
     "java/Java并发编程.md",

@@ -170,9 +170,10 @@ System.out.println("other");
 #### sleep 与 yield
 ##### sleep
 - 调用sleep会让当前线程从Running状态转到Timed Waiting状态（阻塞状态）
-- 其它线程可以使用interrupt方法打断正在睡眠的线程，这是sleep方法会跑出InterruptedException异常
+- 其它线程可以使用interrupt方法打断正在睡眠的线程，这时sleep方法会抛出InterruptedException异常
 - 睡眠结束后的线程未必会立刻执行
 - 建议用TimeUnit的sleep代替Thread的sleep来获得更好的可读性 
+当调用`Thread.sleep()`时，线程会主动释放CPU，让出CPU时间片，进入`TIMED_WAITING`状态。此时操作系统会触发调度，将CPU分配给其他处于就绪状态的线程。这样其他线程就有机会执行
 ##### yield
 - 调用yield会让当前线程从Running进入Runnable就绪状态，然后调度执行其他同优先级的线程。如果这时没有同优先级的线程，那么不能保证让当前线程暂停的效果
 - 具体的实现依赖于操作系统的任务调度器
@@ -618,17 +619,11 @@ class Stu{
 当撤销偏向锁阈值超过40次后，jvm会觉得不应该偏向。于是整个类的所有对象都会变成不可偏向的，新建的对象也是不可偏向的
 
 ## wait/notify
-
 - Owner线程发现条件不足，调用wait方法，即可进入WaitSet变为WAITING状态
-
 - BLOCKED和WAITING线程都处于阻塞状态，不占用CPU时间片
-
 - BLOCKED线程会在Owner线程释放锁时唤醒
-
 - WAITING线程会在Owner线程调用notify或notifyAll时唤醒，但唤醒后并不会直接获得锁，而是进入EntryList重新竞争
-
 ### notify
-
 ```java
 public static void main(String[] args) throws InterruptedException {
         Object obj = new Object();
@@ -664,11 +659,8 @@ public static void main(String[] args) throws InterruptedException {
         }
     }
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-09-08-14-25-36-image.png)
-
 notify方法会唤醒等待中的线程，并使线程进入EntryList中等待
-
 ```java
 public static void main(String[] args) throws InterruptedException {
         Object obj = new Object();
@@ -705,21 +697,13 @@ public static void main(String[] args) throws InterruptedException {
         }
     }
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-09-08-14-27-53-image.png)
-
 notifyAll会将所有的等待中的线程都唤醒，并加入到EntryList中，让线程继续竞争锁
-
 ### sleep(n)和wait(n)的区别
-
 1. sleep是Thread的方法，而wait是Object的方法
-
-2. sleep不需要强制和synchronized方法使用，而wait需要和synchronized一起使用
-
+2. sleep不需要强制和synchronized方法使用，而wait需要和synchronized一起使用，否则抛出`IllegalMonitorStateException`
 3. sleep不会释放对象锁，而wait会释放对象锁
-
 ### 虚假唤醒
-
 ```java
 @Slf4j
 public class Test {
@@ -779,21 +763,13 @@ public class Test {
 ```
 
 上述代码中，因为条件判断只有一次，所以在主线程sleep 1s 之后，不会再次判断标志位的条件是否成立，因此可能会造成虚假唤醒。即 t2线程只有在flag2为true时才会被唤醒，但是由于图中代码使用的是if，导致了t2线程也会被唤醒。
-
 为了防止虚假唤醒现象的出现，可以将图中条件判断的if改成while，可以循环多次判断，只有当对应的条件成立时，才会唤醒线程。
-
 #### tips：为什么不使用notify只唤醒一个线程？
-
 因为notify唤醒线程是随机的，代码中的t1 t2线程都是使用的obj对象进行加锁，如果使用notify来唤醒线程，可能也会导致唤醒的线程不对，出现错误的现象
-
 ### 同步模式 保护性暂停(Guarded Suspension)
-
 即一个线程等待另一个线程的执行结果
-
 - 有一个结果需要从一个线程传递到另一个线程，让它们关联同一个GuardedObject
-
 - 如果有结果不断从一个线程到另一个线程，使用消息队列
-
 ```java
 @Slf4j
 public class Test {
@@ -841,13 +817,9 @@ class GuardObject{
     }
 }
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-09-10-15-35-00-image.png)
-
 通过一个公共的GuardObject类，将t2线程的结果传递给t1线程，t1线程获取到t2线程的结果之后，继续执行接下来的代码
-
 #### 超时
-
 ```java
 @Slf4j
 class GuardObject{
@@ -2751,19 +2723,207 @@ class MyTask extends RecursiveTask<Integer> {
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-10-15-21-09-47-image.png)
 
 # AQS(AbstactQueueSynchronizer)
-
 阻塞式锁和相关的同步器工具的框架
-
 - 用state属性来表示资源的状态（分独占模式和共享模式），子类需要定义如何维护这个状态，控制如何获取锁和释放锁
-
 - 独占模式只能有一个线程来访问资源，而共享模式允许多个线程访问线程
-
 - 提供了基于FIFO的等待队列，类似于Monitor的EntryList
-
 - 条件变量来实现等待，唤醒机制，支持多个条件变量，类似于Monitor的WaitSet
-
 ## 自定义锁
 
 ```java
 
 ```
+# 杂项
+## blocked和waiting的区别
+- 触发条件：blocked状态通常是因为某个线程锁竞争失败所导致的，线程尝试获取一个对象的锁，但是这个锁已经被其他线程持有。这是就会进入blocked状态阻塞，并一直尝试获取锁。waiting状态通常是因为它正在等待另一个线程执行某些操作，调用了对象的wait方法、Thread.join()方法或LockSupport.park()方法。这种状态下，线程不会消耗CPU资源，并且不会参与锁的竞争
+- 唤醒机制：当一个线程被阻塞等待获取锁时，一旦锁被释放，线程就有机会重新尝试获取锁。如果锁此时未被其他线程获取，那么该线程就可以从blocked状态变回runnable状态。线程的waiting状态需要显示唤醒，需要其他线程调用同一个对象的notify方法或者notifyAll方法才能唤醒
+- blocked是锁竞争失败后被动触发的状态，waiting是人为主动触发的状态
+- blocked的唤醒是自动触发的，waiting需要其他线程通过特定的方法显式唤醒
+## 线程间通信
+- 共享变量是最基本的线程间通信方式。多个线程可以访问和修改同一个共享变量，从而实现信息传递。为了保证线程安全，通常需要使用synchronized或volatile
+```java
+public class Test1 {  
+    private static volatile boolean flag = false;  
+  
+    public static void main(String[] args) {  
+        Thread producer = new Thread(() -> {  
+            try{  
+                Thread.sleep(2000);  
+            } catch (InterruptedException e) {  
+                e.printStackTrace();  
+            }  
+            flag = true;  
+            System.out.println("Producer:Flag is set to true");  
+        });  
+  
+        Thread consumer = new Thread(() -> {  
+            while(!flag){  
+  
+            }            System.out.println("Consumer:Flag is now true");  
+        });  
+        producer.start();  
+        consumer.start();  
+    }  
+}
+```
+```text
+Producer:Flag is set to true
+Consumer:Flag is now true
+```
+volatile保证了变量的可见性，即一个线程修改了flag的值，另一个线程能立即看到，会立刻刷新主存内的变量值，并设置线程工作内存里面的变量缓存失效，让其他线程从主存中读取变量新的值
+-  Object类中的wait、notify、notifyAll方法可以用于线程间的协作。wait方法使线程进入等待状态，notify方法唤醒在此对象监视器上等待的单个线程，notifyAll唤醒所有等待线程
+```java
+public class Test2 {  
+    private static final Object lock = new Object();  
+  
+    public static void main(String[] args) {  
+        Thread producer = new Thread(() -> {  
+            synchronized (lock) {  
+                try {  
+                    System.out.println("Producer:producing...");  
+                    Thread.sleep(2000);  
+                    System.out.println("Producer:Production finished.Notifying consumer.");  
+                    lock.notify();  
+                    } catch (InterruptedException e) {  
+                        throw new RuntimeException(e);  
+                    }  
+                }  
+        });  
+        Thread consumer = new Thread(() -> {  
+            synchronized (lock) {  
+                try{  
+                    System.out.println("Consumer:Waiting for production.");  
+                    lock.wait();  
+                    System.out.println("Consumer:Production finished.Consuming...");  
+                } catch (InterruptedException e) {  
+                    throw new RuntimeException(e);  
+                }  
+            }  
+        });  
+  
+        consumer.start();  
+        producer.start();  
+    }  
+}
+```
+lock是一个用于同步的对象，生产者和消费者线程都需要获取该对象的锁才能执行相应操作。消费者线程调用wait方法后进入等待状态，释放锁；生产者线程执行完生产任务后，调用notify方法唤醒等待的消费者线程
+- juc包中的Lock和Condition接口提供了比synchronized更灵活的线程间通信方式。Condition接口的await方法类似于wait，signal和signalAll方法类似于notify和notifyAll
+```java
+public class Test3 {  
+  
+    private static final Lock lock = new ReentrantLock();  
+    private static final Condition condition = lock.newCondition();  
+  
+    public static void main(String[] args) {  
+        Thread producer = new Thread(() -> {  
+            lock.lock();  
+            try {  
+                System.out.println("Producer:Producing...");  
+                Thread.sleep(2000);  
+                System.out.println("Producer:Production finished.Notify consumer");  
+                condition.signal();  
+            } catch (InterruptedException e) {  
+                throw new RuntimeException(e);  
+            }finally {  
+                lock.unlock();  
+            }  
+        });  
+  
+        Thread consumer = new Thread(() -> {  
+            lock.lock();  
+            try {  
+                System.out.println("Consumer:Waiting for producer...");  
+                condition.await();  
+                System.out.println("Consumer:Consuming...");  
+            } catch (InterruptedException e) {  
+                throw new RuntimeException(e);  
+            }finally {  
+                lock.unlock();  
+            }  
+        });  
+          
+        consumer.start();  
+        producer.start();  
+    }  
+}
+```
+ReentrantLock是Lock接口的一个实现类，condition是通过newCondition方法创建的。消费者线程调用condition.await()方法进入等待状态，生产者线程执行完任务后调用signal方法唤醒等待的消费者线程
+- juc包中的BlockingQueue接口提供了线程安全的队列操作，当队列满时，插入元素会被阻塞；当队列为空时，获取元素的线程会被阻塞
+```java
+public class Test4 {  
+  
+    private static final BlockingQueue<Integer> bq = new ArrayBlockingQueue<>(1);  
+  
+    public static void main(String[] args) {  
+        Thread producer = new Thread(() -> {  
+            try {  
+                System.out.println("Producer:producing...");  
+                Thread.sleep(1000);  
+                bq.put(1);  
+                System.out.println("Producer:Production finished");  
+            } catch (InterruptedException e) {  
+                throw new RuntimeException(e);  
+            }  
+        });  
+  
+        Thread consumer = new Thread(() -> {  
+            try {  
+                System.out.println("Consumer:Waiting for consumer");  
+                Integer take = bq.take();  
+                System.out.println("Consumer:Consumed item:"+take);  
+            } catch (InterruptedException e) {  
+                throw new RuntimeException(e);  
+            }  
+        });  
+  
+        producer.start();  
+        consumer.start();  
+    }  
+}
+```
+ArrayBlockingQueue是BlockingQueue的一个实现类，容量为1
+生产者线程调用put方法将元素插入队列，如果线程已满，线程会被阻塞；消费者线程调用take方法将元素从队列中取出，如果队列为空，线程会被阻塞
+- juc包下的CountDownLatch，允许一个或多个线程等待其他线程完成操作。
+	`CountDownLatch(int count)`：构造函数，指定需要等待的线程数
+	`countDown()`：减少计数器的值
+	`await()`：使当前线程等待，直到计数器的值为0
+```java
+public static void main(String[] args) throws InterruptedException {  
+    int threadCount = 3;  
+    CountDownLatch latch = new CountDownLatch(threadCount);  
+    for (int i = 0; i < threadCount; i++) {  
+        new Thread(() -> {  
+            try {  
+                System.out.println(Thread.currentThread().getName() + " finished");  
+            }finally {  
+                latch.countDown();  
+            }  
+        }).start();  
+    }  
+    latch.await();  
+    System.out.println("所有线程任务完成");  
+}
+```
+- CyclicBarrier，允许一组线程相互等待，直到所有线程都达到某个公共屏障点
+	`CyclicBarrier(int parties,Runnable barrierAction)`：构造函数，指定参与的线程数量和所有线程到达屏障点后执行的操作
+	`await()`：使当前线程等待，直到所有线程都到达屏障点
+```java
+public static void main(String[] args) {  
+    int threadCount = 3;  
+    CyclicBarrier barrier = new CyclicBarrier(threadCount,() -> {  
+        System.out.println("所有线程都到达屏障点");  
+    });  
+  
+    for (int i = 0; i < threadCount; i++) {  
+        new Thread(() -> {  
+            try {  
+                System.out.println(Thread.currentThread().getName() + " finished");  
+                barrier.await();  
+            } catch (Exception e) {  
+                throw new RuntimeException(e);  
+            }  
+        }).start();  
+    }  
+}
+```
+- Semaphore

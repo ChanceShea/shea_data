@@ -2926,4 +2926,102 @@ public static void main(String[] args) {
     }  
 }
 ```
-- Semaphore
+- Semaphore，计数信号量，可以控制同时访问特定资源的线程数量
+	`Semaphore(int permits)`：构造函数，指定信号量的初始许可数量
+	`acquire()`：获取一个许可，如果没有可用许可则阻塞
+	`release()`：释放一个许可
+```java
+public static void main(String[] args) {  
+    int permitCount = 2;  
+    Semaphore semaphore = new Semaphore(permitCount);  
+    for (int i = 0; i < 5; i++) {  
+        new Thread(() -> {  
+            try {  
+                semaphore.acquire();  
+                System.out.println(Thread.currentThread().getName() + "获得许可");  
+            } catch (InterruptedException e) {  
+                throw new RuntimeException(e);  
+            }finally {  
+                semaphore.release();  
+                System.out.println(Thread.currentThread().getName() + "释放许可");  
+            }  
+        }).start();  
+    }  
+}
+```
+上述代码中同时最多只能有两个线程获得许可，其他线程阻塞
+## 如何停止一个线程
+- 通过共享标志位主动中止。定义一个可见的状态变量，由主线程控制其值，工作线程循环检测该变量决定是否退出
+```java
+public class Test8 implements Runnable{  
+  
+    private volatile boolean flag = true;  
+  
+    @Override  
+    public void run() {  
+        while(flag){  
+            try {  
+                System.out.println("Thread running...");  
+                Thread.sleep(1000);  
+            } catch (InterruptedException e) {  
+                flag = false;  
+                Thread.currentThread().interrupt();  
+            }  
+        }  
+        System.out.println("Thread stopped");  
+    }  
+  
+    // 外部调用停止线程  
+    public void stop() {  
+        flag = false;  
+    }  
+}
+```
+- 使用线程中断机制，通过`Thread.interrupt()`触发线程中断状态，结合中断检测实现停止线程
+```java
+public class Test8 implements Runnable{  
+  
+    @Override  
+    public void run() {  
+        while(!Thread.currentThread().isInterrupted()){  
+            try {  
+                System.out.println("Thread running...");  
+                Thread.sleep(1000);  
+            } catch (InterruptedException e) {  
+                Thread.currentThread().interrupt();  
+            }  
+        }  
+        System.out.println("Thread stopped");  
+    }  
+}
+```
+interrupt()方法不会立即中断线程，只是设置一个中断标志，线程需要手动检查中断状态，或者触发可中断操作(sleep(),wait(),join())响应中断。阻塞操作收到中断请求后，会抛出`InterruptedException`并清除中断状态
+- 通过Future取消任务。使用线程池提交任务，并通过Future.cancel()停止线程，依赖中断机制
+```java
+public static void main(String[] args) {  
+    ExecutorService executor = Executors.newSingleThreadExecutor();  
+    Future<?> future = executor.submit(() -> {  
+        while (!Thread.currentThread().isInterrupted()) {  
+            System.out.println("Thread Running");  
+            try {  
+                Thread.sleep(1000);  
+            } catch (InterruptedException e) {  
+                System.out.println("Thread Interrupted");  
+                Thread.currentThread().interrupt();  
+            }  
+        }  
+    });  
+    try {  
+        Thread.sleep(3000);  
+        future.cancel(true);  
+    } catch (InterruptedException e) {  
+        Thread.currentThread().interrupt();  
+    }finally {  
+        executor.shutdown();  
+    }  
+}
+```
+- 处理不可中断的阻塞操作。某些IO或同步操作无法通过中断直接响应。此时需要结合资源关闭操作
+```java
+
+```

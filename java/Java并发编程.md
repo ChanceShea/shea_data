@@ -41,7 +41,7 @@ public static void main(String[] args){
 根据程序执行结果可以知道，在一个线程内的两次输出是同步运行的，因为第二次输出必须要等待sleep 1秒之后才能继续执行。而输出doing和线程之间是异步运行的，因为第三处输出不需要等待线程执行完毕之后才会执行，而是直接输出了“doing”，因此第三处输出是异步的。
 ## Java线程
 ### 创建和运行线程
-#### 方法一，直接使用Thread
+**方法一，直接使用Thread**
 ```java
 Thread t = new Thread(){
     @Override
@@ -52,7 +52,7 @@ Thread t = new Thread(){
 t.setName("t1")  // 设置线程的名字
 t.start();
 ```
-#### 方法二，使用Runnable配合Thread
+**方法二，使用Runnable配合Thread**
 ```java
 Runnable r = new Runnable(){
     @Override
@@ -71,7 +71,7 @@ Runnable r = () -> {
 Thread t = new Thread(r);
 t.start();
 ```
-#### 方法三，FutureTask配合Thread
+**方法三，FutureTask配合Thread**
 FutureTask需要实现一个Callable接口，通过Callable接口来接收返回值并将结果传递给其他线程。
 ```java
 FutureTask<Integer> task = new FutureTask<>(() -> {
@@ -95,12 +95,34 @@ new Thread(task,"t").start();
 Integer res = task.get();
 System.out.println(res);  
 ```
+**方法四，使用线程池**
+线程池是一种更高效的线程管理方式，避免了频繁创建和销毁线程的开销
+```java
+class Task implements Runnable {
+	@Override
+	public void run() {
+	}
+}
+
+public static void main(String[] args) {
+	ExecutorService executor = Executors.newFixedThreadPool(10);
+	for(int i = 0; i < 100; i++) {
+		executor.submit(new Task());
+	}
+	executor.shutdown();
+}
+```
 ### 查看进程的方法
 ```
 ps -ef  查看所有线程
 ps -fT -p PID 查看某个进程（PID）的所有线程
 kill 杀死线程
 ```
+### 如何停止线程
+- 异常：线程调用interrupt方法后，在线程的run方法中判断当前对象的interrupted状态，如果是中断则抛出异常，达到中断线程的效果
+- 在沉睡中停止：先将线程sleep，然后调用interrupt标记中断状态，interrupt会将阻塞状态的线程中断。会抛出中断异常，从而停止线程
+- stop停止：调用stop方法会被暴力停止，方法已弃用，该方法会有不好的后果，导致一些清理性的工作得不到完成
+- 使用return停止：调用interrupt标记为中断状态后，在run方法中判断当前线程状态，如果为中断状态则return，能达到停止线程的效果
 ### 线程运行原理
 #### 栈与栈帧
 JVM中的栈内存就是给线程使用的，每个线程启动后，虚拟机就会为其分配一块栈内存。

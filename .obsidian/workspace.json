@@ -93,8 +93,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -196,7 +195,7 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "38592ebce14ba43e",
+  "active": "a8a796e8940f7894",
   "lastOpenFiles": [
     "java/JVM.md",
     "java/Java并发编程.md",

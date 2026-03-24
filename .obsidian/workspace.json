@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/MySQL.md",
+                "file": "question.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "MySQL"
+              "title": "question"
             }
           }
         ]
@@ -197,6 +197,7 @@
   },
   "active": "38592ebce14ba43e",
   "lastOpenFiles": [
+    "java/MySQL.md",
     "question.md",
     "java/Java并发编程.md",
     "java/IO.md",
@@ -227,7 +228,6 @@
     "assets",
     "java/Redis.md",
     "java/assets/Redis",
-    "java/MySQL.md",
     "java/Mybatis.md",
     "java/assets/Java基础",
     "java/Nginx.md",

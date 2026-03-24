@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/Java并发编程.md",
+                "file": "question.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Java并发编程"
+              "title": "question"
             }
           }
         ]
@@ -80,17 +80,16 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/Java并发编程.md",
+                "file": "question.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Java并发编程 的大纲"
+              "title": "question 的大纲"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
@@ -199,9 +198,10 @@
   },
   "active": "38592ebce14ba43e",
   "lastOpenFiles": [
+    "java/Java并发编程.md",
+    "question.md",
     "java/IO.md",
     "java/Java基础.md",
-    "java/Java并发编程.md",
     "java/JVM.md",
     "java/assets/JVM/file-20260318193425075.png",
     "java/assets/JVM/file-20260318164544982.png",
@@ -209,7 +209,6 @@
     "java/question.md",
     "java/计算机网络.md",
     "answer.md",
-    "question.md",
     "java/设计模式.md",
     "java/assets/JVM/file-20260317151422624.png",
     "java/assets/JVM/file-20260317151340354.png",

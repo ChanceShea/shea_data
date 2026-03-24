@@ -94,8 +94,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -197,11 +196,12 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "38592ebce14ba43e",
+  "active": "0dc0d29d2e02ee63",
   "lastOpenFiles": [
-    "java/JVM.md",
-    "java/Java并发编程.md",
+    "java/IO.md",
     "java/Java基础.md",
+    "java/Java并发编程.md",
+    "java/JVM.md",
     "java/assets/JVM/file-20260318193425075.png",
     "java/assets/JVM/file-20260318164544982.png",
     "java/answer.md",
@@ -209,7 +209,6 @@
     "java/计算机网络.md",
     "answer.md",
     "question.md",
-    "java/IO.md",
     "java/设计模式.md",
     "java/assets/JVM/file-20260317151422624.png",
     "java/assets/JVM/file-20260317151340354.png",

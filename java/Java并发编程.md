@@ -3023,5 +3023,36 @@ public static void main(String[] args) {
 ```
 - 处理不可中断的阻塞操作。某些IO或同步操作无法通过中断直接响应。此时需要结合资源关闭操作
 ```java
-
+public class Test9 implements Runnable{  
+  
+    private ServerSocket server;  
+  
+    public Test9(ServerSocket server) {  
+        this.server = server;  
+    }  
+    @Override  
+    public void run() {  
+        try {  
+            while(!Thread.currentThread().isInterrupted()) {  
+                Socket socket = server.accept();  
+            }  
+        } catch (IOException e) {  
+            if(Thread.currentThread().isInterrupted()){  
+                System.out.println("Thread stopped by interrupt");  
+            }  
+        }  
+    }  
+  
+    public void stop() {  
+        try {  
+            server.close();  
+        } catch (IOException e) {  
+            System.out.println("Error closing socket:"+e.getMessage());  
+        }  
+    }  
+}
 ```
+## Java线程
+Java线程是操作系统级别的线程，也就是内核线程，一个Java线程对应一个操作系统线程，它的创建、销毁、调度都是由操作系统内核管理的
+Java创建一个线程的开销是比较大的，默认情况下一个线程的栈空间大概是1MB左右，而且线程的创建和销毁都需要系统调用。所以在Java中不能无限制创建线程，因此就有线程池这种可以复用线程的类产生
+Java线程的调度是抢占式的，由操作系统的调度器决定什么时候切换线程，线程切换需要保存和恢复上下文，涉及到用户态和内核态的切换，开销相对较大

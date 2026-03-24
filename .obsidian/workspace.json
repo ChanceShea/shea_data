@@ -20,21 +20,8 @@
               "icon": "lucide-file",
               "title": "Java并发编程"
             }
-          },
-          {
-            "id": "365a0767fd60eb28",
-            "type": "leaf",
-            "state": {
-              "type": "release-notes",
-              "state": {
-                "currentVersion": "1.12.7"
-              },
-              "icon": "lucide-book-up",
-              "title": "版本说明 1.12.7"
-            }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -210,7 +197,7 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "365a0767fd60eb28",
+  "active": "38592ebce14ba43e",
   "lastOpenFiles": [
     "java/IO.md",
     "java/Java基础.md",

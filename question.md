@@ -110,3 +110,71 @@
    - `binlog` 追加写
    - `redo log` 用于 crash-safe
    - `binlog` 用于主从复制和归档恢复
+
+### 11. 请说一下 Redis 为什么快？不要只说“因为它是内存数据库”，尽量从数据结构、单线程模型、IO 模型几个角度展开。
+
+参考总结：
+
+1. Redis 基于内存操作，避免了磁盘随机 IO，这是它高性能的基础。
+2. Redis 的核心数据结构做了专门优化，例如：
+   - `SDS` 减少字符串操作开销
+   - `dict`、跳表、压缩列表、quicklist、intset 等结构针对不同场景优化了时间和空间效率
+3. Redis 的命令执行线程长期采用单线程模型，避免了多线程竞争、锁切换和上下文切换带来的开销，所以执行路径很短。
+4. Redis 采用 IO 多路复用机制，同时监听大量 socket 连接，把网络 IO 的等待成本降下来，提高并发处理能力。
+5. Redis 的大多数操作时间复杂度较低，很多常用命令接近 O(1)，因此单次请求处理非常快。
+6. Redis 快并不等于所有命令都快，如果使用了大 key、慢查询命令或复杂聚合操作，性能一样会下降。
+
+### 12. 请说一下 Redis 的持久化方式有哪些？`RDB` 和 `AOF` 的区别是什么？
+
+回答中需要补充的点：
+
+1. Redis 持久化除了单独使用 `RDB` 或 `AOF`，也可以两者配合使用，实际生产里经常混合使用。
+2. `RDB` 的描述基本正确，但更准确地说它是“在某个时间点对内存数据做快照”。
+3. `AOF` 重写不是“只会记录最后一次写命令”这么简单。更准确地说，AOF 重写会把恢复当前数据集所需的最少命令重新写入新文件，而不是简单保留每个 key 的最后一条命令。
+4. 这题高频对比点还应补充：
+   - `RDB` 恢复速度通常更快，文件更紧凑
+   - `AOF` 数据通常更完整，丢失数据更少
+   - `RDB` 更适合做全量备份
+   - `AOF` 更适合提高数据恢复精度
+
+### 13. 请说一下 Spring Boot 自动配置的原理，至少讲清楚 `@SpringBootApplication`、自动配置类加载、条件装配这几个点。
+
+回答中需要补充或修正的点：
+
+1. `@SpringBootApplication` 不只是开启自动配置，它本质上是组合注解，通常包含：
+   - `@SpringBootConfiguration`
+   - `@EnableAutoConfiguration`
+   - `@ComponentScan`
+2. 自动配置类加载的主线需要答完整：
+   - `@EnableAutoConfiguration` 会通过 `@Import` 导入自动配置选择器
+   - 由选择器去加载候选自动配置类
+3. 你提到 `spring.factories` 是经典答案，适用于较多版本；如果面试官追问新版，还可以补充：
+   - Spring Boot 2.7+/3.x 逐步使用 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+4. 条件装配不只有 `@ConditionalOnMissingBean`，还常见：
+   - `@ConditionalOnClass`
+   - `@ConditionalOnBean`
+   - `@ConditionalOnProperty`
+   - `@ConditionalOnWebApplication`
+5. 条件装配的本质是：只有在满足特定环境、类路径、Bean、配置项等条件时，自动配置类或 Bean 才会生效，避免无效装配和配置冲突。
+
+### 14. 请说一下 Java 线程池的核心参数有哪些？`corePoolSize`、`maximumPoolSize`、`workQueue`、拒绝策略分别是做什么的？
+
+回答中需要补充或修正的点：
+
+1. `ThreadPoolExecutor` 的核心参数通常包括：
+   - `corePoolSize`
+   - `maximumPoolSize`
+   - `keepAliveTime`
+   - `unit`
+   - `workQueue`
+   - `threadFactory`
+   - `handler`
+   你漏掉了 `keepAliveTime` 和 `unit`。
+2. `corePoolSize` 的表述不够准确。线程池创建后不会立刻自动创建所有核心线程，通常是“有任务提交时才创建核心线程”，除非显式调用了预启动核心线程的方法。
+3. `maximumPoolSize` 不是“核心线程数 + 辅助线程数”这种官方表述。更准确地说，它是线程池允许创建的最大线程数上限。
+4. 非核心线程也不是“用完即销毁”，而是当空闲时间超过 `keepAliveTime` 后才会被回收。
+5. 拒绝策略部分可以再完整一些，常见的有：
+   - `AbortPolicy`
+   - `CallerRunsPolicy`
+   - `DiscardPolicy`
+   - `DiscardOldestPolicy`

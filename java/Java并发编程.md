@@ -3244,3 +3244,52 @@ volatile解决了变量在多线程环境下的可见性和有序性问题，确
 ### 为什么非公平锁的吞吐量大
 对于非公平锁，线程获取锁时，会先通过CAS尝试获取锁，如果获取成功就直接拥有锁，如果获取锁失败才会进入等待队列，等待下次尝试获取锁。这样线程不需要遵循先到先得的规则，从而避免线程休眠和恢复的操作，就加速了程序的运行效率
 对于公平锁，线程获取锁时，先将自己添加到等待队列的队尾并休眠，当某个线程释放锁之后，回去唤醒等待队列队首的线程尝试去获取锁，锁的使用顺序也就是队列中的先后顺序，在整个过程中，线程会从运行状态切换到休眠状态，再从休眠状态恢复成运行态，但线程每次休眠和恢复都需要从用户态转换成内核态，而这个转换过程较慢，所以执行速度会比较慢
+## 死锁问题
+死锁需要同时满足以下四个条件才会同时发生
+- 互斥条件：指多个线程不能同时使用同一个资源
+- 持有并等待条件：指，当线程A已经持有了资源1，又想申请资源2，而资源2已经被线程C持有了，所以线程A就会处于等待状态，但是线程A在等待资源2时并不会释放自己持有的资源1
+- 不可剥夺条件：指当线程已经持有了资源，在自己使用完之前不能被其他线程获取，线程B如果也想使用此资源，则只能在线程A使用完并释放后才能获取
+- 环路等待条件：指在死锁发生的时候，两个线程获取资源的顺序构成了环形链
+```java
+public class Test11 {  
+  
+    private static final Object obj1 = new Object();  
+    private static final Object obj2 = new Object();  
+  
+    public static void main(String[] args) {  
+        Thread t1 = new Thread(() -> {  
+            synchronized (obj1) {  
+                System.out.println("t1 acquired obj1");  
+                try {  
+                    Thread.sleep(100);  
+                } catch (InterruptedException e) {  
+                    e.printStackTrace();  
+                }  
+                synchronized (obj2) {  
+                    System.out.println("t1 acquired obj2");  
+                }  
+            }  
+        });  
+        Thread t2 = new Thread(() -> {  
+            synchronized (obj2) {  
+                System.out.println("t2 acquired obj2");  
+                try {  
+                    Thread.sleep(100);  
+                } catch (InterruptedException e) {  
+                    e.printStackTrace();  
+                }  
+                synchronized (obj1) {  
+                    System.out.println("t2 acquired obj1");  
+                }  
+            }  
+        });  
+  
+        t1.start();  
+        t2.start();  
+    }  
+}
+```
+上述代码中，t1线程和t2线程就会一直阻塞，无法继续执行后续代码
+避免死锁问题就只需要破坏其中一个条件即可，最常见并且可行的就是使用资源有序分配法，来破坏环路等待条件
+即，线程A和线程B获取资源的顺序要一样，当线程A先尝试获取资源A，然后尝试获取资源B时，线程B同样也是先尝试获取资源A，然后尝试获取资源B。即线程A和线程B总是以相同的顺序申请自己想要的资源
+## 线程池

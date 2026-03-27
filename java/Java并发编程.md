@@ -3344,3 +3344,39 @@ public class Test12 {
 Executors创建的线程池有潜在问题，比如`newCachedThreadPool`可能创建大量线程导致OOM，newScheduledThreadPool的核心线程数默认无界，所以复杂业务场景更推荐ThreadPoolExecutor手动配置，可以精准控制线程池行为
 手动创建TheradPoolExecutor需要指定7个核心参数
 比如创建一个适合处理IO密集型任务的线程池（IO密集型任务线程数可以多一些，一般是CPU核心数的2倍）
+```java
+public static void main(String[] args) {  
+    int corePoolSize = Runtime.getRuntime().availableProcessors() * 2;  
+    ThreadPoolExecutor threadPool = new ThreadPoolExecutor(  
+            corePoolSize, // 核心线程数，线程池长期维持的最小线程数  
+            corePoolSize * 2, // 最大线程数，线程池能容纳的最多线程数  
+            60, // 空闲线程存活时间  
+            TimeUnit.SECONDS, // 时间单位  
+            new ArrayBlockingQueue<>(10), // 任务阻塞队列，核心线程忙时，新任务存储在这  
+            Executors.defaultThreadFactory(), // 线程工厂，用于设置线程名，优先级等  
+            new ThreadPoolExecutor.AbortPolicy() // 拒绝策略，队列满且线程池达最大时，如何处理新任务  
+    );  
+    threadPool.execute(() -> {  
+        System.out.println("IO任务执行" + Thread.currentThread().getName());  
+    });  
+  
+    threadPool.shutdown();  
+}
+```
+拒绝策略有四种，除了默认的`AbortPolicy`（直接抛异常），还有`CallerRunsPolicy`（让提交任务的主线程自己执行，缓解压力），`DiscardPolicy`（直接丢弃新任务），`DiscardOldestPolicy`（丢弃队列里最旧的任务，再提交新任务）
+另外，提交任务时，submit和execute的区别在于，submit能提交Callable有返回值，还能通过Future捕获任务执行中的异常，而execute只能提交Runnable，异常会直接抛出
+**tips**
+线程池的使用原则：不能创建后不关闭，否则会导致线程泄露，JVM无法退出；任务队列的容量要合理设置，太大可能导致内存溢出，太小容易触发拒绝策略；线程数要根据任务类型调整，CPU密集型任务（比如复杂计算），线程数不宜过多，一般与CPU核心数相当，避免线程切换开销，IO密集型任务可以多设置些线程因为线程大部分时间都在等待IO完成
+### 工作原理
+线程池的工作原理如下
+- 提交任务，判断核心线程是否已满，未满，则创建核心线程执行任务
+- 核心线程已满，判断任务队列是否已满，未满，则加入任务队列等待执行
+- 任务队列已满，则创建非核心线程，判断是否达到线程池最大线程数
+- 达到最大线程池，执行拒绝策略，否则，利用非核心线程执行任务
+### 线程池的参数
+- corePoolSize：核心线程数，默认情况下，如果线程池中的线程数量如果\<corePoolSize，线程也不会被销毁，而是存放在线程池中
+- maximumPoolSize：线程池最大线程数，当corePoolSize已满，且尝试将新任务加入阻塞队列失败，并且当前线程数\<maximumPoolSize，就会创建新的线程执行此任务
+- keepAliveTime：当线程池中的线程数大于corePoolSize时，并且某个线程的空闲时间超出keepAliveTime，该线程就会被销毁
+- unit：时间单位
+- threadFactory：线程工厂，可以用来给线程取名字等
+- rejectPolicy：拒绝策略，当线程数达到最大线程数且任务队列已满。再新加的任务就会触发拒绝策略。具体有以下四种拒绝策略，`AbortPolicy`，`CallerRunsPolicy`，`DiscardPolicy`，`DiscardOldestPolicy`

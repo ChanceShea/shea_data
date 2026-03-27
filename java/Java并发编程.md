@@ -3293,3 +3293,51 @@ public class Test11 {
 避免死锁问题就只需要破坏其中一个条件即可，最常见并且可行的就是使用资源有序分配法，来破坏环路等待条件
 即，线程A和线程B获取资源的顺序要一样，当线程A先尝试获取资源A，然后尝试获取资源B时，线程B同样也是先尝试获取资源A，然后尝试获取资源B。即线程A和线程B总是以相同的顺序申请自己想要的资源
 ## 线程池
+线程池的核心作用是复用线程、控制并发数，避免频繁创建销毁线程带来的性能开销
+首先最常用的是通过Executors工具类来快速创建线程池，适合简单场景，不用手动配置复杂参数
+```java
+public class Test12 {  
+  
+    private static ExecutorService executor = Executors.newFixedThreadPool(3);  
+  
+    public static void main(String[] args) throws ExecutionException, InterruptedException {  
+        for (int i = 0; i < 5; i++) {  
+            int taskNum = i;  
+            executor.submit(() -> {  
+                System.out.println("当前线程" + Thread.currentThread().getName() + "处理任务" + taskNum);  
+                try {  
+                    Thread.sleep(1000);  
+                } catch (InterruptedException e) {  
+                    Thread.currentThread().interrupt();  
+                }  
+            });  
+        }  
+        // 这个异步任务会等到线程池中所有任务执行完毕，才会执行  
+        Future<Integer> future = executor.submit(() -> {  
+            try {  
+                Thread.sleep(500);  
+            } catch (InterruptedException e) {  
+                throw new RuntimeException(e);  
+            }  
+            return 10;  
+        });  
+  
+        try{  
+            Integer res = future.get();  
+            System.out.println(res);  
+        }catch (Exception e){  
+            e.printStackTrace();  
+        }finally {  
+            executor.shutdown();  
+        }  
+    }  
+}
+```
+```text
+当前线程pool-1-thread-1处理任务0
+当前线程pool-1-thread-3处理任务2
+当前线程pool-1-thread-2处理任务1
+当前线程pool-1-thread-1处理任务4
+当前线程pool-1-thread-3处理任务3
+10
+```

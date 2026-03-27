@@ -3341,3 +3341,6 @@ public class Test12 {
 当前线程pool-1-thread-3处理任务3
 10
 ```
+Executors创建的线程池有潜在问题，比如`newCachedThreadPool`可能创建大量线程导致OOM，newScheduledThreadPool的核心线程数默认无界，所以复杂业务场景更推荐ThreadPoolExecutor手动配置，可以精准控制线程池行为
+手动创建TheradPoolExecutor需要指定7个核心参数
+比如创建一个适合处理IO密集型任务的线程池（IO密集型任务线程数可以多一些，一般是CPU核心数的2倍）

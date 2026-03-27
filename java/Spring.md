@@ -191,3 +191,15 @@ Seata架构中，有三个角色：
 TC（Transaction Coordinator）事务协调器：Server端，要单独部署，维护全局事务的运行状态，负责协调并驱动全局事务的提交和回滚
 TM（Transaction Manager）事务管理器：Client端，控制全局事务便捷，负责开启一个全局事务，并最终发起全局提交和全局回滚的决议
 RM（Resource Manager）资源管理器：Client端，由业务系统集成，控制分支事务，负责分支注册，状态汇报，并接受事务协调器的指令，驱动分支（本地）事务的提交和回滚
+# 杂项
+## IOC和AOP
+### IOC
+- 反射：IOC利用Java的反射机制动态加载类，创建对象实例及调用对象方法，反射允许在运行时检查类、方法、属性等信息，从而实现灵活的对象实例化和管理
+- 依赖注入：IOC的核心概念是依赖注入，即容器负责管理的应用组建之间的依赖关系。Spring通过构造函数注入、属性注入或方法注入，将组件之间的依赖关系描述在配置文件中或使用注解
+- 工厂模式：Spring IOC通常采用工厂模式来管理对象的创建和生命周期。容器作为工厂负责实例化Bean并管理它们的生命周期，将Bean的实例化过程交给容器来管理
+- 容器实现：Spring IOC容器是实现IOC的核心，通常使用BeanFactory或ApplicationContext来管理Bean。BeanFactory是IOC容器的基本形式，提供基本的IOC功能；ApplicationContext是BeanFactory的扩展，并提供更多企业级的功能
+### AOP
+Spring AOP的实现依赖于动态代理技术。在运行时动态生成代理对象，而不是在编译时。它允许开发者在运行时指定腰带里的接口和行为，从而在不修改源码的情况下增强方法的功能
+Spring AOP支持两种动态代理
+- JDK Proxy：通过Proxy类或InvocationHandler接口实现，这种方式通常需要被代理的类实现一个或多个接口
+- Cglib：当被代理的类没有实现接口时，Spring会使用Cglib库来实现动态代理，Cglib通过对被代理的类生成一个子类作为代理对象。Cglib是一个第三方库，通过继承实现动态代理

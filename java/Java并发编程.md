@@ -3380,3 +3380,9 @@ public static void main(String[] args) {
 - unit：时间单位
 - threadFactory：线程工厂，可以用来给线程取名字等
 - rejectPolicy：拒绝策略，当线程数达到最大线程数且任务队列已满。再新加的任务就会触发拒绝策略。具体有以下四种拒绝策略，`AbortPolicy`，`CallerRunsPolicy`，`DiscardPolicy`，`DiscardOldestPolicy`
+### 线程池种类
+- ScheduledThreadPool：可以设置定期的执行任务，它支持定时或周期性执行任务，比如每隔10秒钟执行一次任务
+- FixedThreadPool：核心线程数和最大线程数是一样的，所以可以看作是固定线程数的线程池，它的特点是线程池中的线程数除了初始阶段需要从0开始增加外，之后的线程数量就是固定的，就算任务数超过线程数，线程池也不会再创建更多的线程来处理任务，而是会把超出线程处理能力的任务放到任务队列中等待，任务队列如果满了，就会执行拒绝策略
+- CachedThreadPool：缓存线程池，其内线程几乎是无限的，因为最大线程数数`Integer.MAX_VALUE`，当线程闲置时还可以对线程进行回收。并且其内部用于存储的任务队列是`SynchronousQueue`，队列的容量为0，实际不存储任何任务，只负责对任务进行中转和传递，所以效率较高
+- SingleThreadPool：它会使用唯一的线程去执行任务，如果线程在执行任务的过程中发生异常，线程池会重新创建一个线程来执行后续的任务。这种线程池由于只有一个线程，所以非常适合用于所有任务都需要按被提交的顺序依次执行的场景，而前几种线程池不能保证任务的执行顺序等于被提交的顺序，因为是多线程并行执行的
+- SingleThreadScheduledExecutor：它和ScheduledThreadPool线程池非常相似，它只是ScheduledThreadPool的一个特例，内部只有一个线程

@@ -392,3 +392,14 @@ public class UserService {
 10. 如果Bean实现了DisposableBean接口，Spring将调用它的destory()接口方法，同样，如果Bean使用了destory-method声明销毁方法，该方法也会被调用
 总结一下
 Bean的生命周期是，先通过构造方法对Bean对象进行实例化，随后进行属性注入。接着一次实现Bean对象实现的各类Aware接口。然后，如果存在BeanPostProcessor，会先后调用其初始化前后的处理方法，接着执行InitializingBean的afterPropertiesSet()及自定义的init-method。Bean准备就绪后提供服务，直到容器销毁时，通过DisposableBean的destory()或自定义的destory-method方法完成清理
+**tips**
+Spring Bean的生命周期由IOC容器控制。Spring只帮我们管理单例模式的Bean的生命周期，对于prototype的Bean，Spring在创建好交给使用者之后，就不会再管理后续的生命周期
+非单例模式的Bean，每次请求时创建新实例。每次创建新实例时都会完整执行生命周期流程（仅到初始化完成）。容器不会管理非单例模式的Bean，需要调用者自行释放资源
+### Bean的作用域
+- Singleton：整个应用程序中只会存在一个Bean实例。默认作用域，Spring容器中只会创建一个Bean实例，并在容器的整个生命周期中共享该实例
+- Prototype：每次请求都会创建一个新的Bean实例。从容起中获取该Bean时都会创建一个新的实例，适用于状态非常瞬时的Bean
+- Request：每个HTTP请求都会创建一个新的Bean实例。仅在Spring Web应用程序中有效，适用于Web应用中需求局部性的Bean
+- Session：Session范围内只会创建一个Bean实例。该Bean实例在用户会话范围内共享，仅在Spring Web应用程序中有效，适用于与用户会话相关的Bean
+- Application：当前ServletContext中只存在一个Bean实例。仅在Spring Web应用程序中有效，该Bean实例在整个ServletContext范围内共享，适用于应用程序范围内共享的Bean
+- WebSocket：在WebSocket范围内只存在一个Bean实例。仅在支持WebSocket的应用程序中有效，该Bean实例在WebSocket会话范围内共享，适用于WebSocket会话范围内共享的Bean
+- Custom scopes：Spring允许开发者自定义作用于，通过实现Scope接口来创建新的Bean作用域

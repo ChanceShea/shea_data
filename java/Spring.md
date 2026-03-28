@@ -379,3 +379,16 @@ public class UserService {
 - NOT_SUPPORTED：以非事务的方式执行。如果当前存在事务，则将当前事务挂起，等待该方法执行完毕后，恢复原事务。适用于某些操作不需要事务，或不想占用数据库链接资源，比如发送通知、缓存更新等
 - MANDATORY：如果当前存在事务，则加入该事务；如果当前不存在事务，则抛出异常`IllegalTransactionStateException`。适用于强制要求在事务中执行的方法，比如必须在外层事务中执行的数据更新操作
 - NEVER：以非事务方式执行。如果当前存在事务，则抛出异常`IllegalTransactionStateException`。不允许在事务中执行的操作，比如某些高并发操作，避免事务占用资源
+## Bean的生命周期
+1. Spring启动，查找并加载需要被Spring管理的Bean，进行Bean的实例化
+2. Bean实例化后，将对Bean的引入和值注入到Bean的属性中
+3. 如果Bean实现了BeanNamAware接口的话，Spring将Bean的Id传递给setBeanName()方法
+4. 如果Bean实现了BeanFactoryAware接口的话，Spring将调用setBeanFactory()方法，将BeanFactory容器实例传入
+5. 如果Bean实现了ApplicationContextAware接口的话，Spring将调用Bean的setApplicationContext()方法，将Bean所在应用上下文引用传入进来
+6. 如果Bean实现了BeanPostProcessor接口，Spring就将调用postProcessBeforeInitialization()方法
+7. 如果Bean实现了InitializingBean接口，Spring将调用他们的afterPropertiesSet()方法。类似的，如果bean使用了init-methon声明了初始化方法，该方法也会被调用
+8. 如果Bean实现了BeanPostProcessor接口，Spring就将调用它们的postProcessAfterInitialization()方法
+9. 此时，Bean已经准备就绪，可以被应用程序使用了。它们将一直驻留在应用上下文中，直到应用上下文被消费
+10. 如果Bean实现了DisposableBean接口，Spring将调用它的destory()接口方法，同样，如果Bean使用了destory-method声明销毁方法，该方法也会被调用
+总结一下
+Bean的生命周期是，先通过构造方法对Bean对象进行实例化，随后进行属性注入。接着一次实现Bean对象实现的各类Aware接口。然后，如果存在BeanPostProcessor，会先后调用其初始化前后的处理方法，接着执行InitializingBean的afterPropertiesSet()及自定义的init-method。Bean准备就绪后提供服务，直到容器销毁时，通过DisposableBean的destory()或自定义的destory-method方法完成清理

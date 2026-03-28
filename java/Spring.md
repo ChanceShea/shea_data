@@ -255,11 +255,120 @@ Spring使用三级缓存，核心原因是为了正确处理需要AOP代理的Be
 ## 事务失效
 SpringBoot中通过声明式事务@Transactional注解来实现的。事务可能会在以下场景失效
 - **异常被吞没**：如果一个事务方法中发生了异常，并且异常被 try-catch 捕获后没有重新抛出，那么事务不会回滚，导致数据不一致
+```java
+@Service
+public class UserService {
+	
+	@AutoWired
+	private UserMapper userMapper;
+
+	@Transactional
+	public void test1(User user) {
+		try {
+			userMapper.insert(user);
+			int i = 1 / 0;
+		}catch (Exception e) {
+			log.error("异常",e);
+			// throw e;  // 如果不抛出异常，异常就会被吞掉，导致Spring无法检测到。从而导致事务无法回滚，事务失效
+		}
+	}
+}
+```
 - **受检异常默认不回滚**：默认情况下，Spring 只对非受检异常（RuntimeException）进行回滚处理，当事务方法中抛出受检异常（如 IOException、SQLException 等）时，事务不会回滚。需要通过 rollbackFor 属性指定
+```java
+@Service
+public class FileService {
+	
+	@Autowired
+	private FileMapper fileMapper;
+	
+	@Transactional
+	// @Transactional(rollbackFor = Exception.class) 只有指定了受检异常，才会让事务回滚
+	public void saveFile(FileRecord record) throws IOException {
+		fileMapper.insert(record);
+		throw new IOException("文件写入失败"); // 抛出收件异常，事务不会回滚
+	}
+}
+```
 - **事务传播属性设置不当**：如果在多个事务之间存在事务嵌套，且事务传播属性配置不正确，可能会导致事务行为不符合预期。例如 REQUIRES_NEW 会创建独立事务，内层事务回滚不影响外层事务；NOT_SUPPORTED 会挂起当前事务
-- **方法内部调用导致事务失效**：同一个类中，一个方法直接调用另一个带有 @Transactional 注解的方法（使用 this 调用），会绕过 Spring 的代理机制，导致被调用方法上的 @Transactional 注解失效
+```java
+@Service
+public class OrderService {
+	@Autowired
+	private OrderMapper orderMapper;
+	@Autowired
+	private LogService logService;
+	
+	@Transactional
+	public void createOrder(Order order) {
+		orderMapper.insert(order);
+		// 内层使用REQUIRES_NEW，在独立事务中执行
+		logService.saveLog("创建订单");
+		// 外层抛出异常，不会影响内层事务，日志已提交，事务提交，不会回滚
+		throw new RuntimeException("订单异常");
+	}
+}
+```
+```java
+@Service
+public class LogService {
+	@Autowired
+	private LogMapper logMapper;
+	
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public void saveLog(String content) {
+		logMapper.insert(content);
+		// 这里即使抛出异常，也只会回滚日志，不会影响外层订单
+	}
+	
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
+	public void saveLogNoTransactional(String content) {
+		logMapper.insert(content);
+		// 这个方法不在事务中执行
+	}
+}
+```
+
+- **方法内部调用导致事务失效**：同一个类中，一个方法直接调用另一个带有 @Transactional 注解的方法（使用 this 调用），会绕过 Spring 的代理机制，导致被调用方法上的 @Transactional 注解失效。因为 Spring 的事务管理是通过代理对象来控制的，只有通过代理对象调用的方法才会应用 Spring 的事务管理规则
+```java
+@Service
+public class UserService {
+	@Autowired
+	private UserMapper userMapper;
+	@Autowired
+	private UserService self;
+	
+	public void addUser1(User user) {
+		this.insertUser(user); // this调用，会绕过AOP代理机制，导致事务失效
+	}
+	
+	@Transactional
+	public void insertUser(User user) {
+		userMapper.insert(user);
+		throw new RuntimeException(); // 抛出异常，但是不会回滚
+	}
+	
+	public void addUser2(User user) {
+		self.insertUser(user); // 通过self调用，即代理对象调用，不会导致事务失效
+	}
+}
+```
 - **多数据源的事务管理**：如果在使用多数据源时，没有正确配置事务管理器或未在 @Transactional 中指定使用哪个事务管理器，可能导致事务管理混乱或失效
 - **事务在非公开方法中失效**：如果 @Transactional 注解标注在非 public 方法上（private、protected 或 default），Spring 的代理机制无法拦截这些方法，事务不会生效
-- **this调用方法**：因为 Spring 的事务管理是通过代理对象来控制的，只有通过代理对象调用的方法才会应用 Spring 的事务管理规则。当直接使用 this 调用时，就会绕过 Spring 的代理机制，导致事务失效。解决方法是通过注入自身代理对象或通过 ApplicationContext 获取代理对象来调用
+```java
+@Service
+public class UserService {
+	@Autowired
+	private UserMapper userMapper;
+	
+	// 因为AOP机制的代理对象只会代理public方法，对于其他方法，则无法代理
+	@Transactional
+	private void addUser(User user) {
+		userMapper.addUser(user);
+		throw new RuntimeException();
+	}
+}
+```
 - **数据库引擎不支持事务**：如 MySQL 的 MyISAM 存储引擎不支持事务，即使代码中正确使用了 @Transactional，数据也不会回滚
 - **类未被 Spring 容器管理**：如果事务方法所在的类没有被 Spring 容器管理（未使用 @Service、@Component 等注解，或通过 new 手动创建对象），@Transactional 注解不会生效
+### 事务传播属性

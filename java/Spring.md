@@ -419,3 +419,18 @@ MVC全名是Model View Controller，是模型-视图-控制器的缩写，一种
 - View：为用户提供使用界面，与用户直接进行交互
 - Model：代表一个存储数据的对象或Java POJO。它也可以带有逻辑，主要用于承载数据，并对用于提交请求进行计算的模块。模型分为两类，一类称为数据承载Bean，一类称为业务处理Bean。所谓数据承载Bean是指实体类，专门为用户承载业务数据的。而业务处理Bean则是指Service或Dao对象，专门用于处理用户提交请求的
 - Controller：用于将用户请求转发给相应的Model进行处理，并根据Model的计算结果向用户提供相应响应。它使视图与模型分离
+### MVC工作流程
+1. 用户发送请求至前端控制器DispatcherServlet
+2. DispatcherServlet收到请求调用处理器HandlerMapping
+3. 处理器映射器根据请求url找到具体的处理器，生成处理器执行链HandlerExecutionChain一并返回给DispatcherServlet
+4. DispatcherServlet根据处理器Handler获取处理器适配器HandlerAdapter执行HandlerAdapter处理一系列的操作，如：参数封装，数据格式转换，数据验证等操作
+5. 执行处理器Handler（Controller，也叫页面控制器）
+6. Handler执行完成返回ModelAndView
+7. HandlerAdapter将Handler执行结果ModelAndView返回到DispatcherServlet
+8. DispatcherServlet将ModelAndView传给ViewResolver视图解析器
+9. DispatcherServlet对View进行渲染视图（即将模型数据model填充至视图中）
+10. DispatcherServlet响应用户
+**HandlerMapping**
+HandlerMapping根据请求的URL、请求参数等信息，找到处理请求的Controller。Spring提供了多种HandlerMapping的实现，如`BeanNameUrlHandlerMapping`、`RequestMappingHandlerMapping`等。HandlerMapping会根据请求信息确定要请求的处理器。HandlerMapping可以根据URL、请求参数等规则确定对应的处理器
+**HandlerAdapter**
+HandlerAdapter负责调用处理器来处理请求。处理器可能有不同的接口类型（Controller接口，HttpRequestHandler接口等），HandlerAdapter会根据处理器的类型来选择合适的方法来调用处理器。Spring提供了多种HandlerAdapter的实现，用于适配不同类型的处理器

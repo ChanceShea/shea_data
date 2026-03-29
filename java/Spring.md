@@ -434,3 +434,24 @@ MVC全名是Model View Controller，是模型-视图-控制器的缩写，一种
 HandlerMapping根据请求的URL、请求参数等信息，找到处理请求的Controller。Spring提供了多种HandlerMapping的实现，如`BeanNameUrlHandlerMapping`、`RequestMappingHandlerMapping`等。HandlerMapping会根据请求信息确定要请求的处理器。HandlerMapping可以根据URL、请求参数等规则确定对应的处理器
 **HandlerAdapter**
 HandlerAdapter负责调用处理器来处理请求。处理器可能有不同的接口类型（Controller接口，HttpRequestHandler接口等），HandlerAdapter会根据处理器的类型来选择合适的方法来调用处理器。Spring提供了多种HandlerAdapter的实现，用于适配不同类型的处理器
+**** 
+当客户端发送请求时，HandlerMapping根据请求信息找到对应的处理器
+HandlerAdapter根据处理器的类型选择合适的方法来调用处理器
+处理器执行相应的业务逻辑，生成ModelAndView
+HandlerAdapter将处理器的执行结果包装成ModelAndView
+视图解析器根据ModelAndView找到对应的视图进行渲染
+将渲染后的视图返回给客户端
+## SpringBoot
+SpringBoot通过提供一系列开箱即用的组件和自动配置，简化了项目的配置和开发过程，开发人员可以更专注业务逻辑的实现，而不需要花费过多时间在繁琐的配置上。
+SpringBoot提供了快速的应用程序启动方式，可通过内嵌的Tomcat、Jetty或Undertow等容器快速启动应用程序，无需额外的部署步骤，方便快捷
+SpringBoot通过自动配置功能，根据项目中的依赖关系和约定俗成的规则来配置应用程序，减少了配置的复杂性，使开发者更容易实现应用的最佳实践
+**优点**
+SpringBoot提供了自动化配置，大大简化了项目的配置过程。通过约定大于配置的原则，很多常用的配置可以自动完成，开发者可以专注于业务逻辑的实现
+SpringBoot提供了快速的项目启动器，通过引入不同的starter，可以快速集成常用的框架和库，极大地提高了开发效率
+SpringBoot默认集成了多种内嵌服务器，无需额外配置，即可将应用打包成可执行的jar包，方便部署和运行
+### 约定大于配置
+约定大于配置是Spring的核心设计理念，通过预设合理的默认行为和项目规范，从而大幅减少开发者需要手动配置的步骤，从而提升开发效率和项目标准化程度
+可以从以下几个方面解释
+- **自动化配置**：SpringBoot提供了大量的自动化配置，通过分析项目的依赖和环境，自动配置应用程序的行为。开发者无需显式地配置每个细节，大部分常用的配置都已经预设好了。例如，引入`spring-boot-starter-web`后，SpringBoot会自动配置内嵌的Tomcat和SpringMVC，无需手动编写XML
+- **默认配置**：Springoot为诸多方面提供大量默认配置，如链接数据库、设置Web服务器、处理日志等。开发人员无需手动配置这些常见内容，框架已经做好决策。例如，默认的日志配置可以让应用程序快速输出日志信息，无需开发者额外繁琐配置日志级别、输出格式与位置等
+- **约定的项目结构**：SpringBoot提倡特定项目结构，通常主应用程序类只有根包、控制器类、服务类、数据访问类等分别放在相应子包。此约定使团队成员更易理解项目结构与组织，新成员加入时能快速定位各功能代码位置，提高协作效率

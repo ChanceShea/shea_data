@@ -403,3 +403,19 @@ Spring Bean的生命周期由IOC容器控制。Spring只帮我们管理单例模
 - Application：当前ServletContext中只存在一个Bean实例。仅在Spring Web应用程序中有效，该Bean实例在整个ServletContext范围内共享，适用于应用程序范围内共享的Bean
 - WebSocket：在WebSocket范围内只存在一个Bean实例。仅在支持WebSocket的应用程序中有效，该Bean实例在WebSocket会话范围内共享，适用于WebSocket会话范围内共享的Bean
 - Custom scopes：Spring允许开发者自定义作用于，通过实现Scope接口来创建新的Bean作用域
+## Spring中，在bean加载前/销毁后，如果想实现某些逻辑，可以怎么做
+在Spring框架中，如果希望在Bean加载或销毁前后执行某些逻辑，可以使用一些生命周期回调接口或注解。这些注解和接口允许你定义在Bean生命周期的关键点执行的代码
+- init-method和destroy-method
+	在xml配置中，可以通过init-method和destroy-method属性来指定Bean初始化后和销毁前需要调用的方法，然后在Bean类中实现这些方法
+- InitializingBean和DisposableBean接口
+	Bean类可以通过实现InitializingBean或DisposableBean接口，分别实现afterPropertiesSet和destroy方法
+- @PostConstruct和@PreDestroy注解
+	将这些注解加载对应的方法上，就可以分别在Bean实例的实例化后和销毁前执行相应的方法
+- @Bean注解的initMethod和destroyMethod属性
+	在基于Java的配置中，可以在@Bean注解中指定initMethod1hedestroyMethod属性
+	这与第一种在xml配置文件中配置，是同一种方式，是同一套生命周期回调机制的两种不同配置风格
+## Spring MVC
+MVC全名是Model View Controller，是模型-视图-控制器的缩写，一种软件设计典范，用一种业务逻辑、数据、界面显示分离的方法组织代码，将业务逻辑聚集到一个部件里面，在改进和个性化定制界面即用户交互的同时，不需要重新编写业务逻辑
+- View：为用户提供使用界面，与用户直接进行交互
+- Model：代表一个存储数据的对象或Java POJO。它也可以带有逻辑，主要用于承载数据，并对用于提交请求进行计算的模块。模型分为两类，一类称为数据承载Bean，一类称为业务处理Bean。所谓数据承载Bean是指实体类，专门为用户承载业务数据的。而业务处理Bean则是指Service或Dao对象，专门用于处理用户提交请求的
+- Controller：用于将用户请求转发给相应的Model进行处理，并根据Model的计算结果向用户提供相应响应。它使视图与模型分离

@@ -477,4 +477,82 @@ public @interface EnableAutoConfiguration {
 ```
 介绍上述两个主要的注解
 - `@AutoCOnfigurationPackage`：将项目src中main包下的所有组件注册到容器中，例如标注了@Component注解的类
-- `@Import({AutoConfigurationImportSelector.class)}`：自动装配的核心，其中的`AutoConfigurationImportSelector`类实现了ImportSelector接口，用于实现自动配置的选择和导入。具体来说，通过分析项目的累路径和条件来决定应该导入哪些自动配置类
+- `@Import({AutoConfigurationImportSelector.class)}`：自动装配的核心，其中的`AutoConfigurationImportSelector`类实现了ImportSelector接口，用于实现自动配置的选择和导入。具体来说，通过分析项目的类路径和条件来决定应该导入哪些自动配置类
+应用程序启动时，`AutoConfigurationImportSelector`会扫描类路径上的`META-INF/spring.factories`文件，这个文件中包含了各种Spring配置和扩展的定义。在这里，它会查找所有实现了`AutoConfiguration`接口的类，具体的实现为`getCandidateConfiguration`方法
+对于每一个发现的自动配置类，`AutoConfigurationImportSelector`会使用条件判断机制（@ConditionalOnXXX注解）来确定是否满足导入条件。这些条件可以是配置属性、类是否存在、Bean是否存在
+满足条件的自动配置类将被导入到应用程序上下文中。这意味着它们会被实例化并应用于应用程序的配置
+### SpringBoot是怎么做到导入就可以直接使用的
+主要依赖于自动配置、起步依赖和条件注解等特性
+**起步依赖**
+起步依赖是一种特殊的Maven或Gradle依赖，它将项目所需的一系列依赖打包在一起。例如`spring-boot-starter-web`这个起步依赖就包含了Spring Web MVC、Tomcat等构建Web应用所需的核心依赖。开发者只需在项目中添加一个起步依赖，Maven或Gradle就会自动下载并管理与之关联的所有依赖，避免了手动添加大量依赖的繁琐过程
+**自动配置**
+Spring Boot的自动配置机制会根据类路径下的依赖和开发者的配置，自动创建和配置应用所需的Bean。它通过`@EnableAutoConfiguration`注解启用，该注解会触发Spring Boot去查找`META-INF/spring.factories`文件
+`spring.factories`文件中定义了一系列自动配置类，Spring Boot会根据当前项目的依赖情况，选择合适的自动配置类进行加载。例如，如果项目中包含`spring-boot-starter-web`依赖，Spring Boot会加载`WebMvcAutoConfiguration`类，该类会自动配置Spring MVC的相关组件，如DispatcherServlet、视图解析器等
+开发者可以通过自定义配置来覆盖自动配置的默认行为，如果开发者在`application.yml`或`application.properties`文件中定义了特定的配置，或者在代码中定义了同名的Bean，Spring Boot会优先使用开发者的配置
+**条件注解**
+条件注解用于控制Bean的创建和加载，只有在满足特定条件时，才会创建相应的Bean。Spring Boot的自动配置类中广泛使用了条件注解，如`@ConditionalOnClass`、`@ConditionalOnMissingBean`等
+比如，`@ConditonalOnClass`表示只有当类路径中存在指定的类时，才会创建该Bean
+### Filter和Interceptor
+过滤器是Java Servlet规范中的一部分，它可以对进入Servlet容器的请求和响应进行预处理和后处理。过滤器通过实现`javax.servlet.Filter`接口，并重写其中的init、doFilter、destroy方法来完成相应的逻辑。当请求进入Servlet容器时，会按照配置的顺序依次经过各个过滤器，然后再到达目标Servlet或控制器；响应返回时，也会按照相反的顺序再次经过这些过滤器
+拦截器是Spring框架中提供的一种机制，它可以对控制器方法的执行进行拦截。拦截器通过实现HandlerInterceptor接口，并重写其中的preHandle、postHandle、afterCompletion方法来完成相应的逻辑。当请求到达控制器时，会先经过拦截器的preHandle方法，如果该方法返回true，则继续执行后续的控制器方法和其他拦截器；控制器方法执行完成后，会调用拦截启动postHandle方法；最后在请求处理完成后，会调用拦截器的afterCompletion方法
+## Mybatis
+相比于传统的JDBC，Mybatis有以下优点
+- 基于SQL语句编程，相当灵活，不会对应用程序或者数据库的现有设计造成任何影响，SQL写在XML里，解除sql与程序代码的耦合，便于统一管理；提供XML标签，支持编写动态SQL语句，并可重用
+- 与JDBC相比，减少了50%以上的代码量，消除了JDBC大量冗余的代码，不需要手动开关连接
+- 很好的与各种数据库兼容，因为Mybatis使用JDBC来链接数据库，所以只要JDBC支持的数据库Mybatis都支持
+- 能够与Spring很好的集成，开发效率高
+- 提供映射标签，支持对象与数据库的ORM字段关系映射；提供对象关系映射标签，支持对象关系组建维护
+****
+Mybatis在SQL灵活性、动态SQL支持、结果集映射和与Spring整合方面表现卓越，尤其重视SQL可控性的项目
+- SQL与代码解耦，灵活可控：MyBatis允许开发者直接编写和优化SQL，相比于全自动ORM，MyBatis让开发者明确知道每条SQL的执行逻辑，便于性能调优
+```xml
+<select id="findUserWithRole" resultMap="userRoleMap">
+	SELECT u.*,r.role_name
+	FROM user u
+	LEFT JOIN user_role ur ON u.id = ur.user_id
+	LEFT JOIN role r ON ur.role_id = r.id
+	WHERE u.id = #{userId}
+</select>
+```
+- 动态SQL的强大支持：可以动态凭借SQL，通过`<if>`、`<choose>`、`<foreach>`等标签动态生成SQL，避免Java代码中繁琐的字符串拼接
+```xml
+<select id="searchUsers" resultType="User">
+	SELECT * FROM user
+	<where>
+		<if test="name != null">AND name LIKE #{name}</if>
+		<if test="status != null">AND status = #{status}</if>
+	</where>
+</select>
+```
+- 自动映射与自定义映射相结合：自动降查询结果字段名与对象属性名匹配
+```xml
+<resultMap id="userRoleMap" type="User">
+	<id property="id" column="user_id"/>
+	<result property="name" column="user_name"/>
+	<collection property="roles" ofType="Role">
+		<result property="roleName" column="role_name"/>
+	</collection>
+</resultMap>
+```
+- 插件扩展机制：可便携插件拦截SQL执行过程，实现分页、性能监控、SQL改写等通用逻辑
+```java
+@Intercepts({
+	@Signature(type=Executor.class,method="query",args={...})
+})
+public class PaginationPlugin implements Interceptor {
+}
+```
+- 与Spring生态无缝集成：通过@MapperScan快速扫描Mapper接口，结合Spring事务管理，配置简洁高效
+```java
+@Configuration
+@MapperScan("com.example.mapper")
+public class MyBatisConfig {
+}
+```
+### JDBC连接数据库
+1. **加载数据库驱动程序**：在使用JDBC连接数据库之前，需要加载相应的数据库驱动程序，可以通过`Class.forName("com.mysql.jdbc.Driver")`来加载MySQL数据库的驱动程序。不同数据库的驱动类名会不同
+2. **建立数据库连接**：使用DriverManager类的getConnection(url,username,passowrd)方法来连接数据库，其中url是数据库的连接字符串，username是数据库用户名，password是密码
+3. **创建Statement对象**：通过Connection对象的createStatement()方法创建一个Statement对象，用于执行SQL查询或更新操作
+4. **执行SQL查询或更新操作**：使用Statement对象的executeQuery(sql)方法来执行SELECT查询操作，或者使用executeUpdate(sql)方法来执行INSERT、UPDATE、或DELETE操作
+5. **处理查询结果**：如果是SELECT查询操作，通过ResultSet对象来查询处理结果。可以使用ResultSet的next()方法便利查询结果集，然后通过getXXX()方法获取各个字段的值
+6. **关闭连接**：在完成数据库操作和，需要逐级关闭数据库连接相关对象，即先关闭ResultSet，再关闭Statement，最后关闭Connection

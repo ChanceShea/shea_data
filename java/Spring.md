@@ -556,3 +556,16 @@ public class MyBatisConfig {
 4. **执行SQL查询或更新操作**：使用Statement对象的executeQuery(sql)方法来执行SELECT查询操作，或者使用executeUpdate(sql)方法来执行INSERT、UPDATE、或DELETE操作
 5. **处理查询结果**：如果是SELECT查询操作，通过ResultSet对象来查询处理结果。可以使用ResultSet的next()方法便利查询结果集，然后通过getXXX()方法获取各个字段的值
 6. **关闭连接**：在完成数据库操作和，需要逐级关闭数据库连接相关对象，即先关闭ResultSet，再关闭Statement，最后关闭Connection
+### MyBatis里面 # 和 $ 的区别
+- MyBatis再处理`#{}`时，会创建预编译的SQL语句，将SQL中的`#{}`替换为 `?`，在执行SQL时会为预编译SQL中的占位符`?`赋值，调用PreparedStatement的set方法来赋值，预编译的SQL语句执行效率高，并且可以防止SQL注入，提供更高的安全性，适合传递参数值
+- MyBatis在处理`${}`时，只是创建普通的SQL语句，然后在执行SQL语句时，MyBatis将参数直接拼入SQL里，不能防止SQL注入，因为参数直接拼接到SQL语句中，如果参数未经过验证、过滤，可能会导致安全问题
+### MyBatisPlus和MyBatis的区别
+MyBatisPlus是一个基于MyBatis的增强工具库，旨在简化开发并提高效率。以下是MyBatisPlus和MyBatis之间的一些区别
+- CRUD操作：MyBatisPlus通过继承BaseMapper接口，提供了一系列内置的快捷方法，似的CRUD操作更加简单，无需编写重复的SQL语句
+- 代码生成器：MyBatisPlus提供了代码生成器功能，可以根据数据库表结构自动生成实体类、Mapper接口以及XML映射文件，减少了手动编写的工作量
+- 通用方法封装：MyBatisPlus封装了许多常用的方法，如条件构造器、排序、分页查询等，简化了开发过程，提高了开发效率
+- 分页插件：MyBatisPlus内置了分页插件，支持各种数据库的分页查询，开发者可以轻松实现分页功能，而在传统的MyBatis中，需要开发者自己手动实现分页逻辑
+- 多租户支持：MyBatisPlus提供了多租户的支持，可以轻松实现多租户数据隔离的功能
+- 注解支持：MyBatisPlus引入了更多的注解支持，使得开发者可以通过注解来配置实体与数据库表之间的映射关系，减少了XML配置文件的编写
+## Spring Cloud
+SpringBoot是用于构建单个Spring应用的框架，SpringCloud则适用于构建分布式系统中的微服务架构的工具，SpringCloud提供了fu'w

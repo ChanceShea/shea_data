@@ -775,3 +775,6 @@ update t_user set name = 'shea' where id = 1;
 5. 一条记录更新完成
 6. 在更新语句执行完成后，然后开始记录该语句对应的binlog，此时记录的binlog会被保存到binlog cache，并没有刷新到硬盘上的binlog文件，在事务提交时才会统一将该事务运行过程中的所有binlog刷新到磁盘
 7. 两阶段提交
+## 三大范式
+1NF：要求数据库表的每一项都是不可分割的原子数据项，不能存在多值属性
+2NF：在1NF的基础上，非主属性必须完全依赖主属性（xiaochubufen）

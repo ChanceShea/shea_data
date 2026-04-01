@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/Spring.md",
+                "file": "java/MySQL.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Spring"
+              "title": "MySQL"
             }
           }
         ]
@@ -80,13 +80,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/Spring.md",
+                "file": "java/MySQL.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Spring 的大纲"
+              "title": "MySQL 的大纲"
             }
           }
         ],
@@ -199,13 +199,13 @@
   },
   "active": "23ff1a54a64bf70c",
   "lastOpenFiles": [
+    "java/Spring.md",
     "java/assets/Spring/file-20260331084637138.png",
     "java/assets/Spring",
     "java/计算机网络.md",
     "java/Java基础.md",
     "java/Java并发编程.md",
     "java/设计模式.md",
-    "java/Spring.md",
     "fronted.md",
     "question.md",
     "java/assets/Java并发编程/file-20260325090341847.png",
@@ -224,7 +224,6 @@
     "java/assets/JVM/file-20260317150140200.png",
     "java/assets/JVM/file-20260317150119583.png",
     "java/assets/JVM/file-20260317145628782.png",
-    "java/assets/JVM/file-20260317145611894.png",
     "java/assets/JVM",
     "LLM/Python.md",
     "LLM/Java.md",

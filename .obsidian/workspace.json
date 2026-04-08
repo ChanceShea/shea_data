@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/Redis.md",
+                "file": "java/answer.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Redis"
+              "title": "answer"
             }
           }
         ]
@@ -93,8 +93,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -198,6 +197,9 @@
   },
   "active": "23ff1a54a64bf70c",
   "lastOpenFiles": [
+    "java/question.md",
+    "java/answer.md",
+    "java/Redis.md",
     "java/assets/Redis/file-20260408155123331.png",
     "java/assets/Redis/file-20260408150326424.png",
     "java/assets/Redis/file-20260408150250829.png",
@@ -209,12 +211,9 @@
     "java/assets/MySQL/file-20260407093334452.png",
     "java/assets/MySQL/file-20260406103202775.png",
     "java/assets/MySQL/file-20260406092808527.png",
-    "java/assets/MySQL/file-20260405140827860.png",
-    "java/answer.md",
     "java/JVM.md",
     "java/Java基础.md",
     "java/Java并发编程.md",
-    "java/question.md",
     "java/Spring.md",
     "java/assets/Spring",
     "java/计算机网络.md",
@@ -231,7 +230,6 @@
     "计算机网络.md",
     "assets/计算机网络",
     "assets",
-    "java/Redis.md",
     "java/assets/Redis",
     "java/Mybatis.md",
     "java/assets/Java基础",

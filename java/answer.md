@@ -140,3 +140,46 @@ Java 虚拟机栈是线程私有的，随着线程创建和销毁。它由一个
 可达性分析则是从一组称为 `GC Roots` 的根对象出发，沿着引用关系向下搜索。如果一个对象能够从 `GC Roots` 出发被访问到，就说明它仍然是可达的，不能回收；如果无法被访问到，就说明它已经不可达，可以被回收。常见的 `GC Roots` 包括虚拟机栈中引用的对象、方法区中类静态属性引用的对象、本地方法栈中 JNI 引用的对象等。
 
 相比引用计数法，可达性分析更适合 Java，核心原因是它能够正确处理循环引用问题，因此 Java 主流虚拟机都采用可达性分析来判断对象是否存活。
+
+## 41. JVM垃圾回收中，哪些对象可以作为GC Roots？请详细说明每种GC Roots的具体来源。
+在可达性分析算法中，GC Roots 是一组必须存活的对象，作为搜索的起点。主要包括以下几类：
+1. **虚拟机栈中引用的对象**：各个线程调用方法时，栈帧中的局部变量表里引用的对象。
+2. **方法区中类静态属性引用的对象**：类的静态变量引用的对象。
+3. **方法区中常量引用的对象**：字符串常量池中的引用，以及被 `final` 修饰的常量引用的对象。
+4. **本地方法栈中 JNI 引用的对象**：Java Native Interface 中引用的对象。
+5. **Java 虚拟机内部的引用**：基本数据类型对应的 Class 对象，常驻的异常对象（如 `NullPointerException`、`OutOfMemoryError`）等。
+6. **被同步锁持有的对象**：被 `synchronized` 关键字锁住的对象。
+
+这些对象之所以作为 GC Roots，是因为它们要么是程序运行的基础，要么与外部环境有直接关联，必须保证它们存活。
+
+## 42. Spring框架中，Bean的生命周期包括哪些关键阶段？请描述从Bean定义到销毁的完整过程。
+Spring Bean 的生命周期主要包括以下关键阶段：
+1. **实例化**：通过构造器或工厂方法创建 Bean 实例。
+2. **属性填充**：为 Bean 的属性注入值或引用（依赖注入）。
+3. **初始化前**：如果 Bean 实现了 `BeanPostProcessor` 接口，会调用 `postProcessBeforeInitialization` 方法。
+4. **初始化**：如果 Bean 实现了 `InitializingBean` 接口，会调用 `afterPropertiesSet` 方法；如果配置了 `init-method`，也会调用该方法。
+5. **初始化后**：如果 Bean 实现了 `BeanPostProcessor` 接口，会调用 `postProcessAfterInitialization` 方法。
+6. **使用**：Bean 准备就绪，可以被应用程序使用。
+7. **销毁前**：如果 Bean 实现了 `DisposableBean` 接口，会调用 `destroy` 方法；如果配置了 `destroy-method`，也会调用该方法。
+
+整个过程中，Spring 容器负责管理 Bean 的创建、依赖注入、初始化和销毁，开发者可以通过各种回调接口参与这些阶段。
+
+## 43. MySQL的InnoDB存储引擎中，MVCC（多版本并发控制）是如何实现的？请解释undo log、read view和版本链的关系。
+MVCC 通过以下机制实现：
+1. **隐藏字段**：每行数据包含 `DB_TRX_ID`（最近修改该行的事务ID）、`DB_ROLL_PTR`（指向 undo log 的回滚指针）、`DB_ROW_ID`（行ID）等隐藏字段。
+2. **undo log**：记录数据修改前的版本，用于事务回滚和 MVCC。每次修改都会生成 undo log，形成版本链。
+3. **版本链**：通过 `DB_ROLL_PTR` 指针将同一数据行的不同版本连接起来，每个版本对应一个 undo log 记录。
+4. **read view**：事务在第一次执行查询时创建，包含：
+   - `m_ids`：当前活跃事务ID列表
+   - `min_trx_id`：最小活跃事务ID
+   - `max_trx_id`：下一个即将分配的事务ID
+   - `creator_trx_id`：创建该 read view 的事务ID
+
+**读取规则**：
+- 如果 `DB_TRX_ID < min_trx_id`：该版本在 read view 创建前已提交，可见
+- 如果 `DB_TRX_ID ≥ max_trx_id`：该版本在 read view 创建后才开始，不可见
+- 如果 `min_trx_id ≤ DB_TRX_ID < max_trx_id`：
+  - 若 `DB_TRX_ID` 在 `m_ids` 中：事务仍活跃，不可见
+  - 否则：事务已提交，可见
+
+如果当前版本不可见，就通过版本链找到上一个版本继续判断，直到找到可见版本或到达链尾。

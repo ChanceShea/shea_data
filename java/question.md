@@ -46,3 +46,6 @@
 44. Spring AOP中，JDK动态代理和CGLIB动态代理有什么区别？分别在什么场景下使用？
 45. MySQL的InnoDB存储引擎中，索引的底层数据结构是什么？请解释B+树相比B树的优势。
 46. JVM中，垃圾回收算法有哪些？请分别说明标记-清除、标记-整理、复制算法的原理和优缺点。
+47. Spring框架中，事务的传播行为有哪些？请详细说明PROPAGATION_REQUIRED和PROPAGATION_REQUIRES_NEW的区别。
+48. Redis有哪些持久化方式？请对比RDB和AOF的优缺点及适用场景。
+49. 什么是Java内存模型（JMM）？请解释happens-before原则及其作用。

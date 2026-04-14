@@ -4,21 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "d75a8151259c597a",
+        "id": "0dadc048ca13da3e",
         "type": "tabs",
         "children": [
           {
-            "id": "23ff1a54a64bf70c",
+            "id": "941d11b8788404c1",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/Redis.md",
+                "file": "java/MQ.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Redis"
+              "title": "MQ"
             }
           }
         ]
@@ -196,8 +196,10 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "23ff1a54a64bf70c",
+  "active": "941d11b8788404c1",
   "lastOpenFiles": [
+    "java/MQ.md",
+    "java/Redis.md",
     "java/assets/Redis/file-20260412204747692.png",
     "java/assets/Redis/file-20260411143127843.png",
     "java/assets/Redis/file-20260411143020709.png",
@@ -207,12 +209,10 @@
     "java/Java并发编程.md",
     "java/answer.md",
     "java/question.md",
-    "java/Redis.md",
     "java/assets/Redis/file-20260408155123331.png",
     "java/assets/Redis/file-20260408150326424.png",
     "java/assets/Redis/file-20260408150250829.png",
     "java/assets/Redis/file-20260408095134688.png",
-    "java/assets/Redis/file-20260408094927108.png",
     "java/MySQL.md",
     "java/JVM.md",
     "java/Java基础.md",

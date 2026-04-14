@@ -49,3 +49,6 @@
 47. Spring框架中，事务的传播行为有哪些？请详细说明PROPAGATION_REQUIRED和PROPAGATION_REQUIRES_NEW的区别。
 48. Redis有哪些持久化方式？请对比RDB和AOF的优缺点及适用场景。
 49. 什么是Java内存模型（JMM）？请解释happens-before原则及其作用。
+50. 请解释Integer缓存机制的具体实现和范围，以及为什么Java要设计这个缓存机制？
+51. 请解释静态内部类和非静态内部类的区别，并说明它们各自的使用场景。
+52. 请解释final关键字在Java中的三种用法（修饰类、方法、变量），并举例说明每种用法的实际应用场景。

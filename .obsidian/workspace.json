@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/question.md",
+                "file": "java/MQ.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "question"
+              "title": "MQ"
             }
           }
         ]
@@ -198,10 +198,10 @@
   },
   "active": "f3569a6a544b6810",
   "lastOpenFiles": [
+    "java/question.md",
     "java/Redis.md",
     "java/Spring.md",
     "java/answer.md",
-    "java/question.md",
     "java/MQ.md",
     "java/assets/Redis/file-20260412204747692.png",
     "java/assets/Redis/file-20260411143127843.png",

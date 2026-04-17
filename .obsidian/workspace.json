@@ -198,6 +198,9 @@
   },
   "active": "f3569a6a544b6810",
   "lastOpenFiles": [
+    "java/assets/MQ/file-20260417092219616.png",
+    "java/assets/MQ/file-20260417091958005.png",
+    "java/assets/MQ",
     "java/question.md",
     "java/Redis.md",
     "java/Spring.md",
@@ -213,7 +216,6 @@
     "java/assets/Redis/file-20260408155123331.png",
     "java/assets/Redis/file-20260408150326424.png",
     "java/assets/Redis/file-20260408150250829.png",
-    "java/assets/Redis/file-20260408095134688.png",
     "java/MySQL.md",
     "java/JVM.md",
     "java/Java基础.md",
@@ -238,7 +240,6 @@
     "java/Nginx.md",
     "java/杂.md",
     "java/assets/MySQL",
-    "java/assets",
     "2026-01-23.md"
   ]
 }

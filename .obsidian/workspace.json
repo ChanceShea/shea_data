@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/MQ.md",
+                "file": "java/Spring.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "MQ"
+              "title": "Spring"
             }
           }
         ]
@@ -93,8 +93,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -198,6 +197,7 @@
   },
   "active": "f3569a6a544b6810",
   "lastOpenFiles": [
+    "java/MQ.md",
     "java/assets/MQ/file-20260417092219616.png",
     "java/assets/MQ/file-20260417091958005.png",
     "java/assets/MQ",
@@ -205,7 +205,6 @@
     "java/Redis.md",
     "java/Spring.md",
     "java/answer.md",
-    "java/MQ.md",
     "java/assets/Redis/file-20260412204747692.png",
     "java/assets/Redis/file-20260411143127843.png",
     "java/assets/Redis/file-20260411143020709.png",
@@ -215,7 +214,6 @@
     "java/Java并发编程.md",
     "java/assets/Redis/file-20260408155123331.png",
     "java/assets/Redis/file-20260408150326424.png",
-    "java/assets/Redis/file-20260408150250829.png",
     "java/MySQL.md",
     "java/JVM.md",
     "java/Java基础.md",

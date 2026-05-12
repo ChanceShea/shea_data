@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "问题总结/java.md",
+                "file": "java/计算机网络.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "java"
+              "title": "计算机网络"
             }
           }
         ]
@@ -197,6 +197,7 @@
   },
   "active": "dc62b9889263e9fc",
   "lastOpenFiles": [
+    "问题总结/java.md",
     "问题总结/fronted.md",
     "问题总结/杂.md",
     "java/question.md",

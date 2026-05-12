@@ -107,3 +107,25 @@ if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
 浏览器在发送跨域请求时，会先发送一个OPTIONS预检请求
 LoginInterceptor 拦截了所有请求（包括OPTIONS），要求携带token
 但预检请求不会携带自定义header（token），导致拦截器抛出异常
+
+## MCP服务启动超时
+```
+[org/springframework/ai/autoconfigure/mcp/client/McpClientAutoConfiguration.class]: Failed to instantiate [java.util.List]: Factory method 'mcpSyncClients' threw exception with message: java.util.concurrent.TimeoutException: Did not observe any item or terminal signal within 20000ms in 'Mono.create ⇢ at io.modelcontextprotocol.spec.DefaultMcpSession.sendRequest(DefaultMcpSession.java:228)
+```
+```json
+{  
+  "mcpServers": {  
+    "amap-maps": {  
+      "command": "npx.cmd",  
+      "args": [  
+        "-y",  
+        "@amap/amap-maps-mcp-server",  
+        "-Dspring.profiles.active=stdio"  // 新增参数就能解决超时问题
+      ],  
+      "env": {  
+        "AMAP_MAPS_API_KEY": "f8d6f9268d52ef45a406f5121cd944f2"  
+      }  
+    }  
+  }  
+}
+```

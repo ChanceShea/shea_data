@@ -440,3 +440,42 @@ class Outer {
     2. `invoke` 方法会将该方法包装成一个 `MapperMethod` 对象。
     3. `MapperMethod` 通过内部的 `MappedStatement` 找到对应的 SQL 语句、参数映射和结果集映射。
     4. 最终通过 `SqlSession`（底层依赖 `Executor`）执行 SQL 并返回结果。
+
+## 33. ConcurrentHashMap 是如何保证线程安全的？JDK 1.7 和 1.8 在实现结构和锁的粒度上有哪些本质区别？
+**你的回答亮点**：提到了分段加锁的思想，以及读写分离不影响性能。
+**补充与完善**：
+- **JDK 1.7 (Segment 分段锁)**：底层是 `Segment` 数组 + `HashEntry` 数组 + 链表。每个 `Segment` 继承自 `ReentrantLock`。锁的粒度是 `Segment`，默认 16 个，即最高支持 16 个线程并发写。
+- **JDK 1.8 (Node + CAS + synchronized)**：放弃了 `Segment`，采用数组 + 链表 + 红黑树。锁的粒度是 **Node（桶的首节点）**。
+- **锁的演进**：1.8 使用 `CAS` 插入新节点，使用 `synchronized` 锁定链表/红黑树的首节点。锁的粒度更细，冲突概率更低，且 `synchronized` 在 1.8 经过了大量优化（偏向锁、轻量级锁等），性能更优。
+
+## 39. Java 运行时数据区域有哪些？请详细说明“堆（Heap）”和“虚拟机栈（Stack）”分别存储什么内容？
+**你的回答亮点**：准确指出了栈是线程私有的原因（区分函数调用路径），堆是共享的。
+**补充与完善**：
+- **堆 (Heap)**：几乎所有的 **对象实例** 和 **数组** 都在这里分配。它是 GC 回收的主要区域。
+- **虚拟机栈 (Stack)**：存储 **局部变量表**、**操作数栈**、**动态链接**、**方法出口**。每个方法调用对应一个栈帧。
+- **其他区域**：还包括 **程序计数器**（线程私有，记录指令执行地址）、**方法区/元空间**（共享，存类信息、常量、静态变量）、**本地方法栈**（为 Native 方法服务）。
+
+## 38. 什么是“双亲委派机制”？它存在的意义是什么？在什么场景下我们需要打破它？
+**你的回答亮点**：提到了防止重复加载，以及 JDBC (SPI) 和 Tomcat 打破双亲委派的典型案例。
+**补充与完善**：
+- **意义**：
+    1. **安全性**：防止核心 API（如 `java.lang.String`）被随意篡改。
+    2. **唯一性**：确保同一个类文件被加载后在 JVM 中只有一份。
+- **打破场景补充**：
+    - **JDBC**：启动类加载器加载的 `DriverManager` 需要调用应用类路径下的数据库驱动，通过 **线程上下文类加载器 (Thread Context ClassLoader)** 实现“逆向”加载。
+    - **Tomcat**：为了实现 **Web 应用间的类隔离**，Tomcat 自定义了 `WebAppClassLoader`，优先加载 Web 应用自身的类，打破了委派逻辑。
+
+## 42. 请简述 Spring Bean 的生命周期。如果我想在 Bean 初始化完成后执行一些自定义逻辑，有哪些实现方式？
+**你的回答亮点**：提到了后置处理器 (BeanPostProcessor) 这一核心扩展点。
+**补充与完善**：
+- **生命周期核心步**：
+    1. **实例化 (Instantiation)**：反射创建对象。
+    2. **属性填充 (Populate)**：依赖注入 `@Autowired`。
+    3. **初始化 (Initialization)**：
+        - 执行 `Aware` 接口方法（如 `BeanNameAware`）。
+        - 执行 `BeanPostProcessor` 的 `postProcessBeforeInitialization`。
+        - 执行 `@PostConstruct`、`InitializingBean.afterPropertiesSet`、`init-method`。
+        - 执行 `BeanPostProcessor` 的 `postProcessAfterInitialization`。
+    4. **使用 (Using)**。
+    5. **销毁 (Destruction)**：`DisposableBean.destroy`、`destroy-method`。
+- **自定义逻辑方式**：除了 `BeanPostProcessor`，常用的还有实现 `InitializingBean` 接口或使用 `@PostConstruct` 注解。

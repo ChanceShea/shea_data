@@ -80,16 +80,17 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/question.md",
+                "file": "java/计算机网络.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "question 的大纲"
+              "title": "计算机网络 的大纲"
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",

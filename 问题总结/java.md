@@ -129,3 +129,43 @@ LoginInterceptor 拦截了所有请求（包括OPTIONS），要求携带token
   }  
 }
 ```
+## sse流式输出md格式的数据，换行符会被吞掉
+SSE 是基于文本行的协议，它用 \n（或 \r\n）作为字段的分隔符。一条消息的格式是：
+```text
+data:这是内容\n
+\n
+```
+data: 后面跟内容，然后一个 \n 表示这个字段结束，再一个空行 \n 表示整条消息结束。
+问题就在这儿：如果你要传的内容本身就包含 \n，直接塞进 data: 后面，这个 \n 会被 SSE 协议当成字段分隔符处理掉，而不是当成内容的一部分。
+换句话说，后端如果这么干：
+```text
+data:第一行\n第二行\n
+```
+SSE 在解析的时候，会把它理解成"data 字段是『第一行』，然后字段结束了"，后面的第二行要么被忽略，要么被错误处理。内容里的换行，就这么被协议吃掉了。
+我们后端当时就是直接把大模型输出的文本（带 Markdown 换行的）塞进 data: 转发出来，换行符在传输过程中全部丢失。前端收到的，自然是一堆没有换行的碎片。
+**解决**
+可以在后端输出data之前使用json包装一下，包装之后，换行符就会被解析成'\n'就不会被sse输出吞掉
+```text
+event:message
+data:{"content":"## 核心功能\n\n这是正文"}
+```
+AI流式输出时，可以按照以下方法包装
+```java
+private final ObjectMapper objectMapper = new ObjectMapper();
+public Flux<ServerSentEvent<String>> interviewChatRag(String userMessage,String chatId) {  
+    return codeApp.doChatWithRag(userMessage, chatId)  
+            .map(chunk -> ServerSentEvent.<String>builder().data(wrapContent(chunk)).build());  
+}  
+  
+/**  
+ * 将内容包装为 JSON 字符串，避免换行符破坏 SSE 解析  
+ */  
+private String wrapContent(String content) {  
+    try {  
+        return objectMapper.writeValueAsString(Map.of("content", content));  
+    } catch (Exception e) {  
+        return "{\"content\":\"\"}";  
+    }  
+}
+```
+对于前端，在解析时，只需要通过json.parse将数据进行解析即可

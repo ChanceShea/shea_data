@@ -53,3 +53,18 @@ MCP协议中有三种角色
 - MCP Client，它住在Host里面，负责和MCP Server通信。Host需要什么能力，就可以通过Client去跟对应的Server进行沟通
 - MCP Server，负责对外暴露具体的工具能力和数据资源。比如有一个Github MCP Server，它能提供”搜索代码“，”创建Issue“等工具
 MCP整个流程就是：用户在AI应用中提问，AI应用通过MCP Client发现有哪些可用工具，AI决定调用某个工具，MCP Client向对应的MCP Server发送请求，MCP Server执行操作返回结果，AI基于结果生成回答
+MCP Server暴露的工具是可发现的，AI应用启动时能自动查询有哪些MCP Server可用、每个Server提供哪些工具、每个工具的参数是什么，这意味着Agent可以在运行时动态发现新的能力，而不是只能用开发者写死的函数
+## Skills
+skills是一种自然语言指令文件，通常是Markdown格式，用来教Agent在什么场景下、按照什么方法、遵循什么规范来完成特定人物
+在Claude Code、Cursor等AI工具中，Skills通常以`SKILL.md`文件的形式存在
+Skills的结构很简单，顶部有一段yml格式的元数据，声明这个skill什么时候应该被激活；下面是具体的行为指令，用自然语言写成
+Skills的核心是质量和知识，它在执行的过程中可以调用工具
+当Agent启动时，它会扫描可用的Skills列表。当用户提出请求时，Agent会自动判断有没有匹配的Skill。如果有，Agent就会把这个Skill的内容加载到上下文中，然后按照Skill中的指令来思考和行动
+Skill不只是告诉Agent怎么想，还能告诉Agent怎么做。一个Skill可以在SKILL.md中通过`allowed-tools`字段声明它需要使用哪些工具，也可以打包可执行的脚本文件，甚至可以直到Agent去调用MCP或发起Function Call
+Skills的核心价值在于将专业知识和最佳实践编码成可复用的模块
+## A2A协议
+A2A协议是用于多个Agent之间进行协作的协议
+假设有多个Agent，这些Agent由不同的团队开发，使用不同的框架，它们之间需要协作，就需要A2A协议
+A2A协议能够让不同的AI Agent互相发现、互相通信、互相委派任务，不管这些Agent是用什么框架开发的，运行在什么平台
+A2A协议有以下几个关键概念
+- Agent Card，每个支持A2A协议的Agent都会发布一个JSON格式的名片，描述自己的身份、能力，擅长的领域

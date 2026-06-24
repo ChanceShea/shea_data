@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "question.md",
+                "file": "java/JVM.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "question"
+              "title": "JVM"
             }
           }
         ]
@@ -93,7 +93,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -180,7 +181,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -194,8 +196,20 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "16dccbbcebd834e0",
+  "active": "1c28dbcc0ffce8a4",
   "lastOpenFiles": [
+    "java/MQ.md",
+    "java/Redis.md",
+    "java/Spring.md",
+    "java/question.md",
+    "java/Nginx.md",
+    "java/MySQL.md",
+    "java/Mybatis.md",
+    "java/answer.md",
+    "java/Java并发编程.md",
+    "java/Java基础.md",
+    "java/JVM.md",
+    "question.md",
     "fronted.md",
     "LLM/Java.md",
     "assets/计算机网络/file-20260301195341010.png",
@@ -205,21 +219,11 @@
     "问题总结/assets/java/file-20260623153615174.png",
     "问题总结/assets/java",
     "问题总结/assets",
-    "java/Java基础.md",
-    "java/JVM.md",
     "java/计算机网络.md",
     "java/assets/计算机网络/file-20260516152216478.png",
     "java/assets/计算机网络/file-20260515144930917.png",
     "java/assets/计算机网络",
-    "java/question.md",
-    "java/MySQL.md",
-    "java/MQ.md",
-    "java/Nginx.md",
-    "java/Redis.md",
-    "java/Mybatis.md",
-    "java/answer.md",
     "java/IO.md",
-    "java/Spring.md",
     "java/assets/Spring/file-20260502104730862.png",
     "java/assets/Spring/file-20260501224139248.png",
     "java/assets/Spring/file-20260430091452135.png",
@@ -227,10 +231,8 @@
     "java/assets/Spring/file-20260428135813020.png",
     "java/assets/MQ/file-20260417092219616.png",
     "java/assets/MQ",
-    "java/Java并发编程.md",
     "java/assets/Spring",
     "java/设计模式.md",
-    "question.md",
     "java/assets/Java并发编程",
     "answer.md",
     "java/assets/JVM",

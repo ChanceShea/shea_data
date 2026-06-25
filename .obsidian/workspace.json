@@ -196,8 +196,9 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "0dc0d29d2e02ee63",
+  "active": "1c28dbcc0ffce8a4",
   "lastOpenFiles": [
+    "README.md",
     "LLM/Java.md",
     "LLM/LLM.md",
     "java/杂.md",
@@ -242,7 +243,6 @@
     "LLM/assets/Python",
     "计算机网络.md",
     "assets/计算机网络",
-    "assets",
-    "2026-01-23.md"
+    "assets"
   ]
 }

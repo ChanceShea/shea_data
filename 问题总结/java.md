@@ -94,21 +94,17 @@ public static MimeMessage sendHtmlEmail(String recipient, String subject, String
 检查跨域配置中是否有**allowedHeaders("*")** 函数，如果没有则会把Authorization请求头拦截，导致后端无法获取到token
 
 # 跨域问题
-
 配置了CorsConfig，但是前后端联调时还是会有跨域问题
-
 ```java
 // 放行OPTIONS预检请求
 if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
     return true;
 }
 ```
-
 浏览器在发送跨域请求时，会先发送一个OPTIONS预检请求
 LoginInterceptor 拦截了所有请求（包括OPTIONS），要求携带token
 但预检请求不会携带自定义header（token），导致拦截器抛出异常
-
-## MCP服务启动超时
+# MCP服务启动超时
 ```
 [org/springframework/ai/autoconfigure/mcp/client/McpClientAutoConfiguration.class]: Failed to instantiate [java.util.List]: Factory method 'mcpSyncClients' threw exception with message: java.util.concurrent.TimeoutException: Did not observe any item or terminal signal within 20000ms in 'Mono.create ⇢ at io.modelcontextprotocol.spec.DefaultMcpSession.sendRequest(DefaultMcpSession.java:228)
 ```
@@ -129,7 +125,7 @@ LoginInterceptor 拦截了所有请求（包括OPTIONS），要求携带token
   }  
 }
 ```
-## sse流式输出md格式的数据，换行符会被吞掉
+# sse流式输出md格式的数据，换行符会被吞掉
 SSE 是基于文本行的协议，它用 \n（或 \r\n）作为字段的分隔符。一条消息的格式是：
 ```text
 data:这是内容\n
@@ -169,4 +165,53 @@ private String wrapContent(String content) {
 }
 ```
 对于前端，在解析时，只需要通过json.parse将数据进行解析即可
-# 
+# 文档未修改，但是两次hash值却不同
+```java
+public List<Document> loadMarkdown() {  
+    List<Document> allDocuments = new ArrayList<>();  
+    try {  
+        Resource[] resources = resourcePatternResolver.getResources("classpath:document/*.md");  
+        for (Resource resource : resources) {  
+            String fileName = resource.getFilename();  
+            MarkdownDocumentReaderConfig config = MarkdownDocumentReaderConfig.builder()  
+                    .withHorizontalRuleCreateDocument(true)  
+                    .withIncludeCodeBlock(false)  
+                    .withIncludeBlockquote(false)  
+                    .withAdditionalMetadata("filename", fileName)  
+                    .build();  
+            MarkdownDocumentReader reader = new MarkdownDocumentReader(resource, config);  
+            allDocuments.addAll(reader.read());  
+        }  
+    } catch (Exception e) {  
+        log.error("Markdown文档加载失败",e);  
+        throw new RuntimeException(e);  
+    }  
+    return allDocuments;  
+}
+```
+```java
+private void signDocuments(List<Document> documents) {  
+    for (Document doc : documents) {  
+		 doc.getMetadata().put("doc_hash", DigestUtil.md5Hex(doc.getText()));  
+    } 
+}
+```
+利用MarkdownDocumentReader读取出来的文档并不是整个Markdown文档，而是将整个文档拆分成多个Document对象。即使源文件内容没有改变，分块方式也可能会产生变化
+**解决方案**
+不依赖Reader的输出，而是直接读原始文件的字节，用原始文件的字节来进行hash
+```java
+private void signDocuments(List<Document> documents) {
+    for (Document doc : documents) {
+        String filename = (String) doc.getMetadata().get("filename");
+        try {
+            Resource resource = resourcePatternResolver.getResource("classpath:document/" + filename);
+            String rawContent = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            doc.getMetadata().put("doc_hash", DigestUtil.md5Hex(rawContent));
+        } catch (Exception e) {
+            // fallback to text-based hash
+            doc.getMetadata().put("doc_hash", DigestUtil.md5Hex(doc.getText()));
+        }
+    }
+}
+```
+这样子就不会出现，文档内容未修改，但是两次hash的值不一样的问题

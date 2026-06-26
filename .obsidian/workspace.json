@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "LLM/LLM.md",
+                "file": "问题总结/java.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "LLM"
+              "title": "java"
             }
           }
         ]
@@ -80,17 +80,16 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "LLM/LLM.md",
+                "file": "问题总结/java.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "LLM 的大纲"
+              "title": "java 的大纲"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
@@ -196,12 +195,12 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "0dc0d29d2e02ee63",
+  "active": "1c28dbcc0ffce8a4",
   "lastOpenFiles": [
+    "LLM/LLM.md",
     "java/杂.md",
     "java/Nginx.md",
     "java/设计模式.md",
-    "LLM/LLM.md",
     "README.md",
     "LLM/Java.md",
     "java/JVM.md",

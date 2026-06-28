@@ -975,7 +975,6 @@ replication buffer、repl backlog buffer的区别如下
 - 这两个buffer都有大小限制，缓冲区满了之后，发生的事情不一样
 	当repl backlog buffer满了，会直接覆盖起始位置的数据
 	当replication buffer满了，会导致连接断开，删除缓存，从节点重新连接，重新开始全量复制
-# 杂项
 ## Redis数据结构
 Redis有以下几种常见的数据结构，下面介绍其应用场景
 - String：适用于缓存对象、常规技术、分布式锁、共享session信息等

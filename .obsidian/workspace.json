@@ -89,8 +89,7 @@
               "title": "LLM 的大纲"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
@@ -196,7 +195,7 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "0dc0d29d2e02ee63",
+  "active": "a8a796e8940f7894",
   "lastOpenFiles": [
     "LLM/Java.md",
     "java/JVM.md",

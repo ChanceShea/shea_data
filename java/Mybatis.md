@@ -8,7 +8,7 @@ Mapper接口的代理对象是通过调用SqlSession的getMapper方法，通过j
 
 
 
-
+mybatisplus 插件
 
 
 

@@ -89,8 +89,7 @@
               "title": "question 的大纲"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
@@ -199,8 +198,10 @@
   },
   "active": "1c28dbcc0ffce8a4",
   "lastOpenFiles": [
-    "java/Mybatis.md",
+    "java/answer.md",
     "java/MQ.md",
+    "question.md",
+    "java/Mybatis.md",
     "java/Java基础.md",
     "java/JVM.md",
     "java/Spring.md",
@@ -209,8 +210,6 @@
     "java/Redis.md",
     "java/MySQL.md",
     "java/question.md",
-    "java/answer.md",
-    "question.md",
     "java/IO.md",
     "LLM/LLM.md",
     "LLM/Java.md",

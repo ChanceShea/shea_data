@@ -334,7 +334,14 @@ public PerformanceMonitorInterceptor performanceMonitorInterceptor() {
 
 ### 16.WebSocket改用微服务如何实现，如何识别WebSocket连接的用户id，session中如何获取到用户id
 ### 17.Spring容器是什么数据结构
+Spring容器分为两层，第一层是BeanDefinition的注册表，告诉Spring这个Bean该如何被创建，其数据结构是`Map<String,BeanDefinition> beanDefinitionMap`，这是一个ConcurrentHashMap，通常容量设置为256，确保高并发下的线程安全，key是Bean的名称，value是BeanDefinition对抗
+第二层是单例对象的缓存，当Bean被实例化、组装好之后，为了能够重复使用，就需要将其存储起来。该容器是用于缓存实例对象的，其数据结构是`Map<String,OBject>singletonObjects`，key是Bean的名称，value就是已经创建好的、可以直接使用的Bean实例对象
 ### 18.进程之间如何通信、线程之间如何通信
+进程之间有独立的虚拟空间，互不干扰，它们之间的通信需要通过内核或借助特殊的内存区域
+1. 管道：父子进程之间通信，数据单向流动。本质是内核里的环形缓冲区
+2. 命名管道：允许无亲缘关系的进程通信，通过文件系统的特殊文件进行数据交换
+3. 消息队列：内核维护一个消息链表，进程往里写消息，其他进程按类型读取。优点是可以多条消息异步收发，但是数据拷贝开销较大
+4. 共享内存：将同一款物理内存映射到多个进程的虚拟地址空间，进程可以直接读写，无需内核拷贝。但是
 ### 19.针对微服务改造，用Redis共享数据，以WebSocket长连接无法序列化并跨进程发消息
 ### 20.（username,is_deleted,delete_time）未删除的数据，删除时间该如何设置，设置为null时是否会参与索引
 ### 21. Redis为什么会比其他缓存更快

@@ -180,6 +180,157 @@
    - `DiscardOldestPolicy`
 
 ### 15.自己实现的mybatisplus 插件
+MybatisPlus中可以通过两种方式实现自定义插件
+1. 实现MybatisPlus的InnerInterceptor接口，自定义接口时只需要实现该接口，并将其添加到MybatisPlusInterceptor中即可，实现方式轻量，且与MP内置插件的协同性更好
+2. 实现Mybatis的Interceptor接口，这是Mybatis底层的拦截器接口，在MP中也可以使用，但是它需要处理更底层的代理逻辑，并对拦截点的指定要求更细致
+**下面是一个自定义的sql语句性能告警器**
+```java
+@Intercepts({  
+        @Signature(type = StatementHandler.class,method = "query",args = {Statement.class, ResultHandler.class}),  
+        @Signature(type = StatementHandler.class,method = "update",args = {Statement.class}),  
+        @Signature(type = StatementHandler.class,method = "batch",args = {Statement.class})  
+})  
+@Slf4j  
+public class PerformanceMonitorInterceptor implements Interceptor {  
+  
+    private long slowSqlThreshold = 1;  
+    private boolean showParams = true;  
+  
+    @Override  
+    public void setProperties(Properties properties) {  
+        String threshold = properties.getProperty("slowSqlThreshold");  
+        if (threshold != null) {  
+            this.slowSqlThreshold = Long.parseLong(threshold);  
+        }  
+        String showParamsProp = properties.getProperty("showParams");  
+        if (showParamsProp != null) {  
+            this.showParams = Boolean.parseBoolean(showParamsProp);  
+        }  
+        log.info("性能监控拦截器初始化:慢查询阈值={}s，显示参数={}",slowSqlThreshold,showParams);  
+    }  
+  
+    @Override  
+    public Object plugin(Object target) {  
+        // 利用Mybatis的Plugin工具生成代理对象  
+        return Plugin.wrap(target, this);  
+    }  
+  
+    @Override  
+    public Object intercept(Invocation invocation) throws Throwable {  
+        StatementHandler statementHandler = (StatementHandler) invocation.getTarget();  
+        BoundSql boundSql = statementHandler.getBoundSql();  
+        // 获取原始sql语句  
+        String originalSql = boundSql.getSql();  
+        // 获取参数对象  
+        Object parameterObject = boundSql.getParameterObject();  
+        long start = Instant.now().toEpochMilli();  
+        // 执行sql语句  
+        Object proceed = invocation.proceed();  
+        // 计算执行耗时  
+        long executionTime = Instant.now().toEpochMilli() - start;  
+        String fullSql = showParams ? buildFullSql(boundSql,parameterObject):originalSql;  
+        String formattedSql = formatSql(fullSql);  
+        // 大于阈值，则告警  
+        if (executionTime > slowSqlThreshold * 1000) {  
+            log.warn("【慢SQL告警】执行耗时：{}ms({}s)，阈值：{}s,SQL:{}",  
+                    executionTime,executionTime/1000.0,slowSqlThreshold,formattedSql);  
+        } else {  
+            log.debug("【SQL执行】耗时：{}ms,SQL:{}",executionTime,formattedSql);  
+        }  
+        return proceed;  
+    }  
+  
+    private String buildFullSql(BoundSql boundSql, Object parameterObject) {  
+        String sql = boundSql.getSql();  
+        List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();  
+        if (parameterMappings == null || parameterMappings.isEmpty()) {  
+            return sql;  
+        }  
+        // 获取参数值  
+        MetaObject metaObject = MetaObject.forObject(  
+                parameterObject,  
+                SystemMetaObject.DEFAULT_OBJECT_FACTORY,  
+                SystemMetaObject.DEFAULT_OBJECT_WRAPPER_FACTORY,  
+                new DefaultReflectorFactory()  
+        );  
+        StringBuilder sb = new StringBuilder(sql);  
+        int paramIndex = 0;  
+        int questionMarkIndex = sb.indexOf("?");  
+        while(questionMarkIndex > 0 && paramIndex < parameterMappings.size()) {  
+            ParameterMapping mapping = parameterMappings.get(paramIndex);  
+            String property = mapping.getProperty();  
+            Object value;  
+            if (metaObject.hasGetter(property)) {  
+                value = metaObject.getValue(property);  
+            } else {  
+                value = parameterObject;  
+            }  
+            // 格式化参数值  
+            String paramValue = formatParameterValue(value);  
+            // 将?占位符替换为实际的参数值  
+            sb.replace(questionMarkIndex,questionMarkIndex + 1,paramValue);  
+            // 查找下一个?占位符  
+            questionMarkIndex = sb.indexOf("?",questionMarkIndex + paramValue.length());  
+            paramIndex++;  
+        }  
+        return sb.toString();  
+    }  
+  
+    private String formatParameterValue(Object value) {  
+        if (value == null) {  
+            return "NULL";  
+        }  
+        if (value instanceof String str) {  
+            // 转义单引号  
+            str = str.replace("'","''");  
+            return "'" + str + "'";  
+        }  
+        if (value instanceof Date) {  
+            return "'" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format((Date) value) + "'";  
+        }  
+        if (value instanceof LocalDateTime dateTime) {  
+            return "'" + dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) + "'";  
+        }  
+        if (value instanceof Boolean) {  
+            return (Boolean) value ? "1" : "0";  
+        }  
+        return value.toString();  
+    }  
+  
+    private String formatSql(String sql) {  
+        // 取出多余的空白  
+        sql = sql.replaceAll("\\s+", " ");  
+        // 关键SQL关键字换行  
+        sql = sql.replaceAll("(?i)select ", "\nSELECT ");  
+        sql = sql.replaceAll("(?i)from ", "\n  FROM ");  
+        sql = sql.replaceAll("(?i)where ", "\n  WHERE ");  
+        sql = sql.replaceAll("(?i)join ", "\n  JOIN ");  
+        sql = sql.replaceAll("(?i)left join ", "\n  LEFT JOIN ");  
+        sql = sql.replaceAll("(?i)right join ", "\n  RIGHT JOIN ");  
+        sql = sql.replaceAll("(?i)inner join ", "\n  INNER JOIN ");  
+        sql = sql.replaceAll("(?i)order by ", "\n  ORDER BY ");  
+        sql = sql.replaceAll("(?i)group by ", "\n  GROUP BY ");  
+        sql = sql.replaceAll("(?i)having ", "\n  HAVING ");  
+        sql = sql.replaceAll("(?i)limit ", "\n  LIMIT ");  
+        sql = sql.replaceAll("(?i)union ", "\nUNION ");  
+        return sql.trim();  
+    }  
+}
+@Bean  
+public PerformanceMonitorInterceptor performanceMonitorInterceptor() {  
+    PerformanceMonitorInterceptor interceptor = new PerformanceMonitorInterceptor();  
+    Properties prop = new Properties();  
+    prop.setProperty("slowSqlThreshold","2");  
+    prop.setProperty("showParams","true");  
+    interceptor.setProperties(prop);  
+    return interceptor;  
+}
+```
+- `@Intercepts`注解用于标记这个类是一个Mybatis拦截器，其属性是一个`@Signature`数组，可以同时拦截多个方法
+- `@Signature`注解用于定义要拦截的一个具体方法，有三个属性
+	type用于说明要拦截的类，Mybatis中允许拦截的核心类有四个，分别是`Executor`，SQL执行器，负责整体执行流程；`StatementHandler`，处理JDBC Statement的创建和执行；`ParameterHandler`，处理参数设置；`ResultHandler`，处理结果集映射
+	method用于说明要拦截的方法名
+	args用于说明方法的参数类型列表
 
 ### 16.WebSocket改用微服务如何实现，如何识别WebSocket连接的用户id，session中如何获取到用户id
 ### 17.Spring容器是什么数据结构

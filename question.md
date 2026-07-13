@@ -429,3 +429,15 @@ Mybatis启动时，会读取并解析所有的XML映射文件，为后面的SQL�
 - 执行SQL，`MapperProxy`最终会委托给`SqlSession`的对应方法，而`SqlSession`又会将工作交给`Executor`。`Executor`是Mybatis的调度中心，负责管理缓存并协调整个SQL的执行过程
 ### 31. MybatisPlus如何实现分页插件的
 分页插件通过拦截器在SQL执行前接入，自动生成并执行一条COUNT来查询获取总条数，在修改原SQL拼接分页语句，动态地拼接数据库方言对应的分页语句
+### 32. MySQL里SELECT的执行顺序
+1. `FROM`，确定数据来源，包括JOIN关联的表
+2. `ON`，在JOIN连接时，执行ON条件，过滤掉不符合连接条件的行
+3. `JOIN`，执行外连接时，会补上被丢弃的NULL行，生成新的临时表，如果是内连接，通常和ON合并处理
+4. `WHERE`，对临时表进行行级过滤，这里不能使用SELECT定义的别名，也不能使用聚合函数
+5. `GROUP BY`，将数据按照指定字段分组
+6. `HAVING`，对分组后的结果进行过滤，这里不能使用SELECT中定义的别名
+7. `SELECT`，提取指定的列，并计算表达式，列的别名被正式定义
+8. `DISTINCT`，使用了DISTINCT，会在SELECT投影之后，去除结果集中重复行
+9. `UNION`，如果有集合操作，将多个SELECT结果合并
+10. `ORDER BY`，对最终结果进行排序
+11. `LIMIT/OFFSET`，截取指定数量的数据行返回给用户

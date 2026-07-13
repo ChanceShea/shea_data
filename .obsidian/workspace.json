@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/Java基础.md",
+                "file": "question.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Java基础"
+              "title": "question"
             }
           }
         ]
@@ -93,7 +93,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -197,6 +198,8 @@
   },
   "active": "1c28dbcc0ffce8a4",
   "lastOpenFiles": [
+    "java/MySQL.md",
+    "java/Java基础.md",
     "question.md",
     "README.md",
     "fronted.md",
@@ -206,11 +209,9 @@
     "java/answer.md",
     "java/MQ.md",
     "java/Mybatis.md",
-    "java/Java基础.md",
     "java/JVM.md",
     "java/Spring.md",
     "java/Redis.md",
-    "java/MySQL.md",
     "java/question.md",
     "LLM/LLM.md",
     "LLM/Java.md",

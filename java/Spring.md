@@ -770,3 +770,38 @@ Raft算法是现在工业界非常常用的分布式一致性算法，它就是�
 接下来是最核心的**日志复制**。客户端的请求都会发给领导者，领导者把这个操作写成一条日志，先不提交，而是同步给所有跟随者。等超过半数的节点都确认收到这条日志，领导者就认为这条日志可以提交，然后自己提交，再通知所有跟随者一起提交，这样整个集群的数据就完全一致了
 最后是安全性，简单说就是已经提交过的日志，永远不会被覆盖或丢失，就算节点重启、网络波动，新选出来的领导者一定拥有最全、最新的已提交日志，保证数据不会乱。
 总结一下，Raft就是用选主+日志复制+半数确认这套简单机制，保证分布式系统强一致，好理解也好实现
+## @Autowired注解
+### 为什么Spring官方不推荐使用@Autowired注解
+1. 单元测试编写困难，因为`@Autowired`注解注入的属性，需要依赖Spring容器，在单元测试中，没有容器，很难Mock一个对象来进行测试。通常需要通过反射获取到私有字段才能进行属性注入
+2. 无法保证属性不可变。`@Autowired`注解注入的属性不是final类型的，字段无法被声明为final，因此在注入之后可能会被修改，从而导致可能会出现安全问题，破坏了不可变性。而对于构造器注入，属性字段可以被声明为final，且在对象实例化时就被注入，后续不再改变
+### @Resource和@Autowired
+`@Resource`默认是根据名字注入，当名字`(by Name)`一样时，就根据类型`(by Type)`注入`@Autowired`默认是根据类型注入
+当某一个类型有多个不同的Bean时，使用`@Autowired`注解注入，就需要配合`@Qualifier`注解一起使用，而`@Resource`注解则可以直接使用
+`@Autowired`注解是Spring框架中的注解，对于一些非Spring开发环境下，耦合度较高，而`@Resource`注解是Java框架中的注解，耦合度较低
+对于字段注入，`@Resource`注解和`@Autowired`注解一样，存在很多问题，而对于构造器注入，`@Autowired`注解可以用于构造器的参数中
+```java
+@Autowired
+public OrderService(@Qualifier("wechatService") PaymentService paymentService) {
+    this.paymentService = paymentService;
+}
+```
+**无论是`@Autowired`还是`@Resource`，其实都是不被推荐的，最好的方式是使用构造器注入**
+## SpringBoot启动流程
+SpringBoot的启动流程，本质上是一个将约定转化为运行实例的过程，整体的启动流程主要分为两大阶段：准备阶段和执行阶段
+### 准备阶段
+当main方法调用`SpringApplication.run`时，实际上分了两步
+1. 创建SpringApplication对象，在这个对象的构造方法里，SpringBoot会完成几个工作
+	- **推断Web应用类型**：它会检查classpath下是否存在Servlet和DispatcherServlet等类，来决定是创建一个Servlet的Web应用还是响应式的Web应用，或是一个普通的Java应用
+	- **加载初始化器和监听器**：通过`SpringFactoriesLoader`，从`META-INF/spring.factories`文件中加载一批`ApplicationContextInitializer`和`ApplicationListener`，为后续的扩展点做准备
+2. 执行run方法，接下来，会调用对象的run方法，开始启动
+### 执行阶段
+1. **启动计时和事件广播**：通过`StopWatch`记录启动耗时，并通知所有`SpringApplicationRunListener`启动过程开始了
+2. **准备环境**：创建并配置应用的环境，这个`Environment`对象会整合所有配置来源，比如命令行参数，配置文件，系统环境变量等。这一步完成后会发布`environmentPrepared`事件
+3. **打印Banner**：在控制台输出SpringBoot的图标和版本信息
+4. **创建应用上下文**：这是Spring的核心容器，对于Web项目，会根据第一步对断触的类型，创建`AnnotationConfigServletWebServerApplicationContext`，这是一个专门为Web环境设计的上下文
+5. **准备上下文**：将前面准备好的Environment设置到上下文中，并执行所有`ApplicationContextInitializer`的初始化逻辑，这一步会加载主配置类，准备好Bean定义
+6. **刷新上下文**：这是整个启动流程的核心。它会调用`ApplicationContext`的`refresh`方法，完成Spring容器的核心工作：
+	- 实例化所有非懒加载的单例Bean
+	- 执行复杂的依赖注入
+	- 触发内嵌的Web服务器的启动，启动Tomcat、Jetty等服务器
+7. **启动后的收尾**：调用`ApplicationRunner`和`CommandLineRunner`接口的实现，执行一些项目启动后的自定义逻辑。然后发布`started`和`ready`事件，表示应用已经完全启动，可以接受请求

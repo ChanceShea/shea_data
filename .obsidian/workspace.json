@@ -89,8 +89,7 @@
               "title": "question 的大纲"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
@@ -196,8 +195,9 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "0dc0d29d2e02ee63",
+  "active": "a8a796e8940f7894",
   "lastOpenFiles": [
+    "test_script.py",
     "README.md",
     "fronted.md",
     "java/JVM.md",
@@ -241,7 +241,6 @@
     "answer.md",
     "java/assets/JVM",
     "LLM/assets/Python",
-    "计算机网络.md",
     "assets/计算机网络",
     "assets"
   ]

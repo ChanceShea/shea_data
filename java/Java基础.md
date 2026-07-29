@@ -579,6 +579,24 @@ try {
 	e.printStackTrace();
 }
 ```
+### transient关键字
+Java中，被`transient`关键字修饰的字段不会被序列化，当对象中有一些不适合序列化的字段（例如密码，密钥，token等敏感字段，或者是类似缓存这一类的不需要持久化的字段），就需要该关键字
+一个字段如果被static修饰，这个字段也不会被序列化。因为序列化是作用于对象的，而不是作用于类，序列化只保存对象的状态。所以一个字段加了`static`和`transient`和单独加`static`关键字没有区别
+transient修饰的字段只是会被默认的序列化方式给忽略，如果想要给加了transient的字段序列化，可以通过自定义序列化方式实现
+在类中重写以下两个方法
+```java
+private void writeObject(ObjectOutputStream s) throws IOException {
+	// 先序列化非transient字段
+	s.defaultWriteObject();
+	// 手动序列化密码
+	s.writeObject("加密后的" + password); 
+}
+private void readObject(ObjectInputStream s) throws IOException {
+	s.defaultReadObject(); // 先反序列化非transient字段
+	// 手动反序列化密码并解密
+	password = (String) s.readObject();
+}
+```
 # Java集合
 ## List
 List中主要有以下几个重要的实现类

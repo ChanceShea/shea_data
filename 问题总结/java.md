@@ -215,3 +215,20 @@ private void signDocuments(List<Document> documents) {
 }
 ```
 这样子就不会出现，文档内容未修改，但是两次hash的值不一样的问题
+# Nacos配置中心无法找到配置文件
+![](assets/java/file-20260730095008767.png)
+nacos中配置文件有内容，但是却显示is Empty
+```yml
+spring:  
+  profiles:
+  # 激活开发环境，上线时改为 prod  profiles:  
+	active: dev  
+  cloud:  
+    nacos:  
+      server-addr: 192.168.100.104:8848  
+      discovery:  
+        namespace: ${spring.profiles.active:public}  
+      config:  
+        namespace: ${spring.profiles.active:public}
+```
+检查一下是否有配置config.namespace

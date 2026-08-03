@@ -232,3 +232,28 @@ spring:
         namespace: ${spring.profiles.active:public}
 ```
 检查一下是否有配置config.namespace
+# knife4j gateway整合微服务接口文档
+网关服务除了
+```xml
+<!--knife4j整合gateway-->  
+<dependency>  
+    <groupId>com.github.xiaoymin</groupId>  
+    <artifactId>knife4j-gateway-spring-boot-starter</artifactId>  
+    <version>4.5.0</version>  
+</dependency>
+```
+同时也需要
+```xml
+<!-- knife4j OpenAPI3 推荐 -->  
+<dependency>  
+  <groupId>com.github.xiaoymin</groupId>  
+  <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>  
+  <version>4.5.0</version>  
+</dependency>
+```
+如果网关服务没有第二个依赖，就会导致接口文档报错
+如果接口文档正确，但是找不到controller接口，可以尝试访问
+```
+http://localhost:{port}/v3/api-docs
+```
+查看是否能正常返回，然后可以查看拦截器中对knife4j的放行，查看子服务的放行路径是否有错误

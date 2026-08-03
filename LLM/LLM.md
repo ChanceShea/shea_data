@@ -647,7 +647,7 @@ public Flux<ServerSentEvent<String>> stream(String query) {
 }
 ```
 通过`Flux.create()`手动桥接，TokenStream的每个回调都对应发射一个`ServerSentEvent`。这种方式可以完全控制每个事件的内容和类型
-### 前端消费SSE数据
+## 前端消费SSE数据
 前端有两种渲染方式，`EventSource` API 和 `fetch + ReadableStream`
 **EventSource**
 EventSource是浏览器原生API，专门用于消费SSE流
@@ -761,6 +761,25 @@ streamChat([ { role: 'user', content: '你好，介绍一下你自己' } ]);
 ```
 通过`fetch`发送一个POST请求，拿到响应后，通过`response.body.getReader()`获取一个字节流reader。然后循环调用`reader.read()`读取每一块数据，解码成字符串，手动解析SSE格式（按`\n\n`分割事件，按`event:`/`data:`提取字段）
 这种方式更灵活，但是代码也更加复杂。实际项目中，通常可以封装成一个工具函数或使用第三方库`@microsoft/fetch-event-source`来简化
+## 前端实时渲染
+前端拿到大模型输出的token，该怎么渲染成markdown格式
+最大的难题在于，token是一段一段输出的，markdown格式渲染的前提是标签要是闭合的，而AI大模型在输出完成前，文本的markdown标签都是不闭合的
+例如，当大模型在输出一段代码块时，通常会先输出一个代码块的标签，在输出完成前，这个标签都是不闭合的，而如果把这段不闭合的代码输出给前端，前端用户看到的就是一大堆没有格式的文字，知道最后一个文字来了，突然就变好了
+对于上述问题，解决思路如下
+1. **防抖**：不是每拿到一个token就立刻渲染，而是积攒一小批（比如50ms内的token），然后一次性渲染。这样就能减少解析的频率，也避免了token间隔极短时的高频重绘
+2. **容错解析**：让Markdown解析器对不完整的语法宽容一些，比如遇到未闭合的代码块，就假设它会在后面闭合，先按代码块渲染。遇到未闭合的`**`，就先按闭合的符号渲染
+3. **智能切换**：在检测到正在写代码块时，用纯文本模式追加渲染代码内容，不做Markdown解析；代码块闭合后一次性做语法高亮
+下列是目前前端AI流式渲染常用方案
+
+| 组件                       | 技术栈   | 特点                 | 使用场景         |
+| ------------------------ | ----- | ------------------ | ------------ |
+| react-markdown + rehype  | React | 生态成熟，支持插件          | React项目首选    |
+| markdown-it+highlight.js | 框架无关  | 轻量灵活，可自定义渲染规则      | Vue/原生JS     |
+| streamdown               | React | 专为流式设计，内置增量解析      | 专注AI聊天UI     |
+| Shiki                    | 框架无关  | VS Code同款高亮引擎，效果最佳 | 对代码高亮质量要求高   |
+| rehype-pretty-code       | React | 基于Shiki，支持行高亮、diff | 技术博客/文档类AI应用 |
+| marked-DOMPurify         | 框架无关  | 极简，性能好             | 轻量级需求        |
+
 # 杂项
 ## Function Calling 和 MCP
 **Function Calling**即工具调用，让LLM可以通过工具调用去感知外部环境，执行一些API。给定一个函数定义和参数，调用工具时会根据用户问题填充参数。调用完后返回的结果在交给大模型，大模型根据工具调用的结果进行输出回复

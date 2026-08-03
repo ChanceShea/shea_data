@@ -292,6 +292,475 @@ GraphRAG的工作流程也分为两个阶段：索引阶段和查询阶段
 - **实体消歧**：这是GraphRAG的第二个难点，生成实体时，由于多篇文档对同一个实体有不同的称呼，多篇文档里的同一个名字，在不同的语境内也有不同的含义，代表着不同的东西。LLM做实体抽取，可能就会把同一个实体在不同文档中的不同名字，抽取成好几个独立的实体。这时候可能就会导致实体堆积，原本可能只有一万个节点，现在以下变成好几万个节点，其中大部分都是同一个实体的不同名字。关系会碎片化，一个实体被抽取成多个独立的节点，每个节点下都有不同的描述和内容，就会导致查询时根本查不出来
 - **查询延迟**：传统的RAG查询，向量库的ANN搜索通常能毫秒级返回，整个端到端的问答可能也就一两秒。而GraphRAG就不一样了，Global Search中的Map阶段，可能会涉及成百上千个社区，每个社区都要进行一次LLM调用，意味着同时需要发起上千次的LLM调用；然后是Reduce阶段，让LLM做一次汇总。这样就会导致生成答案的速度变得很慢
 - **增量更新**：GraphRAG中，一份新的文档进来，里面可能会有一个实体，和已有图里面的某个节点是同一个东西，但是名字不一样，这时又有实体消歧的问题了。再比如新文档中抽取出一堆关系，这些关系加进图之后，原来的社区划分可能就过时了；社区一变，之前花费大价钱生成的知识图谱全部失效，还需要重新生成一遍
+# 流式输出
+类似于ChatGPT、deepseek这类上线的大模型，这些大模型都有一个类似于打字机效果的输出，而不是和传统的http请求一样，一次请求，然后一次性将所有的数据全都响应回来
+对于流式输出，最常被讨论的有四种方式，分别是**HTTP长轮询、SSE、WebSockte、gRPC流**
+## 流式输出协议
+### HTTP长轮询
+这是最基础的互联网协议，本质是一问一答。客户端发送一次请求，服务端返回一次数据，然后连接关闭
+传统的HTTP并不能做流式输出，但是可以利用长轮询来实现服务器主动推送的效果。即**客户端发送一次请求，服务器不着急回复，而是将连接挂起，等到有了新数据之后再回复。客户端收到回复之后，立刻再发起一个新请求，继续挂着等待。如此循环往复**
+长轮询有几个很明显的问题
+- 每次轮询都有HTTP头开销，大量无效请求浪费宽带
+- 服务器维护大量挂起的连接，内存压力大
+- 数据有延迟，新数据来了，但是客户端还没发新的请求接收
+- 实现复杂，容易出错
+在AI流式输出的场景中，几乎不会考虑使用长轮询，因为大模型每个token之间的间隔可能只有几十毫秒，用长轮询意味着几十毫秒内就得重连一次，根本不现实
+### SSE
+SSE全称Server-Sent Events，这是专门为服务器发送事件给客户端设计的协议
+SSE底层还是HTTP，它是HTTP的一种特殊用法。客户端发送一个普通的HTTP GET请求，带上了`Accept: text/event-stream`这个请求头，告诉服务器需要的是一个事件流，让服务端不要一次性返回。服务器收到后，保持连接不断开，把响应的`Content-Type`设置为`text/event-stream`，然后就开始一段一段地往响应体中写入数据，每写一段就是一个时间
+SSE的数据格式十分简单，就是纯文本，每个事件用空行分割
+```text
+data: a
+
+data: b
+
+data: c
+```
+没有复杂的二进制编码，就是`data:`后面跟着文本内容，然后空行结束一个事件
+并且SSE有几个非常好的特性
+- **自动重连**：浏览器内置了断线重连机制，连接断了会自动重新连上
+- **事件ID**：每个事件可以带上一个id字段，断线重连时浏览器会通过`Last-Event-ID`请求头告诉服务器上次收到了第几条事件，从下一条开始给
+- **自定义事件类型**：可以给事件分类，客户端只监听感兴趣的事件类型
+- **纯文本**：调试方便，用浏览器开发者工具就能看到原始数据流
+### WebSocket
+WebSocket是一个完全独立的协议，特点是全双工通信，**服务器和客户端之间可以随时互发消息**
+SSE是单向的，只有服务端到客户端，WebSocket是双向的，客户端和服务端都能发送消息
+WebSocket的建立过程如下：客户端先发送一个HTTP请求，带上`Upgrade: websocket`头，服务器如果同意升级，就返回`101 Switching Protocols`响应，之后这条TCP连接就从HTTP协议切换到了WebSocket协议，双方可以随时互发消息帧
+WebSocket的优势是全双工、低延迟、支持二进制数据。劣势是：
+- 协议比SSE复杂得多
+- 需要单独的心跳保活机制（SSE的HTTP连接天然有心跳）
+- 没有内置断线重连
+- 需要专门的消息格式设计
+- 在某些企业网络环境/代理服务器下可能被拦截
+### gRPC流
+gRPC是Google推出的高性能RPC框架，底层使用HTTP/2和Protocol Buffers序列化。gRPC支持三种流模式，服务端流、客户端流，双向流
+对于AI场景，最常用的是服务端流。即客户端发送一次请求，服务器持续返回多条响应消息
+gRPC流的优势在于二进制序列化的极高效率和HTTP/2的多路复用。劣势在于浏览器原生不支持，需要引入gRPC-Web代理层，对前端开发门槛较高；调试不如纯文本直观
+## SSE
+为什么WebSocket功能强，但是SSE还是成为了AI流式输出的主流
+### 优势
+AI聊天的通信模式非常简单，用户发送一句话，AI一个字一个字地回复，回复完了，等待用户发送下一条消息
+这是典型的SSE模式，用户不需要再AI回复的过程中打断它、给它发送消息。WebSocket的全双工能力在这种场景下是完全用不上的。WebSocket的全双工通信在这个场景下完全是多余的
+SSE的`服务端→客户端`单向推送模型与AI对话场景的匹配度是100%，不需要双向通道
+**部署友好**
+SSE的底层是标准的HTTP，任何的反向代理都天然支持，不需要任何特殊配置。WebSocket的握手过程需要代理支持`Upgrade`头，但是不少企业网络的代理会拦截或篡改这些非标准HTTP头，gRPC则需要HTTP/2支持，很多老旧设施还停留在HTTP/1.1
+**调试友好**
+SSE的数据是纯文本，打开浏览器的开发者工具的Network面包，选中`text/event-stream`类型的请求，就能看到原始数据一行行流过来。不需要任何专用工具
+**内置API**
+浏览器原生提供了`EventSource`对象来消费SSE流，几行代码就能跑
+**内置断线重连**
+AI生成可能需要30s甚至更长时间。网络一抖动，连接断了。WebSocket断了就得自己写重连逻辑、自己记录上下文、自己恢复状态。而使用SSE，浏览器会自动实现断线重连，并且会带上`Last-Event-ID`告诉服务器从哪里继续
+**基础设施兼容**
+SSE可以无缝穿越各种CDN、负载均衡器、API网关，不需要特殊配置
+### 建立过程
+SSE的建立过程就是一个普通的HTTP GET请求，但是有两个特殊的地方
+- **请求端**：请求头会带上`Accept: text/event-stream`告诉服务器客户端需要的是事件流。`Cache-Control: no-cache`告诉服务器别给缓存数据，发送实时数据
+- **响应端**：响应头会带上`Accept: text/event-stream`确认返回的是事件流。`Cache-Control: no-cache`不缓存。`Connection: keep-alive`保持TCP连接。`Transfer-Encoding: chunked`分块传输，而不是一次性返回完
+HTTP传统模式需要服务器在响应头中声明`Content-Length`，用于标注响应体多大，浏览器收到这么多字节就认为响应结束了。但是SSE的特点就是不知道总共有多大，什么时候结束，所以用chunked编码，让数据一块一块地发，每块前面标注多大，最后一块用`0\r\n\r\n`表示结束
+### 消息格式
+SSE的消息格式规范定义在HTML5标准中，一条SSE消息由若干个字段行组成，以一个空行结束
+完整的事件如下
+```text
+id: 42
+event: token
+retry: 3000
+data: {"text": "你好"，"index": 0}
+```
+- **id**：事件ID，客户端会记住最后收到的ID，断线重连时通过`Last-Event-ID`请求头发给服务器，让服务器知道从哪里续传。这个在AI流式输出中特别有用，如果AI回复到一半连接断了，重连后可以从断点继续
+- **event**：事件类型，默认是message，你可以自定义，比如`token`、`thinking`、`done`。客户端可以只监听特定类型的事件
+- **retry**：重连等待时间，告诉浏览器如果连接断了，等待这么多毫秒再重连，默认值通常是3s
+- **data**：实际数据。这是最重要的字段，可以是多行（多个`data:`行会被`\n`拼接），但最终是一个字符串
+**一个事件必须以空行结束**。浏览器看到空行才会把之前攒的数据当做一个完整事件处理，如果忘了空行，浏览器会一直攒着不触发
+还有几个特殊规则
+- **冒号开头的行是注释**：以`:`开头的行被忽略，通常用来发送心跳。比如`:keep-alive`
+- **`data:`后面有一个空格**：规范写法是`data: a`，冒号后面跟一个空格。但实际上浏览器对空格很宽容，有没有都能解析
+- **多行`data:`自动拼接**：如下
+```text
+data: 1
+data: 2
+```
+客户端收到的`event.data`是`"1\n2"`，中间用换行符拼接
+### 场景设计
+AI流式输出中，通常需要区分不同类型的事件。比如大模型可能同时输出正文文本、思考过程、工具调用信息。这些不应该混在一起，SSE的`event:`字段就是为此设计的
+```text
+event: thinking
+data: {"content": "我需要先分析用户的问题..."}
+
+event: thinking
+data: {"content": "这个问题涉及到..."}
+
+event: token
+data: {"content": "根据"}
+
+event: token
+data: {"content": "您的描述"}
+
+event: tool_call
+data: {"name": "search", "arguments": "{\"query\": \"相关资料\"}"}
+
+event: tool_result
+data: {"name": "search", "result": "找到了3条相关结果"}
+
+event: token
+data: {"content": "，我找到了以下信息"}
+
+event: done
+data: {"totalTokens": 142, "finishReason": "stop"}
+```
+前端可以根据event类型分别渲染，所有信息在同一条SSE连接上有序传输，互不干扰
+### 生命周期
+SSE连接的完整生命周期如下
+- 首先是客户端发起请求，然后收到200响应，表示连接成功
+- 之后就是开始接收数据，每次收到事件，根据事件类型判断是否完成传输
+- 传输过程中如果发生了网络异常，就会发起自动重连，retry毫秒之后自动发起重连
+- 重连成功，则重新开始接收数据
+- 重连失败超过一定的次数限制，则直接失败，SSE连接结束
+- 收到`done`类型的事件，表示完成传输，服务器关闭连接，SSE连接结束
+**连接保持**：SSE是长连接，服务器端需要确保这个连接不被中间的代理服务器超时关闭。通常的做法是定期发送注释行`:heartbeat\n\n`作为心跳。Nginx默认的`proxy_read_timeout`是60s，如果超过60s内没有任何数据流过，Nginx会断开连接，所以如果AI生成可能超过60s，一定要在服务端加心跳
+**连接关闭**：当AI生成完毕后，服务器应该主动关闭连接。在HTTP chunked编码中，关闭就是发送最后的`0\r\n\r\n`标记，在SpringBoot中，当`Flux`发出`onComplete`信号时，框架会自动处理连接关闭
+**连接数限制**：HTTP/1.1规定浏览器对同一域名的并发连接数限制是6个。如果你在一个页面里打开了6个SSE连接，第7个就会被阻塞。HTTP/2没有这个限制，所以如果有多个SSE连接，确保使用HTTP/2
+## SpringBoot中的SSE流式输出
+SpringBoot中实现SSE流式输出，绕不开Flux。它是Project Reactor框架的核心类，也是Spring WebFlux的基础
+举例
+假设有一根水管，水管一头连接着水源（生产者），另一头有一个人正在使用水（消费者）
+**同步模式**就是有一个水桶，水管将水全部灌入到这个水桶中，直到水桶满，然后消费者一次性将这个水桶中的水全部倒走。消费者必须等到水桶满了之后才能倒水，这就是传统的`String`返回模式，方法执行完毕，全部数据准备好，才返回
+**Flux模式**就像是一根水管，水源每生产一滴水就会顺着管子流出，消费者只要一打开水龙头就可以直接用水，不需要等待装满。这就是流式输出，数据产生和消费是通信进行的
+`Flux`和`Mono`是Reactor的两个核心模型
+- **`Mono<T>`** 表示0或1个数据的异步序列，相当于`CompletableFuture<T>`的增强版
+- **`Flux<T>`** 0到N个数据的异步序列，相当于异步的 **`List<T>`** ，但是元素是逐个产生的
+SSE和Flux是天生一对。它们在概念上是完全对应的。SSE是服务器持续推送事件的协议，Flux是持续产生元素的数据结构。Spring WebFlux内置了对这两者配合的支持，当Controller方法返回`Flux<String>`且指定`produces = MediaType.TEXT_EVENT_STREAM_VALUE`时，Spring会自动把Flux的每个元素包装成一个SSE事件发送给客户端，不需要手写任何代码
+**tip**
+传统的`spring-boot-starter-web`是基于Servlet的，每个请求都要占用一个线程，而`spring-boot-starter-webflux`是基于Netty的，利用Netty的多路复用特性，可以实现少量线程处理大量连接。SSE是长连接，如果使用传统的MVC，100并发连接就需要100个线程，很容易把线程池耗尽，WebFlux的非阻塞模型可以用极少数的线程支撑大量长连接，非常适合SSE场景
+### 示例
+最简单的Flux例子，纯粹用Flux模拟流式输出
+```java
+@RestController
+public class StreamController {
+
+	@GetMapping(value = "/hello",produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	public Flux<String> streamHello() {
+		return Flux.interval(Duration.ofMillis(500))
+					.map(i -> "第" + (i + 1) + "条消息")
+					.take(10)
+					.doOnNext(s -> System.out.println("发送：" + s))
+					.doOnComplete(() -> System.out.println("结束连接"));
+	}
+}
+```
+- `Flux.interval(Duration.ofMillis(500))`：每500ms产生一个数字
+- `.map(...)`：把数字转换成字符串
+- `.take(10)`：只取前10条数据，取完则结束
+- `produces = MediaType.TEXT_EVENT_STREAM_VALUE`：告诉Spring这是SSE响应
+Spring会自动把每个Flux元素编码成SSE格式发送给浏览器，访问时就能看到文字一条一条出现
+### 大模型流式输出
+大模型使用的是`SpringAI Alibaba`的依赖
+```xml
+<!--SpringAI Alibaba DashScope-->  
+<dependency>  
+    <groupId>com.alibaba.cloud.ai</groupId>  
+    <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>  
+    <version>1.1.2.0</version>
+</dependency>
+```
+```java
+@RestController
+@RequestMapping("/ai/chat")
+public class ChatController {
+	private final ChatClient chatClient;
+
+	public AiAgent(ChatClient.Builder builder) {  
+		this.chatClient = builder  
+	        .defaultAdvisors(new MyLoggerAdvisor())  
+	        .build();  
+	}
+	
+	@GetMapping(value = "/stream",produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	public Flux<String> stream(String query) {
+		return chatClient.prompt()
+					.user(query)
+					.stream()
+					.content();
+	}
+}
+```
+上述代码将用户消息发送给了大模型，然后调用模型的流式API，将模型返回的token转换成`Flux<String>`返回，Spring自动把Flux编码成SSE返回给浏览器
+上述代码中全程流式输出，不会积攒数据
+**结构化SSE事件**
+在大模型的流式输出中不仅会有正文文本，还可能会有思考过程、工具调用、错误信息等。直接返回`Flux<String>`只能传输纯文本，无法区分事件类型。所以需要对事件进行一些封装。
+可以通过自定义一个SSE事件对象，然后使用`ServerSentEvent`包装
+```java
+public record ChatStreamEvent(String event,String content,LocalDateTime timestamp) {
+
+	public static ChatStreamEvent token(String content) {
+		return new ChatStreamEvent("token",content,LocalDateTime.now());
+	}
+	
+	public static ChatStreamEvent thinking(String content) {
+		return new ChatStreamEvent("thinking",content,LocalDateTime.now());
+	}
+	
+	public static ChatStreamEvent done(int totalTokens) {
+		return new ChatStreamEvent("done","{\"totalTokens\":" + totalTokens + "}",LocalDateTime.now());
+	}
+	
+	public static ChatStreamEvent error(String message) {
+		return new ChatStreamEvent("error",message,LocalDateTime.now());
+	}
+}
+```
+```java
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
+
+@RestController
+@RequestMapping("/api/chat")
+public class ChatStreamController {
+
+    private final ChatClient chatClient;
+
+    public ChatStreamController(ChatClient.Builder builder) {
+        this.chatClient = builder
+                .defaultSystem("你是一个友好的AI助手。")
+                .build();
+    }
+
+    /**
+     * 结构化 SSE 流式接口
+     * 返回 Flux<ServerSentEvent<ChatStreamEvent>>
+     * Spring 会把每个 ServerSentEvent 编码成带 event: 和 data: 的 SSE 消息
+     */
+    @GetMapping(value = "/v2/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<ChatStreamEvent>> streamChatV2(@RequestParam String q) {
+
+        // 前置事件：告诉客户端"开始生成"
+        Flux<ServerSentEvent<ChatStreamEvent>> startEvent = Flux.just(
+                ServerSentEvent.<ChatStreamEvent>builder()
+                        .event("start")
+                        .data(ChatStreamEvent.thinking("正在思考你的问题..."))
+                        .build()
+        );
+
+        // AI token 流：每个 token 包装成一个 SSE 事件
+        Flux<ServerSentEvent<ChatStreamEvent>> tokenStream = chatClient.prompt()
+                .user(q)
+                .stream()
+                .content()
+                .map(token -> ServerSentEvent.<ChatStreamEvent>builder()
+                        .event("token")
+                        .data(ChatStreamEvent.token(token))
+                        .build()
+                );
+
+        // 结束事件：告诉客户端"生成完毕"
+        Flux<ServerSentEvent<ChatStreamEvent>> endEvent = Flux.just(
+                ServerSentEvent.<ChatStreamEvent>builder()
+                        .event("done")
+                        .data(ChatStreamEvent.done(0))
+                        .build()
+        );
+
+        // 拼接：start + tokens + done
+        // concat 按顺序执行：先发 start，再流式发 tokens，最后发 done
+        // onErrorResume：如果 AI 调用失败，发送 error 事件而不是让连接异常断开
+        return Flux.concat(startEvent, tokenStream, endEvent)
+                .onErrorResume(e -> Flux.just(
+                        ServerSentEvent.<ChatStreamEvent>builder()
+                                .event("error")
+                                .data(ChatStreamEvent.error(e.getMessage()))
+                                .build()
+                ))
+                // 心跳：每 15 秒发一个注释行，防止代理超时断开
+                .mergeWith(
+                        Flux.interval(Duration.ofSeconds(15))
+                                .map(i -> ServerSentEvent.<ChatStreamEvent>builder()
+                                        .comment("keep-alive")
+                                        .build()
+                                )
+                                .takeUntilOther(tokenStream.then())
+                );
+    }
+}
+```
+上述代码的关键在于
+- **结构化事件**：用`ServerSentEvent`包装每个事件，可以指定`event`事件类型和`data`数据内容。Spring会把这些编码成带`event:`前缀的SSE格式
+- **三段式拼接**：`Flux.concat(startEvent,tokenStream,endEvent)`，先发一个开始事件，然后流式发出AI的每个token，最后发送一个完成事件，这样前端可以清晰知道生成状态
+- **错误处理**：`onErrorResume`确保即使AI调用失败，也会通过SSE发送一个error事件，而不是让连接突然断开，前端可以收到错误信息并展示给用户
+- **心跳保活**：`.mergeWith(heartbeat)`确保每15s发送一个注释行，防止Nginx等代理因超时关闭连接。`takeUntilOther`确保在token流结束后心跳也自动结束
+对于LangChain4j，实现方式类似，LangChain4j可以通过`@AiService`直接声明返回`Flux<String>`
+```java
+@AiService
+public interface Assistant {
+	@SystemMessage("你是一个友好的AI助手")
+	Flux<String> stream(String userMessage);
+}
+```
+```java
+@RestController
+@RequestMapping("/ai/chat")
+@RequiredArgsConstructor
+public class ChatController {
+
+	private final Assistant assistant;
+
+	@GetMapping(value = "/stream",produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	public Flux<String> stream(String query) {
+		return assistant.streamChat(query);
+	}
+}
+```
+LangChain4j的`langchain4j-core`模块在底层做了Flux适配，它把`TokenStream`的`onPartialResponse`回调转成了`Flux<String>`的元素发射
+同理，LangChain4j也可通过`ServerSentEvent`精细控制发射的元素
+```java
+@GetMapping(value = "/stream",produces=MediaType.TEXT_EVENT_STREAM_VALUE)
+public Flux<ServerSentEvent<String>> stream(String query) {
+	return Flux.create(sink -> {
+		assistant.chat(query)
+				.onPartialThinking(thinking -> {
+					sink.next(ServerSentEvent.<String>builder()
+								.event("thinking")
+								.data(thinking.text)
+								.build());
+				})
+				.onPartialResponse(token -> {
+					sink.next(ServerSentEvent.<String>builder()
+								.event("token")
+								.data(token.text)
+								.build());
+				})
+				.onCompleteResponse(response -> {
+					sink.next(ServerSentEvent.<String>builder()
+								.event("done")
+								.data("{\"token\":" + response.tokenUsage().totalTokenCount() + "}")
+								.build());
+				})
+				.onError(err -> {
+					sink.next(ServerSentEvent.<String>builder()
+								.event("error")
+								.data(err.getMessage())
+								.build());
+				})
+				.start();
+	});
+}
+```
+通过`Flux.create()`手动桥接，TokenStream的每个回调都对应发射一个`ServerSentEvent`。这种方式可以完全控制每个事件的内容和类型
+### 前端消费SSE数据
+前端有两种渲染方式，`EventSource` API 和 `fetch + ReadableStream`
+**EventSource**
+EventSource是浏览器原生API，专门用于消费SSE流
+```javascript
+const eventSource = new EventSource('/api/chat/stream?query=你好')
+
+eventSource.onmessage = function(event) {
+	document.getElementById('output').textContent += event.data;
+}
+
+eventSource.addEventListener('thinking',functino(event) {
+	const thinkingDiv = docuemtn.getElemetById('thinking');
+	thinkingDiv.textContent += event.data; 
+	thinkingDiv.style.color = 'gray'; 
+	thinkingDiv.style.fontStyle = 'italic';
+})
+
+eventSource.addEventListener('token',function(event) {
+	const data = JSON.parse(event.data);
+	document.getElementById('output').textContent += data.content;
+})
+
+eventSource.addEventListener('done',function(event) {
+	console.log('生成完成');
+	eventSource.close();
+})
+
+eventSource.addEventListener('error',function(event) {
+	console.error('SSE错误');
+	eventSource.close();
+})
+
+// 错误处理，可以让浏览器自动重连
+eventSource.onerror = functino(event) {
+	console.error('连接错误，浏览器自动重连...');
+}
+```
+EventSource的优点是简单、自带重连。缺点是只支持GET请求，如果想利用POST传一个很大的prompt，或者携带复杂的请求体，EventSource做不到
+**fetch + ReadableStream**
+现代AI更常使用fetch + ReadableStream来消费SSE，因为它支持POST请求和自定义请求体
+```javascript
+async function streamChat(messages) {
+	const resp = await fetch('/api/chat/stream',{
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'Accept': 'text/event-stream'
+		},
+		body: JSON.stringify({messages: messages})
+	});
+	
+	if (!resp.ok) {
+		throw new Error(`HTTP ${resp.status}`);
+	}
+	
+	const reader = resp.body.getReader();
+	const decoder = new TextDecoder('utf-8');
+	let buffer = '';
+	
+	try {
+		while(true) {
+			const {done,value} = await reader.read();
+			if (done) {
+				console.log('流结束');
+				break;
+			}
+			buffer += decoder.decode(value,{stream:true});
+			// SSE事件以 \n\n 分割，从buffer中切出完整的事件
+			const lines = buffer.split('\n');
+			buffer = lines.pop() || '';
+			let currentEvent = 'message';
+			let curretnData = '';
+			
+			for (const line of lines) {
+				if (line.startsWith('event: ')) {
+					currentEvent = line.slice(6).trim();
+				} else if (line.startsWith('data: ')) {
+					currentData += (currentData ? '\n' : '') + line.slice(5).trim();
+				} else if (line === '' && currentData) {
+				// 空行 = 事件结束，处理这个事件
+					handleSSEEvent(currentEvent,currentData);
+					currentEvent = 'message';
+					currentData = '';
+				}
+			}
+		}
+	} finally {
+		reader.releaseLock();
+	}
+}
+
+function handleSSEEvent(eventType, data) { 
+	switch (eventType) { 
+		case 'token': 
+			const token = JSON.parse(data); 
+			appendToChat(token.content); 
+			break; 
+		case 'thinking': 
+			appendToThinking(JSON.parse(data).content); 
+			break; 
+		case 'done': 
+			console.log('生成完成', data); 
+			break; 
+		case 'error': 
+			console.error('错误:', data);
+			 break; 
+		} 
+}
+// 使用 
+streamChat([ { role: 'user', content: '你好，介绍一下你自己' } ]);
+```
+通过`fetch`发送一个POST请求，拿到响应后，通过`response.body.getReader()`获取一个字节流reader。然后循环调用`reader.read()`读取每一块数据，解码成字符串，手动解析SSE格式（按`\n\n`分割事件，按`event:`/`data:`提取字段）
+这种方式更灵活，但是代码也更加复杂。实际项目中，通常可以封装成一个工具函数或使用第三方库`@microsoft/fetch-event-source`来简化
 # 杂项
 ## Function Calling 和 MCP
 **Function Calling**即工具调用，让LLM可以通过工具调用去感知外部环境，执行一些API。给定一个函数定义和参数，调用工具时会根据用户问题填充参数。调用完后返回的结果在交给大模型，大模型根据工具调用的结果进行输出回复

@@ -4,21 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "bcb366573c42fb67",
+        "id": "b0fda94c3a30d2a2",
         "type": "tabs",
         "children": [
           {
-            "id": "e6cfe1c79c485955",
+            "id": "e40ea9dab34eb5b1",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "LLM/LLM.md",
+                "file": "java/JVM.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "LLM"
+              "title": "JVM"
             }
           }
         ]
@@ -82,7 +82,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "问题总结/java.md",
+                "file": "java/JVM.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -91,11 +91,13 @@
               "title": "大纲"
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -197,10 +199,12 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "e6cfe1c79c485955",
+  "active": "e40ea9dab34eb5b1",
   "lastOpenFiles": [
-    "问题总结/java.md",
+    "[[.md",
+    "java/JVM.md",
     "LLM/LLM.md",
+    "问题总结/java.md",
     "LLM/Java.md",
     "LLM/Python.md",
     "java/Spring.md",
@@ -209,7 +213,6 @@
     "java/MySQL.md",
     "java/Java并发编程.md",
     "java/IO.md",
-    "java/JVM.md",
     "问题总结/assets/java/file-20260730095008767.png",
     "java/question.md",
     "question.md",

@@ -633,6 +633,230 @@ G1垃圾回收有两种
 **内存监控**
 **top命令**是linux下用于查看系统信息的一个命令，它提供给我们去实时地查看系统的资源，比如执行时的进程、线程和系统参数等信息。进程的使用内存为RES（常驻内存）-SHR（共享内存）
 但是这个命令只能看到最基础的进程信息，无法看到每个部分占用的内存
+# GC调优
+GC调优主要围绕三个维度展开
+1. **低延迟**，减少GC停顿的事件（如单次GC<100ms），适用于秒杀、支付等对响应时间敏感的场景
+2. **高吞吐量**：单位时间完成更多业务逻辑（如GC耗时占比<5%），适用于后台报表、数据计算等离线场景
+3. **内存高效**：合理利用内存，避免OOM，利用率维持在60%-80%，适用于所有场景
+**GC收集器**
+**tips：关于垃圾回收器的详细介绍，可以查看[[#垃圾回收器]]**
+- G1 GC：Java9默认，适用于大内存、低延迟场景，通过分代Region管理优化停顿场景
+- ZGC：JDK 11+引入，低延迟，STW<1ms
+- Parallel GC：JDK 8默认，吞吐量优先，适合后台计算
+- CMS GC：JDK9前常用，低延迟，但是会产生内存碎片
+
+## JVM性能诊断
+### 1. jps - Java进程状态工具
+**作用**：列出当前系统所有正在运行的Java进程的PID，这是所有操作的第一步
+```bash
+# 查看所有Java进程
+jps
+# 查看详细信息
+jps -l  # 显示完整主类名或JAR包路径
+jps -v  # 显示JVM参数
+jps -m  # 显示main方法参数
+```
+用于快速找到目标应用的PID；确认JVM参数是否正确设置；排查僵尸Java进程
+### 2. jinfo - 实时参数查看和修改
+**作用**：查看或动态修改JVM运行时参数，无需重启应用即可验证调优效果
+```bash
+# 查看所有参数
+jinfo <pid>
+
+# 查看特定参数
+jinfo -flag UseG1GC <pid>
+jinfo -flag MaxHeapSize <pid>
+
+# 查看所有可修改参数
+jinfo -flags <pid>
+```
+**修改参数（需要Managable参数）**
+```bash
+# 开启GC日志（实时生效）
+jinfo -flag +PrnitGCDetails <pid>
+
+# 修改堆内存（需要重启）
+jinfo -flag MaxHeapSize=4G <pid>
+```
+`jinfo`可用于当应用响应变慢时，临时开启GC日志，
+```bash
+jinfo -flag +PrintGCDetails 1234
+jinfo -flag +PrintGCTimeStamps 1234
+# 关闭GC日志
+jinfo -flag -PrintGCDetails 1234
+```
+### 3. jstat - GC和类加载监控
+**作用**：用于持续观察堆内存各区域大小、GC次数和GC耗时，不造成STW
+**GC监控**
+```bash
+# 每1s采集一次，一共采集10次
+jstat -gc <pid> 1000 10
+
+# 输出说明
+# S0C/S1C：Survivor 0/1区容量
+# S0U/S1U：Survivor 0/1区使用量
+# EC/EU：Eden区容量/使用量
+# OC/OU：老年代容量/使用量
+# MC/MU：元空间容量/使用量
+# YGC/YGCT：Young GC次数/耗时
+# FGC/FGCY：Full GC次数/耗时
+# GCT：总GC耗时
+```
+**类加载监控**
+```bash
+# 类加载统计
+jstat -class <pid> 1000 5
+
+# 编译统计
+jstat -compiler <pid>
+```
+当发现Full GC频繁的时候，就可以使用jstat查看GC
+```bash
+jstat -gc 1234 1000 10
+```
+### 4. jstack - 线程堆栈分析
+**作用**：打印JVM中所有线程的堆栈快照，主要用于排查死锁、CPU飙高和线程长时间阻塞
+```bash
+# 生成线程快照
+jstack <pid> > thread_dump.txt
+
+# 包含锁信息
+jstack -l <pid> > thread_dump_with_locks.txt
+```
+可用于死锁检测
+```bash
+# 生成线程转储
+jstack -l 1234 > deadlock.txt
+
+# 查找死锁信息
+grep -A 20 "deadlock" deadlock.txt
+
+# 分析线程状态，发现BLOCKED状态的线程和持有的锁
+```
+- RUNNABLE：运行中
+- BLOCKED：等待监视器锁
+- WAITING：无限期等待
+- TIMED_WAITING：有限期等待
+### 5. jmap - 内存分析利器
+**作用**：用于生成堆转储(Heap Dump)文件，或查看堆内存布局统计（部分参数会触发Full GC，谨慎使用）
+**堆内存概览**
+```bash
+# 堆内存摘要
+jmap -heap <pid>
+
+# 输出内容：堆配置参数，各内存区域使用情况，GC算法信息
+```
+**内存泄露**
+```bash
+# 生成堆转储文件
+jmap -dump:format=b,file=heap.hprof <pid>
+# live参数会强制触发一次Full GC，只导出存活对象
+jmap -dump:live,format=b,file=heap.hprof <pid> 
+
+# 实时监控对象创建，也会触发Full GC，排查OOM时可用
+# 能瞬间定位到byte[]或自定义业务对象数量异常
+jmap -histo:live <pid> > object_histogram.txt
+
+# JDK 9+ jcmd替代 jmap -dump，性能更好且参数标准化
+jcmd <pid> GC.heap_dump heap.hprof
+
+# 分析大对象，按照对象数量和大小排序，找到内存占用最大的类
+```
+**OOM故障排查**
+```bash
+# 预防性设置
+-XX:+HeapDumpOnOutOfMemoryError
+-XX:HeapDumpPath=/path/to/dumps
+
+# 发生OOM后分析
+jmap -histo:live <pid> | head -20 # 查看对象分布
+jmap -dump:format=b,file=oom.hprof <pid> # 生成详细堆转储
+
+# 使用MAT或JVisualVM分析hprof文件
+```
+## 图形化界面监控
+### jconsole - 基础监控
+```bash
+# 直接启动
+jconsole
+# 连接远程进程
+jconsole <pid>  # 本地
+jconsole hostname:port  # 远程
+```
+jconsole主要用于监控
+- **内存标签**：各区域内存使用趋势
+- **线程标签**：线程数量变化，检测死锁
+- **类标签**：类加载数量监控
+- **MBean标签**：自定义监控指标
+### 实战监控案例
+**1. 内存泄露检测**
+- **观察老年代增长**：持续增长不回落
+- **执行Full GC**：手动触发观察内存回收效果
+- **对比GC前后**：如果回收效果差，可能存在内存泄露
+**2. 线程池问题诊断**
+- **线程数量监控**：突然增长可能表示线程泄露
+- **线程状态分析**：大量WAITING/BLOCKED线程需要关注
+- **死锁检测**：使用jconsole自动检测死锁
+## 调优实战
+### 性能问题诊断流程
+```bash
+# 快速状态检查
+jps -v  # 确认进程和参数
+jstat -gc <pid> 1000 5  # GC健康状况
+
+# 深入分析
+jstack <pid> > thread.txt  # 线程分析
+jmap -histo <pid> | head -30  # 对象分布
+
+# 详细诊断
+jmap -dump:format=b,file=heap.hprof <pid> #堆转储
+jstat -gccapacity <pid>  # 内存容量趋势
+```
+## 常见问题及解决方案
+### 1. GC过于频繁
+```bash
+# YGC次数过多，应用响应慢
+# 方案：增大新生代容量
+-XX:NewSize=1G
+-XX:MaxNewSize=1G
+-XX:SurvivorRatio=8
+```
+### 2. Full GC停顿过长
+```bash
+# Full GC耗时数秒，服务卡顿
+# 方案：优化老年代，使用G1
+-XX:+UseG1GC
+-XX:MaxGCPauseMillis=200
+-XX:InitiatingHeapOccupancyPercent=45
+```
+### 3. 内存泄露
+```bash
+# 内存持续增长，Full GC无法回收
+# 方案：分析堆转储，找到泄露对象
+jmap -dump:format=b,file=leak.hprof <pid>
+# 使用MAT分析dominator_tree
+```
+### 4. GC频率突然飙升
+```bash
+# 锁定问题服务的PID
+jps -lv
+# 查看YGC和FGC，如果YGC每隔几百毫秒就执行一次，说明Eden区过小
+# 如果FGC频率持续增加且老年代居高不下，说明可能存在内存泄露
+jstat -gcutil pid 2000
+
+# 低峰期执行，导出堆内存快照，用MAT分析大对象链路
+jmap -dump:live,format=b,file=heap.hprof pid
+
+# 两者配合，检查GC线程是否占用了极高的CPU，判断是否因为并发标记线程过多或系统Swap导致
+top -H -p
+jstack -l pid
+```
+## 总结
+1. jps：主要用于快速定位，确认目标
+2. jinfo：主要用于参数查验，适时调整
+3. jstat：主要用于趋势监控，发现问题
+4. jstack：线程分析，解决卡顿
+5. jmap：内存深入，根治泄露
 # 杂项
 ## JVM内存模型
 JVM运行时内存分为虚拟机栈、堆、元空间、程序计数器、本地方法栈五个部分。还有一部分叫做直接内存，属于操作系统的本地内存，也是可以直接操作的

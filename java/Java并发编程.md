@@ -703,6 +703,7 @@ notifyAll会将所有的等待中的线程都唤醒，并加入到EntryList中�
 1. sleep是Thread的方法，而wait是Object的方法
 2. sleep不需要强制和synchronized方法使用，而wait需要和synchronized一起使用，否则抛出`IllegalMonitorStateException`
 3. sleep不会释放对象锁，而wait会释放对象锁
+4. sleep休眠事件结束后，线程自动恢复到就绪状态，等待CPU调度。wait需要其他线程调用`notify()/notifyAll()`方法才能唤醒
 ### 虚假唤醒
 ```java
 @Slf4j
@@ -2732,7 +2733,7 @@ class MyTask extends RecursiveTask<Integer> {
 ```
 # 杂项
 ## blocked和waiting的区别
-- 触发条件：blocked状态通常是因为某个线程锁竞争失败所导致的，线程尝试获取一个对象的锁，但是这个锁已经被其他线程持有。这是就会进入blocked状态阻塞，并一直尝试获取锁。waiting状态通常是因为它正在等待另一个线程执行某些操作，调用了对象的wait方法、Thread.join()方法或LockSupport.park()方法。这种状态下，线程不会消耗CPU资源，并且不会参与锁的竞争
+- 触发条件：blocked状态通常是因为某个线程锁竞争失败所导致的，线程尝试获取一个对象的锁，但是这个锁已经被其他线程持有。这时就会进入blocked状态阻塞，并一直尝试获取锁。waiting状态通常是因为它正在等待另一个线程执行某些操作，调用了对象的wait方法、Thread.join()方法或LockSupport.park()方法。这种状态下，线程不会消耗CPU资源，并且不会参与锁的竞争
 - 唤醒机制：当一个线程被阻塞等待获取锁时，一旦锁被释放，线程就有机会重新尝试获取锁。如果锁此时未被其他线程获取，那么该线程就可以从blocked状态变回runnable状态。线程的waiting状态需要显示唤醒，需要其他线程调用同一个对象的notify方法或者notifyAll方法才能唤醒
 - blocked是锁竞争失败后被动触发的状态，waiting是人为主动触发的状态
 - blocked的唤醒是自动触发的，waiting需要其他线程通过特定的方法显式唤醒
@@ -2756,7 +2757,8 @@ public class Test1 {
         Thread consumer = new Thread(() -> {  
             while(!flag){  
   
-            }            System.out.println("Consumer:Flag is now true");  
+            }            
+            System.out.println("Consumer:Flag is now true");  
         });  
         producer.start();  
         consumer.start();  
@@ -3383,3 +3385,18 @@ public static void main(String[] args) {
 - CachedThreadPool：缓存线程池，其内线程几乎是无限的，因为最大线程数数`Integer.MAX_VALUE`，当线程闲置时还可以对线程进行回收。并且其内部用于存储的任务队列是`SynchronousQueue`，队列的容量为0，实际不存储任何任务，只负责对任务进行中转和传递，所以效率较高
 - SingleThreadPool：它会使用唯一的线程去执行任务，如果线程在执行任务的过程中发生异常，线程池会重新创建一个线程来执行后续的任务。这种线程池由于只有一个线程，所以非常适合用于所有任务都需要按被提交的顺序依次执行的场景，而前几种线程池不能保证任务的执行顺序等于被提交的顺序，因为是多线程并行执行的
 - SingleThreadScheduledExecutor：它和ScheduledThreadPool线程池非常相似，它只是ScheduledThreadPool的一个特例，内部只有一个线程
+## 线程/进程之间如何通信
+### 线程
+因为同一进程下的多个线程之间共享堆内存和方法区，它们可以直接读写同一个Java对象。因此线程之间的通信本质上是通过共享变量来交换状态
+但是由于CPU和JIT优化的存在，共享变量直接读写会出现错误，因此还需要配合同步机制
+1. 共享内存+同步：利用Happens-Before规则，强制刷新CPU缓存，保证修改对其他线程立即可见。例如使用volatile关键字，synchronized锁，ReentrantLock
+2. 等待/通知机制：基于Object监视器的`WaitSet`。线程在等待时释放锁并进入内核态阻塞，被唤醒后重新竞争锁
+3. 管道流：利用JVM内存中的循环缓冲区（本质上还是共享内存，只不过被封装成了流的形式）。例如`PipedInputStream`、`PipedOutputStream`
+4. 并发工具：底层基于AQS和CAS，封装了复杂的等待队列。例如`BlockingQueue`、`CountDownLatch`、`CyclicBarrier`、`Exchanger`
+### 进程
+进程之间不共享堆内存，它们在操作系统中拥有独立的虚拟内存空间，一个进程无法直接访问另一个进程中的内存地址，必须要借助操作系统内核作为中转站
+1. 管道：内核开辟一块缓冲区，一个进程写，另一个进程读。数据在内核态和用户态之间拷贝。分为匿名管道（父子进程）和命名管道（FIFO，无亲缘关系）
+2. 信号：软件中断，内核向目标进程发送固定信号
+3. 消息队列：内核维护多个消息队列，进程通过`msgget`/`msgsnd`发送数据包。有容量限制，但是数据有边界
+4. 共享内存：操作系统将同一块物理内存页映射到多个进程的虚拟地址空间中。这是进程通信中速度最快的方式
+5. 套接字：通过操作系统网络协议栈传输数据，可以跨网络，也可以用于本地回环

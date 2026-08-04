@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/JVM.md",
+                "file": "java/Spring.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "JVM"
+              "title": "Spring"
             }
           }
         ]
@@ -82,7 +82,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/JVM.md",
+                "file": "java/Spring.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -201,8 +201,8 @@
   },
   "active": "e40ea9dab34eb5b1",
   "lastOpenFiles": [
-    "[[.md",
     "java/JVM.md",
+    "[[.md",
     "LLM/LLM.md",
     "问题总结/java.md",
     "LLM/Java.md",

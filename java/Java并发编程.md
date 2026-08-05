@@ -2142,15 +2142,10 @@ public class Test {
 
 }
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-10-11-15-21-31-image.png)
-
 可以看出来，多次测试之后，jvm对LongAdder类会有优化
-
-LongAdder在有竞争时，会设置多个累加单元，Thread0累加Cell[0]，Thread1累加Cell[1]...最终将结果汇总，因此减少了CAS重试失败的次数，提高了性能
-
+LongAdder在有竞争时，会设置多个累加单元，Thread0累加Cell\[0]，Thread1累加Cell\[1]...最终将结果汇总，因此减少了CAS重试失败的次数，提高了性能
 ## Unsafe
-
 ```java
 public class Test {
 
@@ -2165,15 +2160,10 @@ public class Test {
 
 }
 ```
-
 Unsafe是一个内部类，通常不允许访问。且需要访问Unsafe类时，只能通过反射来获取到Unsafe对象，它提供了执行低级、不安全操作的方法。例如可以绕过Java的内存安全和访问限制。通常不建议使用Unsafe类
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-10-12-16-55-54-image.png)
-
 ## 不可变对象
-
 不可变对象是指**创建之后不能修改的对象**
-
 ```java
 public class Test {
 
@@ -2207,47 +2197,26 @@ public class Test {
     }
 }
 ```
-
 SimpleDateFormat是一个线程不安全的类，在多线程的情况下，必须要先对其进行加锁，才能正常使用
-
 从 DateTimeFormatter 的源码中可以看到它是一个不可变对象，且线程安全，因此在多线程环境下，更推荐使用DateTimeFormatter类
-
 ### 如何设计一个不可变类
-
 以String类为例
-
 #### final
-
 不可变类中的类和类中所有的属性都是final的
-
 - 属性用final修饰保证了该属性是只读的，不可修改
-
 - 类用final修饰保证了该类中的方法不能被覆盖，防止子类无意间破坏不可变性
-
 #### 保护性拷贝
-
 String类中，当传参为一个字符数组时，会调用Arrays类中的copyOf()方法，构造出来的String类会复制参数中的内容。通过创建副本对象来避免共享的手段称为保护性拷贝
-
 ## 享元模式
-
 当需要重用数量有限的同一类对象时，就会用到享元模式。通过对相同取值的对象进行共享，从而达到最小化内存的使用
-
 ### 包装类
-
 Byte Short Long 缓存的范围都是-128~127
-
 Character 缓存的范围是 0~127
-
 Integer 缓存的范围是 -128~127，最小值不能变，但是最大值可以通过调整虚拟机参数来改变
-
 Boolean 缓存了 TRUE 和 FALSE 
-
 #### String 缓存池
-
 String 缓存池中当String 对象为字面量时，会自动存入缓存池中，String 是新建对象时，则不会加入缓存池中，会放在堆内存里
-
 String 还可以通过intern()方法，手动将字符串添加进缓存池中
-
 ```java
 public class Test {
 
@@ -2262,11 +2231,8 @@ public class Test {
     }
 }
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-10-12-22-38-35-image.png)
-
 #### 连接池
-
 ```java
 public class Pool {
 
@@ -2319,43 +2285,23 @@ public class Pool {
     }
 }
 ```
-
 由于每次连接时都需要创建和销毁连接，会导致性能下降，所以可以通过连接池的方法，每次从池中获取连接，使用完释放连接，不需要频繁创建和销毁连接，可以提高性能
-
 # ThreadPool
-
-## 自定义线程池
-
----
-
 ## ThreadPoolExecutor
 
 ### 线程池状态
-
 ThreadPoolExecutor使用int的高3位来表示线程状态，低29位表示线程数量
-
 RUNNING   111  正常运行
-
 SHUTDOWN   000  不会接收新任务，但是会处理阻塞队列剩余任务
-
 STOP   001   会中断正在执行的任务，并抛弃阻塞队列任务
-
 TIDYING   010    任务全执行完毕，活动线程为0  即将进入终结
-
 TERMINATED   011   终结状态
-
 这些信息存储在一个原子变量ctl中，目的是将线程池状态与线程个数合二为一，这样就可以使用一次cas原子操作进行赋值
-
 #### tips: 关于shutdown和shutdownNow的区别
-
 当线程池执行shutdown和shutdownNow方法之后，都不会再接收新的任务
-
 当线程池中有线程正在执行任务，shutdown方法会让线程池中的线程执行完所有任务之后才会关闭线程池（所有任务指的是，正在被执行的任务以及阻塞队列中的任务）
-
 而对于shutdownNow方法，会调用线程的interrupt方法，如果此时线程正在从阻塞队列中获取任务，则会抛出异常
-
 ### 线程池参数
-
 ```java
 public ThreadPoolExecutor(int corePoolSize,
                           int maximumPoolSize,
@@ -2379,49 +2325,27 @@ public ThreadPoolExecutor(int corePoolSize,
         this.handler = handler;
     }
 ```
-
 线程池有七大参数，分别是
-
 **corePoolSize**   核心线程数
-
 **maximumPoolSize**  核心线程数 + 辅助线程数
-
 **keepAliveTime**   辅助线程存活时间
-
 **unit**  时间单位
-
 **threadFactory**  线程工厂，给线程池中的线程起名
-
 **handler**  拒绝策略，当任务数超过maximumPoolSize时的拒绝策略
-
 #### 拒绝策略
-
 1. **AbortPolicy - 默认策略（中止策略）**：会直接抛出 RejectedExecutionException 异常，明确地通知调用者任务被拒绝了，但是如果调用者没有捕获并处理这个异常，可能会导致整个线程中断
-
 2. **CallerRunsPolicy - 调用者运行策略**：不抛弃任务，也不抛出异常，而是直接将某些被拒绝的任务回退给调用者线程来执行。它不会丢弃任务，所有任务都能得到执行。由于调用者线程需要自己执行任务，会减慢新任务的提交速度，相当于给线程池一个缓冲期。但是如果提交任务的线程本身也很繁忙，可能会影响业务逻辑的执行
-
 3. **DiscardPolicy - 丢弃策略**：什么也不做，直接丢弃无法处理的任务。实现简单，但是无法感知到哪个任务被丢弃
-
 4. **DiscardOldestPolicy - 丢弃最早任务策略**：丢弃工作队列中最早未处理的任务，然后尝试重新提交当前被拒绝的任务。
-
 5. **自定义策略**：通过实现 RejectedExecutionHandler 接口，来自定义拒绝策略，可以适应更复杂的业务逻辑
-
-### Executors
-
+## Executors
 Executors 是 JUC 包下的工具类，提供了一系列静态工厂方法，可以快速创建各种预设配置的线程池，简化线程池的创建过程
-
 #### newFixedThreadPool（固定大小线程池）
-
 核心线程数 = 最大线程数
-
 使用无界队列(LinkedBlockingQueue)，默认容量为Integer.MAX_VALUE
-
 空闲线程存活时间为0
-
 提交任务时，如果当前线程数<核心线程数，则创建新线程，如果已达到核心线程数，则将任务放入无界队列等待
-
 有内存溢出的风险，如果任务提交速度远大于处理速度，无界队列会不断堆积任务，最终导致OOM
-
 **使用场景**：适用于负载较重的服务器，需要线程当前线程数量，保证资源可控。适用于任务量已知，需要稳定线程数量的场景
 
 ```java
@@ -2431,21 +2355,13 @@ public static ExecutorService newFixedThreadPool(int nThreads) {
                                       new LinkedBlockingQueue<Runnable>());
     }
 ```
-
 #### newCachedThreadPool（可缓存线程池）
-
 核心线程数为0，最大线程数为Integer.MAX_VALUE
-
 使用同步移交队列(SynchronousQueue)，该队列不存储元素，每个插入操作必须等待另一个线程的移除操作
-
 线程空闲存活时间为60秒
-
 提交任务时，如果有空闲线程，则使用空闲线程执行；如果没有空闲线程，则立即创建新线程来执行任务；线程执行完任务后，如果60秒内没有新任务，则被回收
-
 由于最大线程数过多，如果任务数量非常多且执行时间长，可能会创建大量线程，耗尽CPU和内存资源
-
 **使用场景**：适用于执行很多短期异步任务的小程序，或者负载较轻的服务器
-
 ```java
 public static ExecutorService newFixedThreadPool(int nThreads, ThreadFactory threadFactory) {
         return new ThreadPoolExecutor(nThreads, nThreads,
@@ -2454,19 +2370,12 @@ public static ExecutorService newFixedThreadPool(int nThreads, ThreadFactory thr
                                       threadFactory);
     }
 ```
-
 #### newSingleThreadExecutor（单线程线程池）
-
 只有一个线程在工作
-
 使用无界队列
-
 保证所有任务按照提交顺序执行
-
 返回的ExecutorService被包装过，不能强制转换为ThreadPoolExecutor来修改配置
-
 **适用场景**：需要保证任务顺序执行，并且在任意时间点，不会有多个线程是活动的场景
-
 ```java
 public static ExecutorService newSingleThreadExecutor() {
         return new FinalizableDelegatedExecutorService
@@ -2475,13 +2384,9 @@ public static ExecutorService newSingleThreadExecutor() {
                                     new LinkedBlockingQueue<Runnable>()));
     }
 ```
-
 ### 工作线程
-
 #### 饥饿
-
 **线程池饥饿** 是指在线程池中，虽然有任务在队列中等待执行，但线程池中的工作线程却无法执行这些任务的情况。这通常不是因为线程池没有线程，而是因为这些线程都被某些长时间运行或相互阻塞的任务所占用，导致其他任务得不到执行资源，就像“饿死”了一样。
-
 ```java
 @Slf4j
 public class Test {
@@ -2504,25 +2409,15 @@ public class Test {
     }
 }
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-10-15-13-52-16-image.png)
-
 由以上结果可知，第二个任务永远不会被执行，因此导致饥饿现象。
-
 ##### CPU密集型运算
-
 通常采用CPU核数+1能够实现最优的CPU利用率，+1是保证当线程由于页缺失故障或其他原因导致暂停时，额外的线程可以顶上去，保证CPU时钟周期不被浪费
-
 ##### IO密集型运算
-
 CPU不总是处于繁忙状态，例如当执行业务计算时，会使用CPU资源，但当执行IO操作时，远程RPC调用时，包括进行数据库操作时，CPU就闲下来了，可以利用多线程提高利用率
-
 线程数 = 核数 * 期望CPU利用率 * 总时间（CPU计算时间 + 等待时间）/ CPU计算时间
-
 ### ScheduledExecutorService
-
 #### 延时执行
-
 ```java
 @Slf4j
 public class Test {

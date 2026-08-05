@@ -1900,23 +1900,14 @@ interface Account {
 # JUC工具包
 
 ## 原子整数
-
 原子整数主要分为AtomicBoolean、AtomicInteger、AtomicLong
-
 ### AtomicInteger
-
 接口
-
 incrementAndGet()  --> i++
-
 getAndIncrement()  --> ++i
-
 getAndAdd()  --> 先获取值再增加
-
 addAndGet()  --> 先增加再获取值
-
 updateAndGet()  -->  根据参数来更新值
-
 ```java
 public class Test {
     public static void main(String[] args) {
@@ -1926,13 +1917,9 @@ public class Test {
     }
 }
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-10-10-17-02-28-image.png)
-
 ## 原子引用
-
 AtomicReference  AtomicMarkableReference  AtomicStampedReference
-
 ```java
 public class Test {
     public static void main(String[] args) {
@@ -1991,13 +1978,9 @@ class Account implements BigDecimalAccount{
     }
 }
 ```
-
 ### ABA 问题
-
 原子工具包中，通常只能判断共享变量最后修改时，是否与初值相同，但是无法判断出原子变量是否被修改过。
-
 例如，假设一个变量初始值为A，需要修改成C，这时，如果变量在修改成C之前，现修改成B，然后再从B修改成A，最终变量也能成功修改成C。无法判断变量修改成C之前，有没有被修改过
-
 ```java
 @Slf4j
 public class Test {
@@ -2023,11 +2006,8 @@ public class Test {
     }
 }
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-10-11-13-57-45-image.png)
-
 #### AtomicStampedReference
-
 ```java
 @Slf4j
 public class Test {
@@ -2059,15 +2039,10 @@ public class Test {
     }
 }
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-10-11-14-03-06-image.png)
-
 AtomicStampedReference类中 新增版本号属性，每次修改变量时，都会修改版本号，版本号不同时，就无法再次修改变量
-
 ## 原子数组
-
 AtomicIntegerArray  AtomicLongArray  AtomicReferenceArray
-
 ```java
 @Slf4j
 public class Test {
@@ -2116,13 +2091,9 @@ public class Test {
     }
 }
 ```
-
 ![](C:\Users\xgw\AppData\Roaming\marktext\images\2025-10-11-14-24-28-image.png)
-
 以上是普通数组和原子数组，在线程不安全的情况下，所产生的问题，可以明显看出，普通的数组，在多线程的情况下得到的结果是不正确的
-
 ## 原子累加器 LongAdder
-
 ```java
 @Slf4j
 public class Test {

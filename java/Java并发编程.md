@@ -3040,7 +3040,7 @@ public class Test10 {
 ## ThreadLocal
 ThreadLocal是Java中用于解决线程安全问题的一种机制，它允许创建线程局部变量，即每个线程都有自己独立的变量副本，从而避免了线程间的资源共享和同步问题
 Thread类中，有个ThreadLocal.ThreadLocalMap的成员变量
-ThreadLocalMap内部维护了一个Entry数组，每个Entry代表一个完整的对象，key是ThreadLocal本身，value是ThreadLocal的泛型对象值
+ThreadLocalMap内部维护了一个Entry数组，Entry继承了`WeakReference<ThreadLocal<?>>`，也就是说key是对ThreadLocal对象的弱引用，value则是强引用持有的泛型对象值
 **作用**
 - 线程隔离：ThreadLocal为每个线程提供了独立的变量副本，这意味着线程之间不会相互影响，可以安全地在多线程环境中使用这些变量而不必担心数据竞争或同步问题
 - 降低耦合度：在同一个线程内的多个函数或组件之间，使用ThreadLocal可以减少参数的传递，降低代码之间的耦合度，使代码更加清晰和模块化

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "2026-08-05.md",
+                "file": "java/Spring.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "2026-08-05"
+              "title": "Spring"
             }
           }
         ]
@@ -71,7 +71,10 @@
             "type": "leaf",
             "state": {
               "type": "bookmarks",
-              "state": {},
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
               "icon": "lucide-bookmark",
               "title": "书签"
             }
@@ -82,7 +85,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "2026-08-05.md",
+                "file": "java/Spring.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -91,7 +94,8 @@
               "title": "大纲"
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
@@ -200,10 +204,12 @@
   },
   "active": "0b8c80894ac19fbf",
   "lastOpenFiles": [
-    "java/Java并发编程.md",
-    "2026-08-05.md",
-    "java/JVM.md",
+    "2026-08-06.md",
     "java/Spring.md",
+    "java/MySQL.md",
+    "2026-08-05.md",
+    "java/Java并发编程.md",
+    "java/JVM.md",
     "问题总结/java.md",
     "[[.md",
     "LLM/LLM.md",
@@ -211,7 +217,6 @@
     "LLM/Python.md",
     "java/Redis.md",
     "java/Mybatis.md",
-    "java/MySQL.md",
     "java/IO.md",
     "问题总结/assets/java/file-20260730095008767.png",
     "java/question.md",
@@ -227,7 +232,6 @@
     "问题总结/杂.md",
     "java/MQ.md",
     "java/answer.md",
-    "java/Nginx.md",
     "assets/计算机网络/file-20260301195341010.png",
     "问题总结/assets/java/file-20260623153615174.png",
     "问题总结/assets/java",

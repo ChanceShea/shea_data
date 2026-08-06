@@ -2913,6 +2913,11 @@ ReentrantLock在AQS的基础上通过内部类Sync来实现具体的锁操作。
 - 公平锁和非公平锁：在直接创建ReentrantLock对象时，默认情况下是非公平锁。公平锁是按照线程等待的顺序来获取锁，而非公平锁则允许多个线程在同一时刻竞争锁，不考虑它们申请锁的顺序。公平锁可以通过在创建ReentrantLock时传入true来设置
 - 多个条件变量：ReentrantLock支持多个条件变量，每个条件变量可以与一个ReentrantLock关联。这使得线程可以更灵活地进行等待和唤醒操作，而不仅是基于对象监视器的wait和notify。多个条件变量的实现基于Condition接口
 - 可重入性：ReentrantLock支持可重入性，即同一个线程可以多次获取同一把锁，而不会造成死锁。这是通过内部的holdCount计数来实现的。当一个线程多次获取锁时，holdCount递增，释放锁时递减，只有当holdCount为0时，其他线程才有机会获得锁
+**Synchronized和ReentrantLock的区别**
+- **用法不同**：synchronized是关键字，可以直接用来修饰普通方法、静态方法和代码块；ReentrantLock是juc包下的一个类，通过显示调用`lock()`获取锁，`unlock()`释放锁，通常配合`try-finally`来保证锁一定会被释放
+- **加锁方式不同**：synchronized会自动加锁和释放锁，当进入synchronized修饰的代码块时会自动加锁，离开代码块时会自动释放锁。而ReentrantLock需要手动加锁和释放锁
+- **响应中断**：ReentrantLock可以响应中断，解决死锁问题，而synchronized不能响应中断
+- **底层实现不同**：synchronized底层是JVM层面通过监视器锁实现的，而ReentrantLock是基于AQS实现的
 ### synchronized实现可重入
 synchronized是基于原子性的内部锁机制，是可重入的，因此在一个线程调用synchronized方法的同时在其方法体内部调用该对象另一个synchronized方法，也就是说一个线程得到一个对象锁后再次请求该对象锁是允许的
 synchronized底层是利用操作系统的mutex Lock实现的。每一个可重入锁都会关联一个线程ID和一个锁状态status

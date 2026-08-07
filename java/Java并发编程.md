@@ -2264,8 +2264,8 @@ TERMINATED   011   终结状态
 这些信息存储在一个原子变量ctl中，目的是将线程池状态与线程个数合二为一，这样就可以使用一次cas原子操作进行赋值
 #### tips: 关于shutdown和shutdownNow的区别
 当线程池执行shutdown和shutdownNow方法之后，都不会再接收新的任务
-当线程池中有线程正在执行任务，shutdown方法会让线程池中的线程执行完所有任务之后才会关闭线程池（所有任务指的是，正在被执行的任务以及阻塞队列中的任务）
-而对于shutdownNow方法，会调用线程的interrupt方法，如果此时线程正在从阻塞队列中获取任务，则会抛出异常
+当线程池中有线程正在执行任务，**shutdown方法会让线程池中的线程执行完所有任务之后才会关闭线程池（所有任务指的是，正在被执行的任务以及阻塞队列中的任务）
+而对于shutdownNow方法，会调用线程的interrupt方法，如果此时线程正在从阻塞队列中获取任务，则会抛出异常**
 ### 线程池参数
 ```java
 public ThreadPoolExecutor(int corePoolSize,

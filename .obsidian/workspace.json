@@ -94,13 +94,11 @@
               "title": "大纲"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -202,7 +200,7 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "4d77c67283efb29b",
+  "active": "a8a796e8940f7894",
   "lastOpenFiles": [
     "2026-08-05.md",
     "2026-08-06.md",

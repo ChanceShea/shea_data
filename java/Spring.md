@@ -262,7 +262,7 @@ Sentinel的熔断/限流逻辑是通过AOP切面（SentinelResourceAspect）或W
 - noRollbackForClassName：同noRollbackFor，只是使用类名称定义
 #### 事务的传播行为
 当事务方法被另一个事务方法调用时，需要指定事务该如何传播，Spring事务有以下几种传播行为
-- **REQUIRED（默认）**：方法A调用时没有事务新建一个事务，在方法A中调用方法B，将使用相同的事物，如果方法B异常需要回滚，整个事务都会回滚
+- **REQUIRED（默认）**：方法A调用时没有事务新建一个事务，在方法A中调用方法B，将使用相同的事务，如果方法B异常需要回滚，整个事务都会回滚
 - **REQUIRES_NEW**：方法A调用方法B时，无论是否存在事务都开启一个新事务，这样B方法异常不会导致A的数据回滚
 - **NESTED**：和REQUIRES_NEW类似，但是只支持JDBC，不支持JPA或Hibernate
 - **SUPPORTS**：方法调用时有事务就使用事务，没事务就不用事务
@@ -305,8 +305,19 @@ BASE理论指的是，Basically Available（基本可用）、Soft-state（软�
 在使用Seata分布式事务管理框架时，通常涉及到多个服务的协调和事务的提交/回滚，Seata通过使用全局事务ID，来管理多个服务的事务。
 Seata架构中，有三个角色：
 TC（Transaction Coordinator）事务协调器：Server端，要单独部署，维护全局事务的运行状态，负责协调并驱动全局事务的提交和回滚
-TM（Transaction Manager）事务管理器：Client端，控制全局事务便捷，负责开启一个全局事务，并最终发起全局提交和全局回滚的决议
+TM（Transaction Manager）事务管理器：Client端，控制全局事务边界，负责开启一个全局事务，并最终发起全局提交和全局回滚的决议
 RM（Resource Manager）资源管理器：Client端，由业务系统集成，控制分支事务，负责分支注册，状态汇报，并接受事务协调器的指令，驱动分支（本地）事务的提交和回滚
+Seata的工作阶段
+**第一阶段**
+- 首先，TM收到请求，`@GlobalTransactional`开启一个事务，并生成一个XID
+- Seata解析SQL，生成更新前的数据镜像和更新后的镜像
+- 将镜像数据写入undo_log表，TM提交业务SQL和回滚日志
+- RM接到带有XID的RPC请求，注册一个分支事务
+- RM执行业务SQL，生成更新前后的数据镜像并生成一个undo_log
+- RM提交事务，并保存数据和undo_log
+**第二阶段**
+- TM向TC报告事务成功，TC通知所有RM进行二阶段提交。并把镜像和undo_log删除
+- 如果失败了，TM向TC报告事务失败，TC通知所有的RM利用undo_log和数据镜像生成反向SQL，并执行。恢复数据后，删除镜像数据和undo_log
 # 杂项
 ## IOC和AOP
 ### IOC

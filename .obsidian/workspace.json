@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "question.md",
+                "file": "java/Spring.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "question"
+              "title": "Spring"
             }
           }
         ]
@@ -85,7 +85,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "question.md",
+                "file": "java/Spring.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -94,11 +94,13 @@
               "title": "大纲"
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -202,10 +204,10 @@
   },
   "active": "4d77c67283efb29b",
   "lastOpenFiles": [
+    "question.md",
     "java/Redis.md",
     "java/Spring.md",
     "java/question.md",
-    "question.md",
     "fronted.md",
     "java/Java并发编程.md",
     "2026-08-05.md",

@@ -85,7 +85,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "问题总结/java.md",
+                "file": "java/MQ.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -200,7 +200,7 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "4d77c67283efb29b",
+  "active": "a8a796e8940f7894",
   "lastOpenFiles": [
     "问题总结/java.md",
     "question.md",

@@ -55,7 +55,7 @@
 - 如果是正常的commit，MQ服务器更新消息为可发送；如果是rollback，即删除消息
 - 如果消息状态更新为可发送，则MQ服务器会push消息给消费者。消费者消费完就返回ACK
 - 如果MQ服务器长时间没有收到生产者的commit或者rollback，它会反查生产者，然后根据查询到的结果执行最终状态
-## RabbitMQ和Kafka的区别
+## RocketMQ和Kafka的区别
 Kafka的优缺点
 - 优点：首先，Kafka的最大优势在于高吞吐量，在普通机器4CPU 8G的配置下，一台机器可以扛住十几万的QPS。Kafka支持集群部署，如果部分机器宕机不可用，也不会影响Kafka的正常使用
 - 缺点：Kafka收到消息后默认是先写入操作系统的Page Cache、由操作系统决定何时刷盘，如果配置`acks=0/1`或开启`unclean.leader.election.enable`等不安全的参数，在主节点宕机时可能丢消息；要获得强可靠性需要配合`acks=all`+多副本ISR+禁止unclean选举。另外Kafka功能相对单一，主要支持收发消息，像延迟消息、事务消息这些高级特性较弱，使用场景偏大数据和日志流

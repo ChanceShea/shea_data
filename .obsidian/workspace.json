@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "问题总结/java.md",
+                "file": "java/MQ.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "java"
+              "title": "MQ"
             }
           }
         ]
@@ -202,6 +202,7 @@
   },
   "active": "4d77c67283efb29b",
   "lastOpenFiles": [
+    "问题总结/java.md",
     "question.md",
     "java/Spring.md",
     "java/Redis.md",
@@ -212,7 +213,6 @@
     "2026-08-06.md",
     "java/MySQL.md",
     "java/JVM.md",
-    "问题总结/java.md",
     "[[.md",
     "LLM/LLM.md",
     "LLM/Java.md",

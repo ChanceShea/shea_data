@@ -257,3 +257,30 @@ spring:
 http://localhost:{port}/v3/api-docs
 ```
 查看是否能正常返回，然后可以查看拦截器中对knife4j的放行，查看子服务的放行路径是否有错误
+# Sa-Token在异步上下文中如何使用
+```java
+@Configuration  
+public class SaTokenConfigure implements WebMvcConfigurer {  
+  
+    @Override  
+    public void addInterceptors(InterceptorRegistry registry) {  
+        registry.addInterceptor(new SaInterceptor() {  
+            @Override  
+            public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {  
+                // 【核心修复】如果是异步分发（ASYNC），直接放行  
+                // 异步分发阶段线程上下文已丢失，但鉴权已在 REQUEST 阶段完成  
+                if (request.getDispatcherType() == DispatcherType.ASYNC) {  
+                    return true;  
+                }  
+  
+                // 以下为正常鉴权逻辑，仅在 REQUEST 阶段执行  
+                SaRouter.match("/**")  
+                        .notMatch("/user/login","/user/register", "/error", "/swagger-ui/**", "/v3/api-docs/**")  
+                        .check(r -> StpUtil.checkLogin());  
+  
+                return true;  
+            }  
+        }).addPathPatterns("/**");  
+    }  
+}
+```

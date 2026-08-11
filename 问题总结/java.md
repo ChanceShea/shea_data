@@ -258,6 +258,12 @@ http://localhost:{port}/v3/api-docs
 ```
 查看是否能正常返回，然后可以查看拦截器中对knife4j的放行，查看子服务的放行路径是否有错误
 # Sa-Token在异步上下文中如何使用
+`cn.dev33.satoken.exception.SaTokenContextException: SaTokenContext 上下文尚未初始化`
+**原因**：Sa-Token默认是基于ThreadLocal存储上下文的，在Servlet规范中，异步分发会导致线程切换或上下文重置，导致ThreadLocal丢失。而拦截器默认对所有分发类型都拦截，从而导致报错
+当Controller返回Flux对象时，SpringMVC的处理流程分为了两个阶段
+- **REQUEST阶段**：Tomcat主线程接收请求，进入SaInterceptor，此时因为处于同步线程，ThreadLocal鉴权成功。Controller方法执行，返回一个Flux对象，SpringMVC判定返回值类型为响应式类型，调用`request.startAsync()`开启异步模式，主线程结束并释放
+- **ASYNC阶段**：当Flux流开始发射数据时，Servlet容器会触发异步分发。SpringMVC的拦截器机制会在异步分发是再次执行。此时Tomcat使用的是异步线程，该线程中没有Sa-Token的ThreadLocal上下文，SaInterceptor再次执行preHandle获取上下文时，结果为空，抛出异常
+对于上述问题的解决方案，只需要在第一个REQUEST阶段完成一次鉴权，然后在ASYNC阶段直接让拦截器放行即可。可以通过`request.getDispatcherType()`判断出当前是异步分发，直接返回true放行
 ```java
 @Configuration  
 public class SaTokenConfigure implements WebMvcConfigurer {  
@@ -284,3 +290,4 @@ public class SaTokenConfigure implements WebMvcConfigurer {
     }  
 }
 ```
+DispatcherType是Servlet容器内维护的状态标识，不是HTTP请求头或者参数。ASYNC阶段只有当内部代码判断出当前是异步分发过程，然后调用`request.startAsync()`才会产生ASYNC阶段

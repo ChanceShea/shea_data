@@ -4,21 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "944e41625e9d962f",
+        "id": "fc3f648c4564a7da",
         "type": "tabs",
         "children": [
           {
-            "id": "4d77c67283efb29b",
+            "id": "026946a1d28d501a",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/MySQL.md",
+                "file": "java/MQ.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "MySQL"
+              "title": "MQ"
             }
           }
         ]
@@ -85,7 +85,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/MySQL.md",
+                "file": "java/MQ.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -202,10 +202,11 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "4d77c67283efb29b",
+  "active": "026946a1d28d501a",
   "lastOpenFiles": [
-    "java/MQ.md",
     "问题总结/java.md",
+    "java/MySQL.md",
+    "java/MQ.md",
     "question.md",
     "java/Spring.md",
     "java/Redis.md",
@@ -214,7 +215,6 @@
     "java/Java并发编程.md",
     "2026-08-05.md",
     "2026-08-06.md",
-    "java/MySQL.md",
     "java/JVM.md",
     "[[.md",
     "LLM/LLM.md",

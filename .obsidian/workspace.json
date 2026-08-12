@@ -85,7 +85,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "question.md",
+                "file": "java/MQ.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -94,7 +94,8 @@
               "title": "大纲"
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",

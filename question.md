@@ -677,6 +677,20 @@ Redis的单线程指的是命令的执行使用的是主线程。而之所以主
 1. 引入红黑树，在jdk8之后，HashMap中引入了红黑树的数据结构，在数组长度大于64且链表长度大于8时就会进行数据结构的转换，链表会转换成红黑树，优化前，如果一个链表过长，在进行搜索时，链表上遍历搜索元素的时间复杂度是O(n)，而红黑树是O(logn)，优化了查询效率
 2. 采用尾插法进行插入元素。jdk7及之前，HashMap在多线程扩容的场景下，使用头插法，可能会导致链表首尾相连，导致死循环。而jdk8之后就改用了尾插法，避免了上述场景的出现
 3. 更高效的rehash，在jdk7及之前，当HashMap扩容时，需要为每个元素重新计算hash来获取新的下标位置，而jdk8之后，HashMap扩容时，利用HashMap数组长度为2的次幂的特性，新元素要么在原位置不变，要么就变为原位置+旧容量的位置
-
-
-
+## 42. 对于一个`Map<Object,Object>hashMap`，put了一个Integer类型的数据，get(new Long(...))能否获取到
+不能，HashMap在get时会先利用equals进行判断，当equals相等时，再利用hashCode进行判断。而对于eqauls方法，会进行类型检查，Integer和Long的类型不一致，所以获取到的值是null
+### 43. WebSocket建立连接的具体过程
+- 发起升级请求：客户端向服务端发送一个标准的HTTP GET请求。这个请求包含了特定的头信息，告诉服务器想把连接升级为WebSocket协议
+- 服务器响应升级：服务器接收到请求后，如果支持WebSocket协议，就会返回一个`101 Switching Protocols`状态码的HTTP响应
+- 连接升级完成：一旦客户端收到101响应，双方便完成握手，协议正式从HTTP升级为WebSocket。此时，之前用于握手的TCP连接会被保持，不会断开。这条连接从此刻开始作为全双工通信的通道
+- 开始全双工通信：连接建立后，客户端和服务器就可以通过这条持久化的连接，随时、主动地向对方开始发送数据，实现了真正的双向实时通信
+**请求头信息**
+客户端发起GET请求中必须包含以下核心头部信息
+- `Connection: Upgrade`和`Upgrade: websocket`：这两个请求头是必须的，它们组合在一起，明确告诉服务器这是一个升级请求，目标协议是websocket
+- `Sec-WebSocket-Key`：这是一个Base64编码的16字节随机值。用于安全验证，服务器会用它来计算一个特定的值返回给客户端，以证明自己确实理解了WebSocket协议
+- `Sec-WebSocket-Version`：告诉服务器客户端所使用的WebSocket协议版本
+- `Host`：标准HTTP头部，指明服务器的主机名和端口号
+**响应头信息**
+- `HTTP/1.1 101 Switching Protocols`：状态行，不是头部，但它是握手成功最直接的标志
+- `Connection: Upgrade`和`Upgrade: websocket`：与请求头对应，确认协议正在切换
+- `Sec-WebSocket-Accept`：必须返回，它的值是服务器根据客户端发来的`Sec-WebSocket-Key`计算得出。客户端会验证这个值，以取保连接是安全的

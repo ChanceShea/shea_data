@@ -526,7 +526,7 @@ public static void main(String[] args) {
 CompletableFuture实现了两个接口，Future和CompletionStage
 - Future表示异步计算的结果，CompletionStage用于表示异步执行过程中的一个步骤，这个步骤可能是由另外一个CompletionStage出发的，随着当前步骤的完成，也可能会出发其他一系列CompletionStage的执行
 - CompletionStage接口定义了这样的能力，让我们可以根据实际业务对这些步骤进行多样化的编排组合，我们可以通过其提供的thenApply、thenCompose等函数式编程方法来组合编排这些步骤
-### Java21新特性
+## Java21新特性
 - Switch语句的模式匹配：允许在switch的case标签中使用模式匹配，使操作更加灵活和类型安全，减少了样板代码和潜在错误。例如，可以在switch语句中直接根据账户类型的模式来获取相应的余额，如`case savingsAccount sa -> result = sa.getSavings()`
 - 数组模式：将模式匹配扩展到数组中，使开发者能够在条件语句中更高效地解构和检查数组内容。例如，`if(arr instanceof int[]{1,2,3})`，可以直接判断数组arr是否匹配指定的模式
 - 字符串模板：提供了一种更可读、更易维护的方式来构建复杂字符串，支持在字符串字面量中嵌入表达式，比如`hello {name},welcom to the world`

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/Java基础.md",
+                "file": "java/Redis.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Java基础"
+              "title": "Redis"
             }
           }
         ]
@@ -202,13 +202,13 @@
   },
   "active": "026946a1d28d501a",
   "lastOpenFiles": [
+    "java/Java并发编程.md",
+    "java/Java基础.md",
+    "question.md",
     "java/JVM.md",
     "java/MQ.md",
     "java/Mybatis.md",
-    "question.md",
     "java/question.md",
-    "java/Java基础.md",
-    "java/Java并发编程.md",
     "java/MySQL.md",
     "问题总结/java.md",
     "java/Spring.md",

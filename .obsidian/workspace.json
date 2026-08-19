@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "question.md",
+                "file": "java/Spring.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "question"
+              "title": "Spring"
             }
           }
         ]
@@ -85,7 +85,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/MySQL.md",
+                "file": "java/Spring.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -200,42 +200,41 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "026946a1d28d501a",
+  "active": "a8a796e8940f7894",
   "lastOpenFiles": [
-    "java/MySQL.md",
-    "java/Spring.md",
-    "java/Java基础.md",
-    "java/Mybatis.md",
-    "question.md",
-    "java/Java并发编程.md",
-    "java/Redis.md",
-    "java/JVM.md",
-    "java/MQ.md",
-    "java/question.md",
     "问题总结/java.md",
+    "java/JVM.md",
+    "java/answer.md",
+    "java/计算机网络.md",
+    "java/assets/计算机网络/file-20260516152216478.png",
+    "java/assets/计算机网络/file-20260515144930917.png",
+    "问题总结/assets/java/file-20260730095008767.png",
+    "问题总结/fronted.md",
+    "问题总结/杂.md",
+    "question.md",
+    "README.md",
+    "java/杂.md",
+    "java/IO.md",
+    "java/Java并发编程.md",
+    "java/Java基础.md",
+    "java/MQ.md",
+    "java/Mybatis.md",
+    "java/MySQL.md",
     "fronted.md",
+    "java/Spring.md",
+    "java/Redis.md",
+    "java/设计模式.md",
+    "java/question.md",
     "2026-08-05.md",
     "2026-08-06.md",
     "[[.md",
     "LLM/LLM.md",
     "LLM/Java.md",
-    "LLM/Python.md",
-    "java/IO.md",
-    "问题总结/assets/java/file-20260730095008767.png",
     "test_script.py",
-    "README.md",
-    "java/计算机网络.md",
-    "java/设计模式.md",
-    "java/杂.md",
-    "问题总结/fronted.md",
-    "问题总结/杂.md",
-    "java/answer.md",
     "assets/计算机网络/file-20260301195341010.png",
     "问题总结/assets/java/file-20260623153615174.png",
     "问题总结/assets/java",
     "问题总结/assets",
-    "java/assets/计算机网络/file-20260516152216478.png",
-    "java/assets/计算机网络/file-20260515144930917.png",
     "java/assets/计算机网络",
     "java/assets/Spring/file-20260502104730862.png",
     "java/assets/Spring/file-20260501224139248.png",

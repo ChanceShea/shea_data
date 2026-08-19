@@ -694,3 +694,7 @@ Redis的单线程指的是命令的执行使用的是主线程。而之所以主
 - `HTTP/1.1 101 Switching Protocols`：状态行，不是头部，但它是握手成功最直接的标志
 - `Connection: Upgrade`和`Upgrade: websocket`：与请求头对应，确认协议正在切换
 - `Sec-WebSocket-Accept`：必须返回，它的值是服务器根据客户端发来的`Sec-WebSocket-Key`计算得出。客户端会验证这个值，以取保连接是安全的
+## 44. MySQL锁
+### 全局锁
+### 表级锁
+### 行级锁

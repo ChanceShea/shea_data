@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/JVM.md",
+                "file": "java/Spring.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "JVM"
+              "title": "Spring"
             }
           }
         ]
@@ -85,7 +85,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/Java基础.md",
+                "file": "java/Spring.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -200,17 +200,17 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "026946a1d28d501a",
+  "active": "a8a796e8940f7894",
   "lastOpenFiles": [
     "java/Redis.md",
-    "java/Java并发编程.md",
+    "java/MySQL.md",
     "java/Java基础.md",
-    "question.md",
+    "java/Java并发编程.md",
     "java/JVM.md",
+    "question.md",
     "java/MQ.md",
     "java/Mybatis.md",
     "java/question.md",
-    "java/MySQL.md",
     "问题总结/java.md",
     "java/Spring.md",
     "fronted.md",

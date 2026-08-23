@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/Java基础.md",
+                "file": "LLM/LLM.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Java基础"
+              "title": "LLM"
             }
           }
         ]
@@ -85,7 +85,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/Java基础.md",
+                "file": "LLM/LLM.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -94,11 +94,13 @@
               "title": "大纲"
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -202,10 +204,11 @@
   },
   "active": "026946a1d28d501a",
   "lastOpenFiles": [
+    "java/Spring.md",
+    "java/Java基础.md",
     "fronted.md",
     "question.md",
     "README.md",
-    "java/Spring.md",
     "LLM/Java.md",
     "LLM/LLM.md",
     "问题总结/java.md",
@@ -220,7 +223,6 @@
     "java/杂.md",
     "java/IO.md",
     "java/Java并发编程.md",
-    "java/Java基础.md",
     "java/MQ.md",
     "java/Mybatis.md",
     "java/MySQL.md",

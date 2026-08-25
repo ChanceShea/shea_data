@@ -103,3 +103,42 @@ docker run -v /home/user/code:/app myimage
 - **host**：容器直接使用宿主机的网络栈，不做隔离。性能最好但会和宿主机抢端口，无法在一台机器上起多个监听同一端口的容器
 - **container**：和指定的另一容器共享同一个网络栈（K8s里Pod内多个容器就是类似机制）
 - **overlay**：跨宿主机的网络，通常在`Docker Swarm`或`K8s`里使用
+## 同一个宿主机上的容器之间如何通信
+- 默认bridge网络（不推荐）：通过容器的IP直接访问，但IP不固定，也不支持容器名DNS解析
+- 自定义bridge网络（推荐）：自己创建一个网络，加入同一网络的容器之间可以直接用容器名作为DNS名互相访问
+```sh
+docker network create mynet
+docker run -d --name redis --network mynet redis
+docker run -d --name app --network mynet myapp
+```
+- host模式：所有容器共享宿主机网络，直接通过`localhost:port`访问，但失去了端口隔离
+- 通过Docker Compose：Compose会自动为一个project创建一个bridge网络，service名就是容器名，互相访问非常方便
+## Docker Compose
+Docker Compose是Docker官方提供的单机容器编排工具，用一个YAML文件定义一组相关服务，然后一条命令启动或停止整组服务
+例如：本地开发或小型单机部署一套“Web应用+数据库+缓存”的组合
+```yaml
+version: "3.9"
+services:
+  web:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+	  - redis
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db_data:/var/lib/mysql
+  redis:
+    images: redis:7
+volumes:
+  db_data:
+```
+**常用命令**
+- `docker compose up -d`：后台启动所有服务
+- `docker compose down`：停止并删除所有服务
+- `docker compose logs -f`：实时查看日志
+- `docker compose ps`：查看服务状态

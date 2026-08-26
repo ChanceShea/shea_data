@@ -142,3 +142,46 @@ volumes:
 - `docker compose down`：停止并删除所有服务
 - `docker compose logs -f`：实时查看日志
 - `docker compose ps`：查看服务状态
+## Docker常用命令
+- `docker pull <image>`：拉取镜像
+- `docker images`：列出本地镜像
+- `docker rmi <image>`：删除镜像
+- `docker build -t name:tag .`：基于当前目录的Dockerfile构建镜像
+- `docker run -d -p 8080:80 --name web nginx`：启动一个后台容器
+- `docker ps`：查看运行中的容器（加`-a`参数查看所有容器）
+- `docker rm <container>`：删除容器
+- `docker stop/start/restart <container>`：停止/启动/重启容器
+- `docker exec -it <container> bash`：进入容器
+- `docker inspect <container>`：查看容器详细信息（JSON格式）
+- `docker stats`：查看容器资源占用
+- `docker system df`：查看Docker占用了多少磁盘
+- `docker system prune`：清理无用资源
+## 容器启动后立刻退出，如何排查
+1. 先看日志，`docker logs <container>`或`docker logs --tail 100 <container>`或`docker logs -f <container>`，大部分问题从日志中可以直接看出来
+2. 看退出码，`docker ps -a`的STATUS列会显示`Exited(x)`的退出码。0是正常退出，137通常是OOM被杀，139是段错误，其他非0就是应用报错
+3. 思考PID=1的问题，Docker容器里主进程必须是前台运行的，如果启动命令是一个后台化的程序（比如写成`nginx`而不是`nginx -g 'daemon off;'`），主进程启动完立刻退出，容器也就跟着结束了
+4. 临时用shell进去调试，如果容器一启动就挂，可以临时把`ENTRYPOINT`覆盖成shell进去查看
+```sh
+docker run -it --entrypoint sh <image>
+```
+5. 检查资源限制，是否因为cgroups内存限制太小被OOM killer杀掉（docker inspect能看到`OOMKilled:true`）
+## `docker commit`和`docker build`的区别
+两者都能得到一个新镜像，但是使用场景和推荐度完全不同
+- `docker commit <container> <image>`：把一个正在运行的容器的当前状态打包成镜像，相当于“快照”。过程是手动的、隐式的，镜像里发生了什么只有操作者自己知道
+- `docker build -f Dockerfile -t <image> .`：根据Dockerfile脚本自动构建镜像。过程是可复现、可追溯、可版本控制的
+**生产环境中一定要使用`docker build`**
+- Dockerfile可以提交到Git，方便团队协作和代码审查
+- 构建过程完全自动化，随时可以从代码重新构建出一模一样的镜像
+- 镜像层结构清晰，每一层对应一条指令，便于排查
+## `docker run`的常用参数
+- `-d`：后台运行
+- `-it`：交互式+分配终端，通常一起使用
+- `-p 8080:80`：端口映射（宿主机:容器）
+- `-v /host:/container`或`-v volname:/container`：目录/数据卷挂载
+- `--name web`：给容器起个名字
+- `--network mynet`：指定容器网络
+- `-e KEY=VALUE`：设置环境变量
+- `--rm`：容器停止后自动删除（适合一次性任务）
+- `--restart always/unless-stopped`：自动重启策略
+- `-m 512m --cpus=1`：内存/CPU资源限制
+- `-u 1000:1000`：以非root用户运行

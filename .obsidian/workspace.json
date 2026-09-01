@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/question.md",
+                "file": "question.md",
                 "mode": "source",
                 "source": false
               },
@@ -98,7 +98,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -202,6 +203,7 @@
   },
   "active": "caa6591cb2bee3db",
   "lastOpenFiles": [
+    "java/question.md",
     "question.md",
     "java/JVM.md",
     "java/Mybatis.md",
@@ -218,7 +220,6 @@
     "fronted.md",
     "java/Docker.md",
     "java/answer.md",
-    "java/question.md",
     "java/assets/杂/file-20260824192830616.png",
     "java/assets/杂/file-20260824192509661.png",
     "java/assets/杂",

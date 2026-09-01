@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "question.md",
+                "file": "java/question.md",
                 "mode": "source",
                 "source": false
               },
@@ -202,6 +202,9 @@
   },
   "active": "caa6591cb2bee3db",
   "lastOpenFiles": [
+    "question.md",
+    "java/JVM.md",
+    "java/Mybatis.md",
     "java/杂.md",
     "java/Spring.md",
     "java/Java基础.md",
@@ -212,7 +215,6 @@
     "LLM/Python.md",
     "LLM/Java.md",
     "问题总结/杂.md",
-    "question.md",
     "fronted.md",
     "java/Docker.md",
     "java/answer.md",
@@ -222,13 +224,11 @@
     "java/assets/杂",
     "README.md",
     "问题总结/java.md",
-    "java/JVM.md",
     "java/assets/计算机网络/file-20260516152216478.png",
     "java/assets/计算机网络/file-20260515144930917.png",
     "问题总结/assets/java/file-20260730095008767.png",
     "问题总结/fronted.md",
     "java/MQ.md",
-    "java/Mybatis.md",
     "java/MySQL.md",
     "java/Redis.md",
     "java/设计模式.md",

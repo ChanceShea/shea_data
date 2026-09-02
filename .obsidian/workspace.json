@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/question.md",
+                "file": "question.md",
                 "mode": "source",
                 "source": false
               },
@@ -85,7 +85,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/question.md",
+                "file": "question.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -94,11 +94,13 @@
               "title": "大纲"
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -202,6 +204,7 @@
   },
   "active": "caa6591cb2bee3db",
   "lastOpenFiles": [
+    "java/question.md",
     "java/Redis.md",
     "java/Java并发编程.md",
     "java/计算机网络.md",
@@ -221,7 +224,6 @@
     "java/MQ.md",
     "java/Mybatis.md",
     "java/MySQL.md",
-    "java/question.md",
     "LLM/Python.md",
     "问题总结/杂.md",
     "java/assets/杂/file-20260824192830616.png",

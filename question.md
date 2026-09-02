@@ -994,3 +994,36 @@ singletonFactories.put("a", () -> getEarlyBeanReference("a", mbd, a));
 `getEarlyBeanReference()`会判断这个Bean是否需要AOP代理。如果需要，就返回代理对象；如果不需要就返回原始对象
 如果只有二级缓存，在实例化A后就必须立即决定存入二级缓存的是原始对象还是代理对象，但是此时A尚未初始化，就无法确定是否需要AOP代理。
 三级缓存通过延迟决策解决了AOP代理的问题，先存工厂，等到真正需要的时候，再决定返回什么对象，从而保证全局单例的唯一性
+## 60. 线上突然一直GC
+### 阶段一：紧急应急，优先止损
+- **流量隔离**：如果是单节点问题，通过负载均衡将流量切到其他正常节点[](https://gitee.com/bxlj/java-article/blob/741530fca21d5ec47b254be8e81b5e594ff2e67c/docs/arthas/full-gc-1.md#1)。如果是全量问题，考虑降级非核心接口[](https://gitee.com/bxlj/java-article/blob/741530fca21d5ec47b254be8e81b5e594ff2e67c/docs/arthas/full-gc-1.md#1)或联系安全部门拦截可能的恶意攻击。
+- **临时扩容**：临时增加堆内存大小（如调整`-Xmx`和`-Xms`参数）[](https://blog.csdn.net/weixin_42148384/article/details/161697419#1)，或对应用进行机器扩容，为排查争取时间。
+- **重启应用**：如果问题非常严重且无法快速定位，可以考虑重启应用作为临时恢复手段。
+- **采集现场信息**：在操作的同时，**务必保留现场**。这是后续定位根因的关键。
+    - **查看GC概况**：执行 `jstat -gcutil <pid> 1000` 实时监控GC频率和内存使用率
+    - **开启GC日志**：如果未开启，动态添加参数 `-Xloggc:gc.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps` 来记录详细日志
+    - **生成堆转储**：执行 `jmap -dump:live,format=b,file=heap.hprof <pid>`**注意：** 此操作可能导致服务短暂停顿（STW），需谨慎执行
+### 🔍 阶段二：分析GC日志，初步定位
+
+通过GC日志，可以初步判断问题类型[](https://blog.csdn.net/weixin_42148384/article/details/161697419#1)。
+
+- **老年代占满 (Allocation Failure)**：最常见原因，对象过快晋升到老年代或存在内存泄漏
+- **元空间不足 (Metaspace allocation failure)**：动态加载类过多，或存在类加载器泄漏
+- **显式GC (System.gc())**：代码或第三方库主动调用`System.gc()`触发[](https://blog.csdn.net/weixin_42148384/article/details/161697419#1)。可通过添加JVM参数`-XX:+DisableExplicitGC`来禁用
+- **GC方式失败 (concurrent mode failure)**：通常与CMS垃圾收集器相关，表示老年代空间不足以支持并发收集
+### 🎯 阶段三：分析堆转储，定位根因
+
+使用 **Eclipse MAT (Memory Analyzer Tool)** 等工具[](https://blog.csdn.net/weixin_42148384/article/details/161697419#1)分析`heap.hprof`文件：
+
+1. **查看 Leak Suspects**：MAT会自动分析并生成内存泄漏的可疑报告，这是最快捷的入手点
+2. **查看 Dominator Tree**：查看占用内存最大的对象，快速定位“大对象”
+3. **查看 Histogram**：按类统计实例数量和占用的内存大小，找出数量异常或占用内存过多的类
+4. **分析 GC Roots**：对可疑对象，查看其到GC Roots的引用链，找到阻止其被回收的根源
+### 💊 阶段四：根据根因，对症下药
+
+|根因类型|典型现象|解决方案|
+|---|---|---|
+|**内存泄漏**|Full GC后老年代使用率不降或持续上升[](https://cloud.tencent.cn/developer/article/2727326?policyId=1004#1)。|1. 修复代码中**静态集合**、**ThreadLocal未清理**[](https://cloud.tencent.cn/developer/article/2727326?policyId=1004#1)、**未关闭的IO资源**等问题。  <br>2. 考虑使用**WeakHashMap**等弱引用类型作为缓存[](https://cloud.tencent.cn/developer/article/2727326?policyId=1004#1)。|
+|**大对象**|YGC很少，但Full GC频繁[](https://cloud.tencent.cn/developer/article/2727326?policyId=1004#1)。|1. **优化代码**，拆分或避免创建超大对象（如超大数组、字符串）[](https://cloud.tencent.cn/developer/article/2727326?policyId=1004#1)。  <br>2. 将大对象**移出JVM堆**，存入Redis等外部缓存[](https://developer.aliyun.com/article/1697548#1)。  <br>3. 调整`-XX:PretenureSizeThreshold`参数，让大对象直接在老年代分配[](https://cloud.tencent.cn/developer/article/2727326?policyId=1004#1)。|
+|**内存抖动**|YGC非常频繁，CPU飙升。|1. **代码层优化**：在循环中复用对象（如`StringBuilder`）[](https://developer.aliyun.com/article/1693180#1#1)，避免在短时间内大量创建临时对象。  <br>2. **使用对象池**技术复用对象[](https://developer.aliyun.com/article/1693180#1#1)。|
+|**JVM参数不合理**|新生代过小导致对象频繁晋升[](https://cloud.tencent.cn/developer/article/2727326?policyId=1004#1)；Survivor区过小等。|1. **调整新生代大小**：适当增大`-Xmn`（建议堆的30%-40%）[](https://cloud.tencent.cn/developer/article/2727326?policyId=1004#1)。  <br>2. **调整晋升阈值**：适当增大`-XX:MaxTenuringThreshold`，让对象在Survivor区停留更久[](https://cloud.tencent.cn/developer/article/2727326?policyId=1004#1)。  <br>3. **升级垃圾回收器**：考虑升级到**G1**或**ZGC**[](https://developer.aliyun.com/article/1693180#1#1)。如果使用G1，可调整`-XX:MaxGCPauseMillis`等参数[](https://cloud.tencent.cn/developer/article/2727326?policyId=1004#1)。|

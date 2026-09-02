@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "question.md",
+                "file": "java/JVM.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "question"
+              "title": "JVM"
             }
           }
         ]
@@ -85,7 +85,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "question.md",
+                "file": "java/JVM.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -94,8 +94,7 @@
               "title": "大纲"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
@@ -204,35 +203,35 @@
   },
   "active": "caa6591cb2bee3db",
   "lastOpenFiles": [
-    "java/question.md",
-    "question.md",
-    "java/JVM.md",
-    "java/Mybatis.md",
-    "java/杂.md",
     "java/Spring.md",
-    "java/Java基础.md",
-    "java/Java并发编程.md",
+    "question.md",
+    "fronted.md",
+    "README.md",
     "java/IO.md",
+    "java/Docker.md",
+    "java/Java并发编程.md",
+    "java/Java基础.md",
+    "java/JVM.md",
+    "java/MQ.md",
+    "java/Mybatis.md",
+    "java/MySQL.md",
+    "java/question.md",
+    "java/Redis.md",
+    "java/杂.md",
     "java/计算机网络.md",
     "LLM/LLM.md",
     "LLM/Python.md",
     "LLM/Java.md",
     "问题总结/杂.md",
-    "fronted.md",
-    "java/Docker.md",
     "java/answer.md",
     "java/assets/杂/file-20260824192830616.png",
     "java/assets/杂/file-20260824192509661.png",
     "java/assets/杂",
-    "README.md",
     "问题总结/java.md",
     "java/assets/计算机网络/file-20260516152216478.png",
     "java/assets/计算机网络/file-20260515144930917.png",
     "问题总结/assets/java/file-20260730095008767.png",
     "问题总结/fronted.md",
-    "java/MQ.md",
-    "java/MySQL.md",
-    "java/Redis.md",
     "java/设计模式.md",
     "2026-08-05.md",
     "2026-08-06.md",

@@ -877,3 +877,47 @@ ReadView是MVCC的决策大脑，它决定了当前事务能看到版本链中�
 - **优化`COUNT`和`DISTINCT`**：若业务允许，使用`COUNT(*)`而不是`COUNT(列名)`，前者会优化走最小二级索引；避免在`COUNT`中加`WHERE`后扫描大表，可以考虑缓存或额外汇总表
 - **用UNION ALL代替UNION**：`UNION`会去重，需要排序和临时表；如果业务允许重复，使用`UNION ALL`性能提升巨大
 - **避免无用排序**：`ORDER BY`字段如果能用到索引，则`Extra`显示`Using index`，否则出现`Using filesort`。减少排序字段或建立联合索引
+## 54. Spring的启动流程
+Spring的启动过程，本质上就是IoC容器的初始化过程，这个过程的总指挥就是`AbstractApplicationContext`类的`refresh()`方法
+**容器刷新前的准备工作**
+- **设置启动状态**：记录启动时间，将容器状态标记为活跃
+- **初始化属性资源**：初始化上下文环境(`Environment`)占位符，为后续的属性解析做准备
+- **验证必要属性**：验证`Environment`中标记为“必需”的属性是否存在
+### 创建或获取BeanFactory
+获取或创建一个`BeanFactory`实例，它是Spring IoC容器的核心实现，实现类是`DefaultListableBeanFactory`。你可以把它理解为存放所有`BeanDefinition`的仓库
+**配置和增强BeanFactory**
+- **prepareBeanFactory**：进行通用配置，如设置类加载器、表达式解析器等，并注册两个重要的**Bean后置处理器**
+- **postProcessBeanFactory**：这是一个模版方法，留给字类扩展。例如，Web环境下的`ApplicationContext`会利用它注册`request`、`session`等作用域
+- **invokeBeanFactoryPostProcessors**：调用所有已注册的`BeanFactoryPostProcessor`。这个阶段可以修改`BeanDefinition`。SpringBoot的自动配置核心`ConfigurationClassPostProcessor`就是在这里被调用的
+- **registerBeanPostProcessors**：注册所有`BeanPostProcessor`。它们会监听Bean生命周期，在Bean实例化、初始化等阶段进行干预
+**初始化应用上下文基础设施**
+这几步为容器增添一些高级功能
+- **initMessageSource**：初始化国际化消息
+- **initApplicationEventMulticaster**：初始化事件广播器
+- **onRefresh**：模版方法。在SpringBoot中，内嵌的Web服务器就是在这里被创建和启动的
+- **registerListeners**：将实现了`ApplicationListener`接口的Bean注册到事件广播器中
+**完成BeanFactory的初始化**
+这是最核心的一步，它会实例化所有非懒加载的单例Bean。在此过程中，会进行依赖注入，并触发之前注册的各种`BeanPostProcessor`，完成AOP代理等复杂功能
+**完成刷新**
+收尾工作
+- **清理资源缓存**：清理一些临时的资源缓存
+- **发布事件**：发布`ContextRefreshedEvent`事件，通知所有监听器容器已启动完成
+## 55. SpringBoot的启动过程
+SpringBoot的启动过程，本质上可以看作是对Spring `refresh()`方法的一层高度封装和自动化扩展。整个过程围绕`SpringApplication`类展开，主要分为**初始化`SpringApplication`实例和执行`run`方法两个阶段**
+**准备与规划**
+这个阶段会扫描并加载必要的组件，为后续的启动做准备
+- **推断Web应用类型**：根据Classpath下是否存在特定类，判断应用是`Servlet`、`Reactive`还是`None`。这决定了后续是否启动以及启动哪种内嵌的Web服务器
+- **加载并初始化`ApplicationContextInitializer`**：从`META-INF/spring.factories`文件中加载所有`ApplicationContextInitializer`的实现类并实例化。它们会在IoC容器刷新前被调用，用于对容器进行额外的配置
+- **推断主类**：通过堆栈信息找到包含`main`方法的真实启动类
+**执行与启动**
+实例化完成后，调用`run`方法正式启动应用。这一阶段会触发`refresh()`方法
+- **启动计时与Headless模式配置**：创建`StopWatch`开始计时，并将系统设置为`java.awt.headless`模式以适应服务器环境
+- **获取并通知`SpringApplicationRunListener`**：从`spring.factories`加载`SpringApplicationRunListener`，并通过它们在不同阶段发布生命周期
+- **准备`Environment`**：创建并配置应用的环境，包括加载`application.yml`或`application.properties`配置文件，并设置命令行参数
+- **打印Banner**：在控制台打印SpringBoot的启动图标
+- **创建ApplicationContext**：根据第一阶段推断出的Web应用类型，反射创建对应的IoC容器实例。例如Servlet环境会创建`AnnotationConfigServletWebServerApplicationContext`
+- **准备上下文**：将`Environment`等配置应用到容器，并执行在第一阶段加载的所有`ApplicationContextInitializer`的`initialize`方法
+- **刷新上下文**：这是最核心的一步。它调用Spring容器的`refresh`方法，完成Bean的加载、实例化、依赖注入等所有核心工作。同时，内嵌的Web服务器也是在此阶段被创建和启动的
+- **刷新后处理**：一个空的模板方法，预留用于在容器刷新后执行自定义逻辑
+- **调用`ApplicationRunner`和`CommandLineRunner`**：容器启动成功后，会遍历并执行所有实现了这两个接口的Bean的`run`方法，用于执行一些启动后的初始化逻辑
+- **发布就绪事件并结束计时**：发布`ApplicationReadyEvent`事件，标志着应用已经完全启动并可提供服务。最后停止计时并打印启动耗时日志

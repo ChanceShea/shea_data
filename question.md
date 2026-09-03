@@ -1057,3 +1057,17 @@ private static final String NAME = "constant";
 `synchronized(lock){...}`，在同步代码块执行期间，`lockObj`对象被挂起，作为GC Root确保其不被回收，直到锁被释放
 **JVM内部持有的关键引用**：这部分属于JVM运行时必要的系统引用，包括**系统类加载器(`AppClassLoader`,`ExtClassLoader`)** 和 **引导类加载器(`Bootstrap ClassLoader`)** 加载的核心类对象。JVM内部常驻的异常对象(`NullPointerException`、`OutOfMemoryError`等预分配的对象)。当前正在执行的Java方法所对应的`Method`对象
 **被JVM诊断工具或JMX持有的临时引用**：当使用JProfiler、Arthas、VisualVM等工具进行堆栈分析或线程Dump时，工具会临时创建指向特定对象的强引用，这会使对象在分析期间成为GC Root，从而避免被回收以便于调试
+## 63. SpringBoot自动配置是如何实现的
+SpringBoot的自动配置是“约定大于配置”的核心实现，主要就是根据项目中的依赖和环境，自动地为你预先配置好所需的组件。实现主要基于以下几个步骤
+- 自动配置的入口类就是`@SpringBootApplication`注解。这是一个组合注解，其中最关键的就是`@EnableAutoConfiguration`，作用是开启自动配置功能
+- `@EnableAutoConfiguration`注解通过`@Import`导入了一个核心类`AutoConfigurationImportSelector`。这个类会去扫描并加载所有自动配置类的全限定类名列表。SpringBoot2.7之前，加载的是`META-INF/spring.factories`文件，2.7之后加载的是`META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`文件
+- 加载了所有候选配置类后，这些配置类并不会全部生效。`AutoConfigurationImportSelector`会利用`@Conditional`系列的条件注解进行过滤，只有满足特定条件，配置类才会被真正加载。常用的条件注解有`@ConditionalOnClass`/`@ConditionalOnMissingClass`（当类路径中存在/不存在某个类时生效）、`@ConditionalOnBean/@ConditionalOnMissingBean`（当Spring容器中存在/不存在某个Bean时生效）、`@ConditionalOnProperty`（当指定的配置属性拥有特定值时生效）、`@ConditionalOnWebApplication`（当应用是一个Web应用时生效）
+- 通过条件过滤的配置类，本质上是带有`@Configuration`的配置类。内部通过`@Bean`方法创建并注册所需的组件。这些Bean的属性值，通常通过`@ConfigurationProperties`绑定到以`XxxProperties`命名的类上，再从`application.properties`或`application.yml`等外部配置文件中读取
+## 64.MySQL主从同步
+MySQL的主从同步，是一种常见的数据库高可用架构解决方案，其核心机制是：**将主数据库的数据变更，通过二进制日志，异步地复制到一个或多个从数据库上并重新执行，从而保证主从数据最终一致性**
+- **主库记录日志**：主库将所有数据变更按顺序记录到二进制日志binlog中。binlog有三种格式：`Statement`记录SQL语句本身，日志量小，但可能因为函数导致主从不一致；`Row`记录每行数据的变化，更安全但是日志量大。`Mixed`：MySQL自动选择以上两种格式
+- **从库获取日志**：从库的IO线程连接到主库，主库会为每个连接创建一个`Log Dump`线程。该线程负责读取binlog并发送给从库的IO线程。IO线程收到后，会将内容写入到从库本地的中继日志Relay Log中
+- **从库重放日志**：从库的SQL线程负责读取Relay Log中的内容，解析成SQL语句再从库上顺序执行，最终实现数据同步
+根据主库在提交事务时是否需要等待从库确认，主要分为两种模式
+- **异步模式**：主库提交事务后，不等待从库确认即返回成功。性能最高，对主库的影响最小。但是如果主库宕机了，未同步的事务可能丢失
+- **半同步模式**：主库提交事务后，会至少等待一个从库确认已接收日志后才会返回。数据一致性更高，确保事务至少被一个从库记录。但是性能会略有下降，增加了网络等待时间。若从库无响应，可降级为异步模式

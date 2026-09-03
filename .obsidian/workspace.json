@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/Java并发编程.md",
+                "file": "question.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Java并发编程"
+              "title": "question"
             }
           }
         ]
@@ -85,7 +85,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "java/Java并发编程.md",
+                "file": "question.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -94,12 +94,12 @@
               "title": "大纲"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -201,12 +201,12 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "0dc0d29d2e02ee63",
+  "active": "caa6591cb2bee3db",
   "lastOpenFiles": [
+    "java/Java并发编程.md",
     "question.md",
     "java/question.md",
     "java/Redis.md",
-    "java/Java并发编程.md",
     "java/计算机网络.md",
     "java/JVM.md",
     "java/设计模式.md",

@@ -1223,3 +1223,22 @@ JVM启动时，会预先创建三个层级分明的类加载器
 双亲委派机制的核心优势在于
 - **保证核心类库的安全性**：防止用户自己写一个`java.lang.String`去篡改JDK核心类。因为双亲委派机制会优先让Bootstrap加载`rt.jar`里的String，用户自定义的String类永远没机会被加载，有效避免了JVM崩溃
 - **避免类重复加载**：确保一个类在JVM中只存在一份Class对象，节省内存开销
+**打破双亲委派机制**
+- **JDBC**：JDBC核心接口`java.sql.Driver`在`rt.jar`中，但具体实现却在Classpath中。Bootstrap加载器无法加载ClassPath的类，于是引入了**线程上下文类加载器**，让父加载器反向请求子加载器去加载
+- **Tomcat/Jetty容器**：同一个Tomcat里部署多个Web应用，如果两个应用依赖了不同版本的`spring.jar`，Tomcat必须破坏双亲委派模型，为每个Web应用创建独立的ClassLoader，以实现应用之间的隔离
+- **热部署**：为了在不重启JVM的情况下替换掉某个`.class`，需要创建新的自定义ClassLoader加载新版类，并丢弃就得ClassLoader
+## 78. JVM GC
+- Young GC：负责回收新生代区域，所有收集器都可以进行Young GC，停顿时间短，只影响年轻代
+- Old GC：只回收老年代区域。CMS收集器特有。并发清理阶段不会STW，但初始标记/重新标记有短暂STW。STW时间较长，但CMS会试图减少STW
+- Mixed GC：回收年轻代和部分老年代。G1收集器特有。STW时间可控（G1会根据`MaxGCPauseMillis`目标挑选部分Region）
+- Full GC：回收整个堆，所有收集器都可以进行Full GC。STW最长，会导致应用显著卡顿。是GC的兜底方案
+**什么情况下会触发Young GC**
+**当Eden区的内存空间不足，无法分配新对象时，就会触发Young GC(Minor GC)**
+Young GC非常频繁，因为新生代对象大多朝生夕死，且停顿时间极短
+**什么情况下会触发Full GC**
+- **老年代空间不足**：这是最核心的原因。当Young GC后，有大量存活对象需要晋升到老年代，但老年代剩余空间不足以容纳这些对象时，就会触发Full GC
+- **元空间或永久代空间不足**：加载的类太多，或`-XX:MaxMetaspaceSize`设置过小，导致元空间扩容失败时，会触发Full GC尝试回收类的元数据
+- **显式调用`System.gc()`**：代码中如果调用了`System.gc()`或`Runtime.getRuntime().gc()`，JVM会建议执行Full GC。在线上环境，通常通过JVM参数`-XX:+DisableExplicitGC`禁止这种显式调用
+- **晋升失败与并发模式失败**：Young GC之后，需要晋升的对象总大小>老年代剩余空间。CMS正在执行并发老年代回收时，又有新对象需要晋升，但老年代剩余空间被回收线程释放的速度赶不上对象填充的速度，JVM会立即停止并发，退化为船型的Full GC
+- **大对象直接分配到老年代**：如果创建了超大对象，且大小超过了`-XX:PretenureSizeThreshold`设置的阈值，该对象会直接进入到老年代。如果此时老年代空间不足，直接触发Full GC
+- **`jmap -histo:live`或JVisualVM强制GC**：在执行堆转储或强制查看存货对象时，工具会触发一次Full GC来确保数据准确

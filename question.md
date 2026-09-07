@@ -1305,3 +1305,73 @@ JMM允许编译器和CPU做指令重排序来优化性能，但重排序不能�
 - **线程中断规则**：interrupt()调用happens-before被中断线程检测到中断事件。调用interrupt()之前的操作，被中断线程通过isInterrupted()检测到中断后都能看到
 - **对象终结规则**：对象构造函数执行完毕happens-before finalize()方法的开始。构造器里设置的字段，finalize()里一定能看到
 - **传递性规则**：如果A happens-before B，B happens-before C，那么A happens-before C。这条规则让happens-before关系可以传导
+**为什么有happens-before**
+现代CPU为了提升性能，会对指令做乱序执行。如果JMM直接把底层内存模型暴露给开发者，那Java程序员写并发代码就需要针对不同CPU做适配，“一次编写，到处运行”就成了空话。happens-before就是JMM提供的抽象层，开发者只需要关心这八条规则，JVM负责在不同CPU上插入合适的内存屏障来保证语义
+**synchronized的happens-before保证**
+synchronized块不仅保证原子性，还通过监视器锁规则提供happens-before保证
+```java
+public class Counter {
+    private int count = 0;
+    
+    public synchronized void increment() {
+        count++;  // 这个修改对后续获取锁的线程可见
+    }
+    
+    public synchronized int getCount() {
+        return count;  // 一定能看到之前 increment 的结果
+    }
+}
+```
+线程A执行increment()退出synchronized块时做了unlock，线程B调用getCount()进入synchronized块时做了lock。根据监视器锁规则，A的unlock happens-before B的lock，所以B一定能看到A对count的修改
+**volatile的happens-before**
+volatile最经典的用法是做状态标记和双重检查锁定
+```java
+public class TaskRunner {
+    private volatile boolean running = true;
+    
+    public void run() {
+        while (running) {
+            // 干活
+        }
+    }
+    
+    public void stop() {
+        running = false;  // 写 volatile
+    }
+}
+```
+主线程调用stop()写入false，工作线程循环里读running一定能立刻看到false，不会出现死循环
+双重检查锁
+```java
+public class Singleton {
+    private static volatile Singleton instance;
+    
+    public static Singleton getInstance() {
+        if (instance == null) {
+            synchronized (Singleton.class) {
+                if (instance == null) {
+                    instance = new Singleton();
+                }
+            }
+        }
+        return instance;
+    }
+}
+```
+instance必须加volatile，否则new Singleton()的初始化和引用赋值可能被重排序，其他线程可能拿到一个没初始化完的对象
+**final字段的happens-before**
+JMM对final字段有特殊保证：对象构造函数里对final字段的写入，happens-before其他线程读取这个对象的final字段
+```java
+public class FinalDemo {
+    private final int x;
+    private int y;
+    
+    public FinalDemo() {
+        x = 3;  // final 字段写入
+        y = 4;  // 普通字段写入
+    }
+}
+```
+只要对象引用没有在构造函数里逸出，其他线程通过正常途径拿到对象引用后，读x一定是3，但读y可能是0也可能是4.这就是为什么不可变对象天然线程安全
+**happens-before和as-if-serial的区别**
+`as-if-serial`是单线程的语义保证：不管怎么重排序，单线程的执行结果不变。happens-before是多线程语义保证：只要遵守happens-before规则，多线程执行结果就是正确的

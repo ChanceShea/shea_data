@@ -41,12 +41,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "java/MySQL.md",
+                "file": "question.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "MySQL"
+              "title": "question"
             }
           }
         ],
@@ -127,7 +127,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "8c9e2e10ff136213",
@@ -229,8 +230,9 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "a8a796e8940f7894",
+  "active": "04b0a1c7c7914cd5",
   "lastOpenFiles": [
+    "java/MySQL.md",
     "java/Mybatis.md",
     "java/Spring.md",
     "java/Java基础.md",
@@ -239,7 +241,6 @@
     "question.md",
     "java/计算机网络.md",
     "java/杂.md",
-    "java/MySQL.md",
     "java/Redis.md",
     "java/Java并发编程.md",
     "java/question.md",

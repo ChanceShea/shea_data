@@ -1375,3 +1375,24 @@ public class FinalDemo {
 只要对象引用没有在构造函数里逸出，其他线程通过正常途径拿到对象引用后，读x一定是3，但读y可能是0也可能是4.这就是为什么不可变对象天然线程安全
 **happens-before和as-if-serial的区别**
 `as-if-serial`是单线程的语义保证：不管怎么重排序，单线程的执行结果不变。happens-before是多线程语义保证：只要遵守happens-before规则，多线程执行结果就是正确的
+## 84.ThreadLocal的key为什么是弱引用
+**使用弱引用是为了防止ThreadLocal对象本身发生内存泄露，但它并不能完全解决内存泄漏问题，只解决了Key的泄露，Value的泄露需要开发者手动清理**
+ThreadLocal内部有一个静态内部类`ThreadLocalMap`。它并不是直接用一个简单的Map来存值，而是维护了一个Entry数组
+这个Entry类的定义非常特殊
+```java
+static class Entry extends WeakReference<ThreadLocal<?>> {
+    Object value;
+
+    Entry(ThreadLocal<?> k, Object v) {
+        super(k); // 注意这里：key 被包装成了弱引用
+        value = v;
+    }
+}
+```
+可以看到，Key是作为弱引用存在的，而Value是强引用
+假设Entry对ThreadLocal对象是强引用，那么在业务代码中将ThreadLocal变量置为null时，由于ThreadLocalMap中依然持有该对象的强引用，GC永远无法回收这个ThreadLocal对象。只要线程不销毁，这个ThreadLocal对象就会一直驻留内存，造成内存泄漏
+使用弱引用，当外部强引用`threadLocal = null`断开后，ThreadLocal对象只剩下Entry中的弱引用。根据GC规则，弱引用在每次垃圾回收时都会被强制回收。这样一来，ThreadLocal对象本身可以被回收掉，Entry中的Key就会变成null
+但是，虽然Key被回收了，但Value依然是强引用，这就是ThreadLocal经典的内存泄漏问题
+当Key变为null后，这个Entry就变成了脏Entry，即`key == null`但`value != null`。此时，Value对象被Entry强引用着，而Entry被ThreadLocalMap强引用着，ThreadLocalMap又被当前线程强引用着
+- 如果是普通线程，执行完任务就销毁了，那Map随之销毁，内存没问题
+- 如果是核心线程（例如Tomcat工作线程、ForkJoinPool），线程会长期存活并复用。那么这些`key == null`的Entry和它们关联的value就永远无法被GC回收，最终导致严重的内存泄露

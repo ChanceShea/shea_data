@@ -932,3 +932,46 @@ SpringBoot的启动流程，本质上是一个将约定转化为运行实例的�
 	- 执行复杂的依赖注入
 	- 触发内嵌的Web服务器的启动，启动Tomcat、Jetty等服务器
 7. **启动后的收尾**：调用`ApplicationRunner`和`CommandLineRunner`接口的实现，执行一些项目启动后的自定义逻辑。然后发布`started`和`ready`事件，表示应用已经完全启动，可以接受请求
+## 一个服务实例注册到Nacos中，需要向Nacos中注册哪些信息
+**连接Nacos服务端的信息**
+- `serverAddr`：Nacos服务端的地址，例如`127.0.0.1:8848`
+- `username`：连接Nacos服务的用户名，默认`nacos`
+- `password`：连接Nacos服务的密码，默认为`nacos`
+- `namespace`：命名空间ID，用于实现多环境管理，默认为`public`
+**服务实例本身的信息**
+- `serviceName`：服务名，标识一个服务集合
+- `ip`：服务实例的IP地址，供消费者调用
+- `port`：服务实例的端口号，供消费者调用
+## SpringBoot自动配置是如何实现的
+SpringBoot的自动配置是“约定大于配置”的核心实现，主要就是根据项目中的依赖和环境，自动地为你预先配置好所需的组件。实现主要基于以下几个步骤
+- 自动配置的入口类就是`@SpringBootApplication`注解。这是一个组合注解，其中最关键的就是`@EnableAutoConfiguration`，作用是开启自动配置功能
+- `@EnableAutoConfiguration`注解通过`@Import`导入了一个核心类`AutoConfigurationImportSelector`。这个类会去扫描并加载所有自动配置类的全限定类名列表。SpringBoot2.7之前，加载的是`META-INF/spring.factories`文件，2.7之后加载的是`META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`文件
+- 加载了所有候选配置类后，这些配置类并不会全部生效。`AutoConfigurationImportSelector`会利用`@Conditional`系列的条件注解进行过滤，只有满足特定条件，配置类才会被真正加载。常用的条件注解有`@ConditionalOnClass`/`@ConditionalOnMissingClass`（当类路径中存在/不存在某个类时生效）、`@ConditionalOnBean/@ConditionalOnMissingBean`（当Spring容器中存在/不存在某个Bean时生效）、`@ConditionalOnProperty`（当指定的配置属性拥有特定值时生效）、`@ConditionalOnWebApplication`（当应用是一个Web应用时生效）
+- 通过条件过滤的配置类，本质上是带有`@Configuration`的配置类。内部通过`@Bean`方法创建并注册所需的组件。这些Bean的属性值，通常通过`@ConfigurationProperties`绑定到以`XxxProperties`命名的类上，再从`application.properties`或`application.yml`等外部配置文件中读取
+## Spring循环依赖
+循环依赖指的就是两个或多个Bean之间间接或直接地相互依赖，形成闭环。典型的就是A依赖B，B也依赖A。如果不对其进行处理，就会导致在创建A时需要B，创建B时需要A，就会无限递归，最终导致创建失败
+### 三级缓存
+Spring通过三级缓存机制解决了这个问题。但是需要注意的是，Spring只能解决单例模式下通过Setter注入或属性注入产生的循环依赖，构造器注入的循环依赖无法解决
+三级缓存是Spring在`DefaultSingletonBeanRegistry`类中定义的三个Bean
+一级缓存：`singletonObjects`，用于存放完全初始化完成的单例Bean
+二级缓存：`earlySingletonObjects`，存放已实例化但尚未完成初始化的Bean（半成品，提前暴露）
+三级缓存：`singletonFactories`，存放`ObjectFactory`对象工厂，用于生成Bean的早期引用或代理对象
+**三级缓存是如何解决循环依赖的**
+- 首先创建A，实例化A，将A的`ObjectFactory`放入三级缓存`singletonFactories`
+- A填充属性时发现需要B，然后去创建B
+- 创建B，实例化B，将B的`ObjectFactory`放入三级缓存
+- B填充属性时发现需要A，然后从一级缓存中去找，发现没有，然后去二级缓存中找，发现没有，再去三级缓存中找到了A的`ObjectFactory`，调用它生成A的早期引用，放入二级缓存，并从三级缓存移除
+- B获得A的引用，完成初始化，放入一级缓存
+- 回到A，此时B已经是一级缓存中的完整对象，A顺利注入B，完成初始化，放入一级缓存
+核心思想是：**在Bean实例化后、初始化前，先将其"提前暴露"出来**，让依赖它的其他Bean能够拿到一个"半成品"引用，从而打破循环。
+**为什么需要三级缓存**
+如果只是为了解决循环依赖，二级缓存就够了，需要三级缓存的原因就是AOP
+当Bean需要被AOP增强时，Spring需要创建代理对象而不是原始对象。但代理对象的创建时机是在初始化完成后通过`BeanPostProcessor`创建的
+如果在循环依赖发生时，B需要注入A，而此时A还没有完成初始化，还没有生成代理对象，B该拿到的是原始对象
+三级缓存存储的是`ObjectFactory`，而不是直接存放对象，这个工厂在被调用时才会决定返回原始对象还是代理对象
+```java
+singletonFactories.put("a", () -> getEarlyBeanReference("a", mbd, a));
+```
+`getEarlyBeanReference()`会判断这个Bean是否需要AOP代理。如果需要，就返回代理对象；如果不需要就返回原始对象
+如果只有二级缓存，在实例化A后就必须立即决定存入二级缓存的是原始对象还是代理对象，但是此时A尚未初始化，就无法确定是否需要AOP代理。
+三级缓存通过延迟决策解决了AOP代理的问题，先存工厂，等到真正需要的时候，再决定返回什么对象，从而保证全局单例的唯一性

@@ -1293,3 +1293,15 @@ final字段也有可见性保障。JVM保证对象构造完后，final字段的�
 CPU重排更常见，现代CPU都是乱序执行。CPU会把没有数据依赖的指令并行执行，执行完再按原始顺序提交结果。单线程下完全没问题，因为CPU保证了`as-if-serial`语义，执行结果和顺序执行一样
 但在多线程环境下，A线程的两条指令对A来说没依赖，对B线程可能就有依赖。例如对象初始化和引用赋值对构造线程没有依赖，但其他线程可能在其完成初始化前就拿到了引用
 JMM定义了`happens-before`规则来约束重排序。只要A操作`happens-before`B操作，那A的结果对B一定可见，A的执行顺序也一定在B之前
+## 83. happens-before
+**happens-before**是JMM定义的一套规则，用来约束多线程环境下操作的可见性和顺序性。如果操作A `happens-before` 操作B，那么A的执行结果对B一定可见，且A的执行顺序在B之前
+JMM允许编译器和CPU做指令重排序来优化性能，但重排序不能破坏`happens-before`关系。开发者只要遵守`happens-before`规则，就不用关心底层到底怎么重排的，JVM会保证正确性
+核心规则如下
+- **程序顺序规则**：同一个线程内，前面的操作happens-before后面的操作。单线程里代码按写的顺序执行，这是最基础的规则
+- **监视器锁规则**：对一个锁的unlock操作happens-before后续对同一个锁的lock操作。释放锁之前的所有修改，加锁后的线程都能看到
+- **volatile规则**：对volatile变量的写操作happens-before后续对这个变量的读操作。写入volatile的值，其他线程读的时候一定能看到最新的
+- **线程启动规则**：Thread.start()调用happens-before被启动线程里的所有操作。主线程在start()之前做的事情，新线程都能看到
+- **线程终止规则**：线程里的所有操作happens-before其他线程调用该线程的join()返回。join()返回后，能看到被等待线程的所有执行结果
+- **线程中断规则**：interrupt()调用happens-before被中断线程检测到中断事件。调用interrupt()之前的操作，被中断线程通过isInterrupted()检测到中断后都能看到
+- **对象终结规则**：对象构造函数执行完毕happens-before finalize()方法的开始。构造器里设置的字段，finalize()里一定能看到
+- **传递性规则**：如果A happens-before B，B happens-before C，那么A happens-before C。这条规则让happens-before关系可以传导
